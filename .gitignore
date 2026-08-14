@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Altium Designer: ONLY SCH, PCB, and PrjPcb
+**/History/
+__Previews/
+*.LOG
+*.log
+*.stp
+*.step
+*.epw
+*.Zip
+*.zip
+*.msi
+*.exe
+*.dll
+*.cat
+*.inf
+*.crdownload
+Project Outputs for */
+Project Logs for */
+
+# SolidWorks & CAD 3D/2D Drawings (Exceeds GitHub limits)
+*.SLDPRT
+*.sldprt
+*.SLDASM
+*.sldasm
+*.SLDDRW
+*.slddrw
+*.DWG
+*.dwg
+*.DXF
+*.dxf
+~$*
+
+# MPLAB X / dsPIC Firmware Build Output
+build/
+dist/
+nbproject/private/
+*.o
+*.d
+*.elf
+*.hex
+*.cof
+*.sym
+*.map
+
+# Large Docs / PDF
+*.pdf
+
+# Graphify intermediate cache
+graphify-out/cache/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.bak

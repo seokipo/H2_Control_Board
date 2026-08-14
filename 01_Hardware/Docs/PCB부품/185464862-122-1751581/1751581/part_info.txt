@@ -1,0 +1,9 @@
+Manufacturer=Phoenix Contact
+PartNumber=1751581
+PartCategory=Connector
+PackageCategory=Other
+PinCount=20
+Version=6.4
+Released=2024-01-04 08:04:32
+Downloaded=2026-06-17 04:11:56
+3D=Y

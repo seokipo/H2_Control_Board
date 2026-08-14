@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP 1818025
+D MCV 1,5/ 5-GF-3,5-LR - PCB headers, nominal cross section: 1.5 mm<sup>2</sup>, color: green, nominal current: 8 A, rated voltage (III/2): 160 V, contact surface: Sn, contact connection type: Pin, number of potentials: 5, number of rows: 1, number of positions: 5, number of connections: 5, product range: MCV 1,5/..-GF-LR, pitch: 3.5 mm, mounting: Wave soldering, pin layout: Linear pinning, solder pin [P]: 3.4 mm, number of solder pins per potential: 1, plug-in system: COMBICON MC 1,5, Pin connector pattern a
+K
+F https://www.phoenixcontact.com/en-us/products/pcb-header-mcv-15-5-gf-35-lr-1818025?type=pdf
+$ENDCMP
+#
+#End Doc Library

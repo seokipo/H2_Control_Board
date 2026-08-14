@@ -1,0 +1,1905 @@
+{
+  "nodes": [
+    {
+      "id": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "label": "ads1115.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "ads1115_i2c1_write",
+      "label": "I2C1_Write()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L20"
+    },
+    {
+      "id": "ads1115_i2c1_read",
+      "label": "I2C1_Read()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L26"
+    },
+    {
+      "id": "ads1115_getchannelmapping",
+      "label": "GetChannelMapping()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L35"
+    },
+    {
+      "id": "ads1115_ads1115_initialize",
+      "label": "ADS1115_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L74"
+    },
+    {
+      "id": "ads1115_ads1115_readraw",
+      "label": "ADS1115_ReadRaw()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L107"
+    },
+    {
+      "id": "ads1115_ads1115_readvoltage",
+      "label": "ADS1115_ReadVoltage()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L154"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_ads1115_h",
+      "label": "ads1115.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "label": "dac60516.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "dac60516_spi1_exchange8bit",
+      "label": "SPI1_Exchange8bit()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L21"
+    },
+    {
+      "id": "dac60516_dac60516_spi_write",
+      "label": "DAC60516_SPI_Write()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L30"
+    },
+    {
+      "id": "dac60516_getregisteraddress",
+      "label": "GetRegisterAddress()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L49"
+    },
+    {
+      "id": "dac60516_dac60516_initialize",
+      "label": "DAC60516_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L69"
+    },
+    {
+      "id": "dac60516_dac60516_writeraw",
+      "label": "DAC60516_WriteRaw()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L92"
+    },
+    {
+      "id": "dac60516_dac60516_writevoltage",
+      "label": "DAC60516_WriteVoltage()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L103"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_dac60516_h",
+      "label": "dac60516.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "label": "ethernet.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "ethernet_spi2_exchange8bit",
+      "label": "SPI2_Exchange8bit()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L14"
+    },
+    {
+      "id": "ethernet_eth_initialize",
+      "label": "ETH_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L28"
+    },
+    {
+      "id": "ethernet_eth_resetdevice",
+      "label": "ETH_ResetDevice()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L70"
+    },
+    {
+      "id": "ethernet_eth_writereg",
+      "label": "ETH_WriteReg()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L91"
+    },
+    {
+      "id": "ethernet_eth_readreg",
+      "label": "ETH_ReadReg()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L117"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_ethernet_h",
+      "label": "ethernet.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_flash_c",
+      "label": "flash.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "flash_spi3_exchange8bit",
+      "label": "SPI3_Exchange8bit()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L14"
+    },
+    {
+      "id": "flash_flash_initialize",
+      "label": "FLASH_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L22"
+    },
+    {
+      "id": "flash_flash_readid",
+      "label": "FLASH_ReadID()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L55"
+    },
+    {
+      "id": "flash_flash_writeenable",
+      "label": "FLASH_WriteEnable()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L73"
+    },
+    {
+      "id": "flash_flash_waitbusy",
+      "label": "FLASH_WaitBusy()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L80"
+    },
+    {
+      "id": "flash_flash_erasesector",
+      "label": "FLASH_EraseSector()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L92"
+    },
+    {
+      "id": "flash_flash_writepage",
+      "label": "FLASH_WritePage()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L109"
+    },
+    {
+      "id": "flash_flash_readdata",
+      "label": "FLASH_ReadData()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L132"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_flash_h",
+      "label": "flash.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_main_c",
+      "label": "main.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "main_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L38"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_modbus_c",
+      "label": "modbus.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "modbus_modbus_crc16",
+      "label": "Modbus_CRC16()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L23"
+    },
+    {
+      "id": "modbus_modbus_initialize",
+      "label": "Modbus_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L44"
+    },
+    {
+      "id": "modbus_modbus_processrxbyte",
+      "label": "Modbus_ProcessRxByte()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L57"
+    },
+    {
+      "id": "modbus_sendexceptionresponse",
+      "label": "SendExceptionResponse()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L74"
+    },
+    {
+      "id": "modbus_modbus_processframe",
+      "label": "Modbus_ProcessFrame()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L90"
+    },
+    {
+      "id": "modbus_modbus_task",
+      "label": "Modbus_Task()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L206"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_modbus_h",
+      "label": "modbus.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_pin_map_h",
+      "label": "pin_map.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\pin_map.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "pin_map_gpio_initialize",
+      "label": "GPIO_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\pin_map.h",
+      "source_location": "L234"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_rs422_c",
+      "label": "rs422.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "rs422_rs422_initialize",
+      "label": "RS422_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L17"
+    },
+    {
+      "id": "rs422_rs422_writebyte",
+      "label": "RS422_WriteByte()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L45"
+    },
+    {
+      "id": "rs422_rs422_writebuffer",
+      "label": "RS422_WriteBuffer()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L54"
+    },
+    {
+      "id": "rs422_rs422_isrxready",
+      "label": "RS422_IsRxReady()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L69"
+    },
+    {
+      "id": "rs422_rs422_readbyte",
+      "label": "RS422_ReadByte()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L75"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_rs422_h",
+      "label": "rs422.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_rs485_c",
+      "label": "rs485.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "rs485_rs485_initialize",
+      "label": "RS485_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L18"
+    },
+    {
+      "id": "rs485_rs485_writebyte",
+      "label": "RS485_WriteByte()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L50"
+    },
+    {
+      "id": "rs485_rs485_writebuffer",
+      "label": "RS485_WriteBuffer()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L68"
+    },
+    {
+      "id": "rs485_rs485_isrxready",
+      "label": "RS485_IsRxReady()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L94"
+    },
+    {
+      "id": "rs485_rs485_readbyte",
+      "label": "RS485_ReadByte()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L100"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_rs485_h",
+      "label": "rs485.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_rtc_c",
+      "label": "rtc.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "rtc_bcd2dec",
+      "label": "BCD2DEC()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L17"
+    },
+    {
+      "id": "rtc_dec2bcd",
+      "label": "DEC2BCD()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L22"
+    },
+    {
+      "id": "rtc_rtc_initialize",
+      "label": "RTC_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L27"
+    },
+    {
+      "id": "rtc_rtc_gettime",
+      "label": "RTC_GetTime()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L63"
+    },
+    {
+      "id": "rtc_rtc_settime",
+      "label": "RTC_SetTime()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L98"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_rtc_h",
+      "label": "rtc.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "label": "thermocouple.c",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L1"
+    },
+    {
+      "id": "thermocouple_max31856_writeregister",
+      "label": "MAX31856_WriteRegister()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L73"
+    },
+    {
+      "id": "thermocouple_max31856_readregister",
+      "label": "MAX31856_ReadRegister()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L84"
+    },
+    {
+      "id": "thermocouple_tc_initialize",
+      "label": "TC_Initialize()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L102"
+    },
+    {
+      "id": "thermocouple_tc_selectchannel",
+      "label": "TC_SelectChannel()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L125"
+    },
+    {
+      "id": "thermocouple_tc_readtemperature",
+      "label": "TC_ReadTemperature()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L172"
+    },
+    {
+      "id": "d_work_h2_control_board_02_firmware_thermocouple_h",
+      "label": "thermocouple.h",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.h",
+      "source_location": "L1"
+    },
+    {
+      "id": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "label": "serial_bridge.py",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "serial_bridge_serial_reader",
+      "label": "serial_reader()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L14"
+    },
+    {
+      "id": "serial_bridge_handler",
+      "label": "handler()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L43"
+    },
+    {
+      "id": "serial_bridge_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L141"
+    }
+  ],
+  "edges": [
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115_i2c1_write",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115_i2c1_read",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115_getchannelmapping",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115_ads1115_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115_ads1115_readraw",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_c",
+      "target": "ads1115_ads1115_readvoltage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L154",
+      "weight": 1.0
+    },
+    {
+      "source": "ads1115_ads1115_initialize",
+      "target": "ads1115_i2c1_write",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "ads1115_ads1115_readraw",
+      "target": "ads1115_getchannelmapping",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L112",
+      "weight": 1.0
+    },
+    {
+      "source": "ads1115_ads1115_readraw",
+      "target": "ads1115_i2c1_write",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "ads1115_ads1115_readraw",
+      "target": "ads1115_i2c1_read",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L144",
+      "weight": 1.0
+    },
+    {
+      "source": "ads1115_ads1115_readvoltage",
+      "target": "ads1115_ads1115_readraw",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.c",
+      "source_location": "L157",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ads1115_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ads1115.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "pin_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516_spi1_exchange8bit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516_dac60516_spi_write",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516_getregisteraddress",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516_dac60516_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516_dac60516_writeraw",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_c",
+      "target": "dac60516_dac60516_writevoltage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "dac60516_dac60516_spi_write",
+      "target": "dac60516_spi1_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "dac60516_dac60516_initialize",
+      "target": "dac60516_dac60516_spi_write",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "dac60516_dac60516_writeraw",
+      "target": "dac60516_getregisteraddress",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "dac60516_dac60516_writeraw",
+      "target": "dac60516_dac60516_spi_write",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "dac60516_dac60516_writevoltage",
+      "target": "dac60516_dac60516_writeraw",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.c",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_dac60516_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\dac60516.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "ethernet",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "pin_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "ethernet_spi2_exchange8bit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "ethernet_eth_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "ethernet_eth_resetdevice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "ethernet_eth_writereg",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_c",
+      "target": "ethernet_eth_readreg",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "ethernet_eth_initialize",
+      "target": "ethernet_eth_resetdevice",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "ethernet_eth_writereg",
+      "target": "ethernet_spi2_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "ethernet_eth_readreg",
+      "target": "ethernet_spi2_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.c",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_ethernet_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\ethernet.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "pin_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_readid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_writeenable",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_waitbusy",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L80",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_erasesector",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_writepage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_c",
+      "target": "flash_flash_readdata",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_readid",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_writeenable",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_waitbusy",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_erasesector",
+      "target": "flash_flash_writeenable",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_erasesector",
+      "target": "flash_flash_waitbusy",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_erasesector",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_writepage",
+      "target": "flash_flash_writeenable",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_writepage",
+      "target": "flash_flash_waitbusy",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L114",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_writepage",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_readdata",
+      "target": "flash_flash_waitbusy",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L134",
+      "weight": 1.0
+    },
+    {
+      "source": "flash_flash_readdata",
+      "target": "flash_spi3_exchange8bit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.c",
+      "source_location": "L137",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_flash_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\flash.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "pin_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "ads1115",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "dac60516",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "thermocouple",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "rs485",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "rs422",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "modbus",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "ethernet",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "flash",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "rtc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_main_c",
+      "target": "main_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\main.c",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "rs422",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "dac60516",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus_modbus_crc16",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus_modbus_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus_modbus_processrxbyte",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus_sendexceptionresponse",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus_modbus_processframe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_c",
+      "target": "modbus_modbus_task",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L206",
+      "weight": 1.0
+    },
+    {
+      "source": "modbus_sendexceptionresponse",
+      "target": "modbus_modbus_crc16",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "modbus_modbus_processframe",
+      "target": "modbus_modbus_crc16",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "modbus_modbus_processframe",
+      "target": "modbus_sendexceptionresponse",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "modbus_modbus_task",
+      "target": "modbus_modbus_processrxbyte",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "modbus_modbus_task",
+      "target": "modbus_modbus_processframe",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.c",
+      "source_location": "L229",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_modbus_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\modbus.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_pin_map_h",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\pin_map.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_pin_map_h",
+      "target": "pin_map_gpio_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\pin_map.h",
+      "source_location": "L234",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "rs422",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "rs422_rs422_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "rs422_rs422_writebyte",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "rs422_rs422_writebuffer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "rs422_rs422_isrxready",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_c",
+      "target": "rs422_rs422_readbyte",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.c",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.h",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs422_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs422.h",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "rs485",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "pin_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "rs485_rs485_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "rs485_rs485_writebyte",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "rs485_rs485_writebuffer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "rs485_rs485_isrxready",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_c",
+      "target": "rs485_rs485_readbyte",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.c",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.h",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rs485_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rs485.h",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "rtc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "xc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "rtc_bcd2dec",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "rtc_dec2bcd",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "rtc_rtc_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "rtc_rtc_gettime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L63",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_c",
+      "target": "rtc_rtc_settime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "rtc_rtc_gettime",
+      "target": "rtc_bcd2dec",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "rtc_rtc_settime",
+      "target": "rtc_dec2bcd",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.c",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_rtc_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\rtc.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "thermocouple",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "pin_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "thermocouple_max31856_writeregister",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "thermocouple_max31856_readregister",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "thermocouple_tc_initialize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "thermocouple_tc_selectchannel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_c",
+      "target": "thermocouple_tc_readtemperature",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L172",
+      "weight": 1.0
+    },
+    {
+      "source": "thermocouple_tc_initialize",
+      "target": "thermocouple_max31856_writeregister",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "thermocouple_tc_selectchannel",
+      "target": "thermocouple_max31856_writeregister",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L167",
+      "weight": 1.0
+    },
+    {
+      "source": "thermocouple_tc_readtemperature",
+      "target": "thermocouple_tc_selectchannel",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L175",
+      "weight": 1.0
+    },
+    {
+      "source": "thermocouple_tc_readtemperature",
+      "target": "thermocouple_max31856_readregister",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.c",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_h",
+      "target": "stdint",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.h",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_02_firmware_thermocouple_h",
+      "target": "stdbool",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\02_Firmware\\thermocouple.h",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "asyncio",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "json",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "websockets",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "serial",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "sys",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "random",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "serial_bridge_serial_reader",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "serial_bridge_handler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "d_work_h2_control_board_03_control_ui_serial_bridge_py",
+      "target": "serial_bridge_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "serial_bridge_handler",
+      "target": "serial_bridge_serial_reader",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "D:\\Work\\H2_Control_Board\\03_Control_UI\\serial_bridge.py",
+      "source_location": "L48",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

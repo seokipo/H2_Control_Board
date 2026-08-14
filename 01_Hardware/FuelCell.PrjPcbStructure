@@ -1,0 +1,6 @@
+Record=TopLevelDocument|FileName=Ethernet.SchDoc|SheetNumber=5
+Record=NoMainPathDocument|SourceDocument=Ethernet.SchDoc|FileName=Input_Section.SchDoc|SheetNumber=3
+Record=NoMainPathDocument|SourceDocument=Ethernet.SchDoc|FileName=Mcu.SchDoc|SheetNumber=4
+Record=NoMainPathDocument|SourceDocument=Ethernet.SchDoc|FileName=Output_Section.SchDoc|SheetNumber=1
+Record=NoMainPathDocument|SourceDocument=Ethernet.SchDoc|FileName=Power.SchDoc|SheetNumber=6
+Record=NoMainPathDocument|SourceDocument=Ethernet.SchDoc|FileName=TempController.SchDoc|SheetNumber=2

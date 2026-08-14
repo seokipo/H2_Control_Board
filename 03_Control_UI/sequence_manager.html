@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 수소 연료전지 자동 제어 시퀀스 매니저 (독립 팝업 윈도우)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070c18;
+            --panel-bg: rgba(13, 22, 44, 0.95);
+            --primary: #38bdf8;
+            --accent-gold: #f59e0b;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            padding: 16px;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        .header-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 800;
+            color: #fde047;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-macro-builder {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(245, 158, 11, 0.15));
+            border: 1px solid rgba(245, 158, 11, 0.7);
+            color: #fde047;
+            font-family: 'Outfit', sans-serif;
+            font-size: 11.5px;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+        }
+        .btn-macro-builder:hover {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.7), rgba(245, 158, 11, 0.3));
+            color: #fff;
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn-dock-back {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(56, 189, 248, 0.15));
+            border: 1px solid rgba(56, 189, 248, 0.6);
+            color: #7dd3fc;
+            font-family: 'Outfit', sans-serif;
+            font-size: 11.5px;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+        .btn-dock-back:hover {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.6), rgba(56, 189, 248, 0.3));
+            color: #fff;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-popup-reset {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(239, 68, 68, 0.15));
+            border: 1px solid rgba(239, 68, 68, 0.6);
+            color: #fca5a5;
+            font-family: 'Outfit', sans-serif;
+            font-size: 11.5px;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+        .btn-popup-reset:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.6), rgba(239, 68, 68, 0.3));
+            color: #fff;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .card-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        select {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fff;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .seq-btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .seq-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 12.5px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid transparent;
+        }
+
+        .seq-btn-start {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(16, 185, 129, 0.15));
+            border-color: rgba(16, 185, 129, 0.6);
+            color: #6ee7b7;
+        }
+        .seq-btn-start:hover {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.55), rgba(16, 185, 129, 0.25));
+            color: #fff;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .seq-btn-pause {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(245, 158, 11, 0.15));
+            border-color: rgba(245, 158, 11, 0.6);
+            color: #fde047;
+        }
+        .seq-btn-pause:hover {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.55), rgba(245, 158, 11, 0.25));
+            color: #fff;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .seq-btn-stop {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(239, 68, 68, 0.15));
+            border-color: rgba(239, 68, 68, 0.6);
+            color: #fca5a5;
+        }
+        .seq-btn-stop:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.55), rgba(239, 68, 68, 0.25));
+            color: #fff;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .progress-box {
+            margin-top: 14px;
+        }
+
+        .progress-bar-bg {
+            background: rgba(0, 0, 0, 0.5);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 6px;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            transition: width 0.3s ease;
+        }
+
+        .steps-container {
+            margin-top: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .console-log {
+            margin-top: 14px;
+            height: 120px;
+            background: rgba(5, 8, 17, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 10.5px;
+            color: #a7f3d0;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="header-title">
+            <span>🤖</span> 수소 연료전지 자동 제어 시퀀스 매니저
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn-macro-builder" id="btn-open-macro-builder" onclick="openMacroBuilderModal()">➕ 시퀀스 매크로 빌더</button>
+            <button class="btn-popup-reset" id="btn-popup-reset-all" onclick="triggerResetAllFromPopup()">🔄 전체 초기화</button>
+            <button class="btn-dock-back" id="btn-dock-back" onclick="requestDockBackToOpener()">↙ 메인 창으로 복귀</button>
+        </div>
+    </div>
+
+    <!-- 🔴 시퀀스 매크로 레코더 / 비주얼 빌더 모달 -->
+    <div id="macro-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:#0f172a; border:1px solid #f59e0b; border-radius:12px; width:95%; max-width:850px; max-height:92vh; padding:18px 22px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; box-shadow:0 0 35px rgba(245,158,11,0.4);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
+                <div style="font-size:14px; font-weight:800; color:#fde047; display:flex; align-items:center; gap:8px;">
+                    <span>🔴</span> 시퀀스 매크로 레코더 (Visual Recipe Builder)
+                </div>
+                <button onclick="closeMacroBuilderModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; font-weight:bold;">✕</button>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="macro-recipe-id" placeholder="레시피 ID (예: custom_purge_01)" style="flex:1; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:700;">
+                    <select id="macro-recipe-category" style="width:140px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:6px; border-radius:6px; font-size:11px;">
+                        <option value="STARTUP">STARTUP (기동)</option>
+                        <option value="SAFETY">SAFETY (안전)</option>
+                        <option value="COOLING">COOLING (냉각)</option>
+                        <option value="CUSTOM" selected>CUSTOM (커스텀)</option>
+                    </select>
+                </div>
+                <input type="text" id="macro-recipe-title" placeholder="레시피 타이틀 (예: [CUSTOM] 개질기 2차 질소 퍼지 시퀀스)" style="background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:700;">
+                <input type="text" id="macro-recipe-desc" placeholder="레시피 상세 설명..." style="background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:6px 10px; border-radius:6px; font-size:11px;">
+            </div>
+
+            <!-- 🔴 레코딩 툴바 & 상태 패널 -->
+            <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(245,158,11,0.3); padding:8px 10px; border-radius:8px; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:11px; font-weight:700; color:#cbd5e1; display:flex; align-items:center; gap:6px;">
+                        <span id="macro-rec-dot" style="width:8px; height:8px; border-radius:50%; background:#64748b;"></span>
+                        <span id="macro-rec-status-text">레코딩 대기 중... (메인 대시보드 조작 또는 아래 툴바 버튼으로 스텝 추가)</span>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button id="btn-toggle-recording" onclick="toggleMacroRecording()" style="background:#ef4444; border:none; color:#fff; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(239,68,68,0.4);">🔴 레코딩 시작</button>
+                        <button onclick="addDelayStepPrompt()" style="background:#3b82f6; border:none; color:#fff; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">⏱️ 딜레이 추가</button>
+                    </div>
+                </div>
+
+                <!-- 🛠️ 1. DO 디지털 릴레이 쾌속 추가 툴바 (DO 20채널 100% 완비) -->
+                <div style="background:rgba(15,23,42,0.8); border:1px dashed rgba(255,255,255,0.15); border-radius:6px; padding:5px 8px; display:flex; gap:6px; align-items:center;">
+                    <span style="font-size:10px; color:#fde047; font-weight:800; min-width:70px;">⚡ DO 릴레이:</span>
+                    <select id="quick-do-target" style="flex:1; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px 6px; border-radius:4px; font-size:10.5px;">
+                        <option value="DO_MC_SW">DO_MC_SW (MC 동작 메인 전원 스위치)</option>
+                        <option value="DO_SV102">DO_SV102 (가스 인입 솔레노이드 밸브 1)</option>
+                        <option value="DO_SV103">DO_SV103 (가스 인입 솔레노이드 밸브 2)</option>
+                        <option value="DO_SV125">DO_SV125 (개질기 질소퍼지 솔레노이드 밸브)</option>
+                        <option value="DO_SV145">DO_SV145 (ANODE 인입 솔레노이드 밸브)</option>
+                        <option value="DO_SV149">DO_SV149 (스택 질소퍼지 솔레노이드 밸브)</option>
+                        <option value="DO_SV323">DO_SV323 (DI TANK 드레인 솔레노이드 밸브)</option>
+                        <option value="DO_MV124">DO_MV124 (PNG 인입 전동 밸브)</option>
+                        <option value="DO_MV131">DO_MV131 (개질 가스 인입 전동 밸브)</option>
+                        <option value="DO_MV148">DO_MV148 (개질가스 Bypass 전동 밸브)</option>
+                        <option value="DO_MV150">DO_MV150 (Anode 출구 전동 밸브)</option>
+                        <option value="DO_MV155">DO_MV155 (AOG 전동 밸브)</option>
+                        <option value="DO_MV158">DO_MV158 (AOG VENT 전동 밸브)</option>
+                        <option value="DO_MV300">DO_MV300 (시설수 입구 전동 밸브)</option>
+                        <option value="DO_MV390">DO_MV390 (배열 회수 입구 전동 밸브)</option>
+                        <option value="DO_HT193">DO_HT193 (LTS 촉매 히터 1)</option>
+                        <option value="DO_HT194">DO_HT194 (LTS 촉매 히터 2)</option>
+                        <option value="DO_HT195">DO_HT195 (Prox 히터 1)</option>
+                        <option value="DO_HT196">DO_HT196 (Prox 히터 2)</option>
+                        <option value="DO_IGN175">DO_IGN175 (점화 트랜스 Ignite)</option>
+                    </select>
+                    <select id="quick-do-action" style="width:75px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px 4px; border-radius:4px; font-size:10.5px;">
+                        <option value="ON">ON (열기)</option>
+                        <option value="OFF">OFF (닫기)</option>
+                    </select>
+                    <button onclick="addQuickDoStep()" style="background:#8b5cf6; border:none; color:#fff; padding:4px 8px; border-radius:4px; font-size:10.5px; font-weight:800; cursor:pointer; white-space:nowrap;">+ DO 스텝</button>
+                </div>
+
+                <!-- 🛠️ 2. DAC 아날로그 속도/전압 제어 쾌속 툴바 (DAC 11채널 100% 완비) -->
+                <div style="background:rgba(15,23,42,0.8); border:1px dashed rgba(56,189,248,0.3); border-radius:6px; padding:5px 8px; display:flex; gap:6px; align-items:center;">
+                    <span style="font-size:10px; color:#38bdf8; font-weight:800; min-width:70px;">⚡ DAC 제어:</span>
+                    <select id="quick-dac-target" style="flex:1; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px 6px; border-radius:4px; font-size:10.5px;">
+                        <option value="AO_AB212">AO_AB212 (STACK 공기 공급 에어블로어)</option>
+                        <option value="AO_AB221">AO_AB221 (개질기 연소용 에어블로어)</option>
+                        <option value="AO_AB232">AO_AB232 (Prox 제어용 에어블로어)</option>
+                        <option value="AO_MFC111">AO_MFC111 (BNG 유량 제어 MFC)</option>
+                        <option value="AO_MFC121">AO_MFC121 (PNG 유량 제어 MFC)</option>
+                        <option value="AO_P108">AO_P108 (연료가스 공급 가압 펌프)</option>
+                        <option value="AO_P341">AO_P341 (AOG 회수라인 응축수 펌프)</option>
+                        <option value="AO_P351">AO_P351 (Anode 냉각수 순환 물펌프)</option>
+                        <option value="AO_P370">AO_P370 (STACK 1 냉각수 공급 펌프)</option>
+                        <option value="AO_P375">AO_P375 (STACK 2 냉각수 공급 펌프 10kW)</option>
+                        <option value="AO_P380">AO_P380 (개질기 물 공급 정량 펌프)</option>
+                    </select>
+                    <input type="number" id="quick-dac-speed" placeholder="속도%" min="0" max="100" value="30" style="width:50px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10.5px; text-align:center;">
+                    <button onclick="addQuickDacStep()" style="background:#0284c7; border:none; color:#fff; padding:4px 8px; border-radius:4px; font-size:10.5px; font-weight:800; cursor:pointer; white-space:nowrap;">+ DAC 스텝</button>
+                </div>
+
+                <!-- 🛠️ 3. 🎯 센서 피드백 조건 대기 툴바 (ADC 14개 & TC 주요 센서 완비) -->
+                <div style="background:rgba(15,23,42,0.8); border:1px dashed rgba(16,185,129,0.3); border-radius:6px; padding:5px 8px; display:flex; gap:6px; align-items:center;">
+                    <span style="font-size:10px; color:#34d399; font-weight:800; min-width:70px;">🎯 센서 대기:</span>
+                    <select id="quick-sensor-id" style="flex:1; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px;">
+                        <option value="AI_PT109">AI_PT109 (연료 가압라인 압력계)</option>
+                        <option value="AI_PT105">AI_PT105 (가스 인입 압력계)</option>
+                        <option value="AI_PT113">AI_PT113 (탈황기 전단 압력계)</option>
+                        <option value="AI_PT123">AI_PT123 (개질기 입구 압력계)</option>
+                        <option value="AI_PT146">AI_PT146 (Anode 인입 압력계)</option>
+                        <option value="AI_PT162">AI_PT162 (AOG 회수 압력계)</option>
+                        <option value="AI_PT383">AI_PT383 (스택 냉각수 압력계)</option>
+                        <option value="AI_CS324">AI_CS324 (DI TANK 전도도 계측 센서)</option>
+                        <option value="AI_MFC111">AI_MFC111 (BNG 유량 계측 센서)</option>
+                        <option value="AI_MFC121">AI_MFC121 (PNG 유량 계측 센서)</option>
+                        <option value="AI_MFM211">AI_MFM211 (공기 공급 유량 센서)</option>
+                        <option value="AI_MFM222">AI_MFM222 (연소 공기 유량 센서)</option>
+                        <option value="AI_MFM231">AI_MFM231 (Prox 공기 유량 센서)</option>
+                        <option value="AI_MFM315">AI_MFM315 (스택 냉각수 유량 계측)</option>
+                        <option value="CH21">CH21 (Ref-BN 개질 버너 820℃)</option>
+                        <option value="CH22">CH22 (Ref-SR1 개질 반응기 750℃)</option>
+                        <option value="CH10">CH10 (스택 냉각수 순환 70℃)</option>
+                        <option value="FM382">FM382 (RS485 유량 센서)</option>
+                    </select>
+                    <select id="quick-sensor-op" style="width:42px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px;">
+                        <option value=">=">&gt;=</option>
+                        <option value="<=">&lt;=</option>
+                        <option value="==">==</option>
+                    </select>
+                    <input type="number" id="quick-sensor-val" placeholder="목표값" step="0.1" value="5.0" style="width:48px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px; text-align:center;">
+                    <input type="number" id="quick-sensor-timeout" placeholder="제한초" value="10" style="width:40px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px; text-align:center;">
+                    <button onclick="addQuickSensorStep()" style="background:#059669; border:none; color:#fff; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:800; cursor:pointer; white-space:nowrap;">+ 센서 대기</button>
+                </div>
+
+                <!-- 🛠️ 4. 🎛️ PID 자동 폐루프 제어 툴바 (AI_ 아날로그 입력 센서 전용 1:1 자동 바인딩) -->
+                <div style="background:rgba(15,23,42,0.85); border:1px dashed rgba(245,158,11,0.5); border-radius:6px; padding:5px 8px; display:flex; gap:6px; align-items:center;">
+                    <span style="font-size:10px; color:#f59e0b; font-weight:800; min-width:70px;">🎛️ PID 제어:</span>
+                    
+                    <!-- 🔒 읽기전용 지정 DAC 구동장치 (AI_ 센서 선택 시 100% 자동 텍스트 전환, 텍스트 축약으로 공간 대폭 확보) -->
+                    <div id="pid-dac-box" title="1:1 자동 바인딩된 아날로그 출력(DAC) 구동장치" style="display:flex; align-items:center; gap:4px; flex:1.4; background:#020617; border:1px solid #f59e0b; border-radius:4px; padding:3px 6px; box-shadow:0 0 6px rgba(245, 158, 11, 0.3); overflow:hidden;">
+                        <span style="font-size:11px; flex-shrink:0;">🔒</span>
+                        <input type="hidden" id="pid-dac-target" value="AO_P108">
+                        <span id="pid-dac-target-display" style="color:#fde047; font-size:10.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">AO_P108 (연료가스 공급 가압 펌프)</span>
+                    </div>
+
+                    <span style="font-size:11px; color:#f59e0b; font-weight:900; white-space:nowrap;">⚡⇐1:1</span>
+
+                    <!-- 🎯 PID 계측 피드백 아날로그 입력(AI_) 센서 선택창 (AI_ 전용 계측 센서만 제공) -->
+                    <select id="pid-sensor-id" onchange="syncPidBySensor()" oninput="syncPidBySensor()" title="PID 감시/목표 아날로그 입력 센서 (AI_ 전용)" style="flex:1.3; background:#0f172a; border:2px solid #f59e0b; color:#fbbf24; padding:3px; border-radius:4px; font-size:10.5px; font-weight:800; cursor:pointer; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);">
+                        <option value="AI_PT109" selected>AI_PT109 (가스 버퍼탱크 압력 센서)</option>
+                        <option value="AI_PT105">AI_PT105 (가스 인입 압력 센서)</option>
+                        <option value="AI_PT123">AI_PT123 (개질기 입구 압력 센서)</option>
+                        <option value="AI_PT162">AI_PT162 (AOG 회수 압력 센서)</option>
+                        <option value="AI_MFM211">AI_MFM211 (STACK 공기 유량 센서)</option>
+                        <option value="AI_MFM222">AI_MFM222 (개질기 연소 공기 유량 센서)</option>
+                        <option value="AI_MFM231">AI_MFM231 (Prox 공기 주입 유량 센서)</option>
+                        <option value="AI_MFC111">AI_MFC111 (BNG 가스 유량 센서)</option>
+                        <option value="AI_MFC121">AI_MFC121 (PNG 가스 유량 센서)</option>
+                        <option value="AI_MFM315">AI_MFM315 (STACK 냉각수 유량 센서)</option>
+                    </select>
+                    <input type="number" id="pid-setpoint" placeholder="목표SP" title="추종하고자 하는 센서 목표 설정값 (Set-Point)" step="0.1" value="5.0" style="width:48px; background:#020617; border:1px solid #f59e0b; color:#fde047; padding:3px; border-radius:4px; font-size:10px; text-align:center; font-weight:800;">
+                    <input type="number" id="pid-duration" placeholder="초(0=백그라운드)" min="0" oninput="if(this.value<0)this.value=0" title="목표치 제어 유지 시간 (초, 0 입력 시: 백그라운드에서 유지하며 다음 스텝 즉시 진행)" value="5" style="width:68px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:3px; border-radius:4px; font-size:10px; text-align:center;">
+                    <button onclick="addQuickPidStep()" style="background:#d97706; border:none; color:#fff; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:800; cursor:pointer; white-space:nowrap;">+ PID 스텝</button>
+                </div>
+
+                <!-- 🛠️ 5. 🔀 IF 조건 분기 스텝 툴바 (센서 계측값 조건 비교 ➔ 참/거짓 경로 분기 점프) -->
+                <div style="background:rgba(15,23,42,0.8); border:1px dashed rgba(168,85,247,0.5); border-radius:6px; padding:5px 8px; display:flex; gap:6px; align-items:center;">
+                    <span style="font-size:10px; color:#c084fc; font-weight:800; min-width:70px;">🔀 IF 분기:</span>
+                    <select id="if-sensor-target" style="flex:1; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px;">
+                        <option value="AI_PT109">AI_PT109 (가스 버퍼탱크 압력계)</option>
+                        <option value="AI_PT105">AI_PT105 (가스 인입 압력계)</option>
+                        <option value="AI_PT123">AI_PT123 (개질기 입구 압력계)</option>
+                        <option value="AI_PT162">AI_PT162 (AOG 회수 압력계)</option>
+                        <option value="AI_MFC111">AI_MFC111 (BNG 유량 계측 센서)</option>
+                        <option value="AI_MFC121">AI_MFC121 (PNG 유량 계측 센서)</option>
+                        <option value="AI_MFM211">AI_MFM211 (공기 공급 유량 센서)</option>
+                        <option value="AI_MFM222">AI_MFM222 (연소 공기 유량 센서)</option>
+                        <option value="AI_MFM315">AI_MFM315 (스택 냉각수 유량 계측)</option>
+                        <option value="CH21">CH21 (Ref-BN 개질 버너 820℃)</option>
+                        <option value="CH22">CH22 (Ref-SR1 개질 반응기 750℃)</option>
+                        <option value="CH10">CH10 (스택 냉각수 순환 70℃)</option>
+                        <option value="FM382">FM382 (RS485 유량 센서)</option>
+                    </select>
+                    <select id="if-operator" style="width:45px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px;">
+                        <option value=">=">&gt;=</option>
+                        <option value="<=">&lt;=</option>
+                        <option value="==">==</option>
+                        <option value=">">&gt;</option>
+                        <option value="<">&lt;</option>
+                    </select>
+                    <input type="number" id="if-target-val" placeholder="기준값" step="0.1" value="4.5" style="width:48px; background:#020617; border:1px solid rgba(255,255,255,0.15); color:#fff; padding:4px; border-radius:4px; font-size:10px; text-align:center;">
+                    <span style="font-size:9.5px; color:#a7f3d0; font-weight:800; white-space:nowrap;">TRUE➔</span>
+                    <input type="number" id="if-jump-true" placeholder="참 Step" value="5" min="1" style="width:36px; background:#020617; border:1px solid #10b981; color:#34d399; padding:4px; border-radius:4px; font-size:10px; text-align:center; font-weight:800;">
+                    <span style="font-size:9.5px; color:#fca5a5; font-weight:800; white-space:nowrap;">FALSE➔</span>
+                    <input type="number" id="if-jump-false" placeholder="거짓 Step" value="8" min="1" style="width:36px; background:#020617; border:1px solid #f87171; color:#fca5a5; padding:4px; border-radius:4px; font-size:10px; text-align:center; font-weight:800;">
+                    <button onclick="addQuickIfBranchStep()" style="background:#9333ea; border:none; color:#fff; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:800; cursor:pointer; white-space:nowrap;">+ IF 분기 스텝</button>
+                </div>
+            </div>
+
+            <!-- 📋 조립 중인 스텝 목록 뷰어 -->
+            <div style="font-size:11px; font-weight:800; color:#38bdf8; display:flex; justify-content:space-between; align-items:center;">
+                <span>📋 조립된 시퀀스 스텝 목록 (<span id="macro-step-count">0</span>개)</span>
+                <button onclick="clearRecordedSteps()" style="background:none; border:none; color:#f87171; font-size:10px; cursor:pointer; text-decoration:underline;">전체 삭제</button>
+            </div>
+            <div id="macro-step-list-container" style="background:#020617; border:1px solid rgba(255,255,255,0.1); border-radius:8px; min-height:150px; max-height:220px; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:6px;">
+                <div style="color:#64748b; font-size:11px; text-align:center; padding-top:50px;">메인 화면에서 밸브/펌프를 클릭하거나 위 툴바에서 스텝을 추가하십시오.</div>
+            </div>
+
+            <!-- 💾 저장 / 다운로드 / 🤖 MCU C코드 추출 & RS-422 전송 버튼 바 -->
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; gap:6px;">
+                    <button onclick="saveMacroRecipeToBackend()" style="flex:2; background:linear-gradient(135deg, #10b981, #059669); border:1px solid #34d399; color:#fff; padding:8px; border-radius:6px; font-size:11.5px; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(16,185,129,0.3);">💾 백엔드/로컬 저장 (Save Recipe)</button>
+                    <button onclick="downloadRecipeJsonFile()" style="flex:1; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fbbf24; color:#fff; padding:8px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">📥 JSON 다운로드</button>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="exportMcuCHeader()" style="flex:1; background:linear-gradient(135deg, #8b5cf6, #6d28d9); border:1px solid #c084fc; color:#fff; padding:8px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(139,92,246,0.3);">🤖 MCU C코드 (.h) 추출</button>
+                    <button onclick="sendRecipeToMcuViaRs422()" style="flex:1; background:linear-gradient(135deg, #0284c7, #0369a1); border:1px solid #38bdf8; color:#fff; padding:8px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; box-shadow:0 0 10px rgba(56,189,248,0.3);">📡 RS-422 MCU 레시피 직접 전송</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 제어 카드 패널 -->
+    <div class="card-panel">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 700;">실행 제어 레시피 선택 (Recipe Selector)</div>
+                <div style="display: flex; gap: 6px;">
+                    <button id="btn-edit-selected-recipe" onclick="editSelectedRecipe()" style="background:#0284c7; border:none; color:#fff; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 0 8px rgba(2,132,199,0.4);" title="선택된 레시피를 매크로 빌더로 불러와 스텝 수정">✏️ 레시피 수정</button>
+                    <button id="btn-delete-selected-recipe" onclick="deleteSelectedRecipe()" style="background:#ef4444; border:none; color:#fff; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 0 8px rgba(239,68,68,0.4);" title="선택된 레시피를 영구 삭제">🗑️ 레시피 삭제</button>
+                </div>
+            </div>
+            <select id="seq-recipe-select">
+                <option value="">시퀀스 레시피 로딩 중...</option>
+            </select>
+        </div>
+
+        <div id="seq-recipe-desc" style="font-size: 11px; color: #cbd5e1; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #f59e0b; line-height: 1.4;">
+            레시피를 선택하면 제어 스텝 및 설명이 표시됩니다.
+        </div>
+
+        <!-- 버튼 바 -->
+        <div class="seq-btn-grid">
+            <button id="btn-seq-start" class="seq-btn seq-btn-start">
+                <span style="font-size: 14px;">▶</span> 시작
+            </button>
+            <button id="btn-seq-pause" class="seq-btn seq-btn-pause">
+                <span style="font-size: 13px;">❚❚</span> 일시정지
+            </button>
+            <button id="btn-seq-stop" class="seq-btn seq-btn-stop">
+                <span style="font-size: 13px;">◼</span> 강제 정지
+            </button>
+        </div>
+    </div>
+
+    <!-- 프로그레스 상태 -->
+    <div class="progress-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11.5px; font-weight: 700; color: #60a5fa;" id="seq-status-text">상태: 대기 중 (IDLE)</span>
+            <span style="font-size: 11.5px; font-weight: 700; color: #fde047;" id="seq-progress-percent">0.0 %</span>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="seq-progress-bar-inner"></div>
+        </div>
+    </div>
+
+    <!-- 세부 스텝 -->
+    <div class="steps-container" id="seq-steps-container">
+        <!-- JS 동적 생성 -->
+    </div>
+
+    <!-- 콘솔 로그 -->
+    <div class="console-log" id="seq-console-log">
+        [SYSTEM LOG] 독립 팝업 시퀀스 매니저가 기동되었습니다.
+    </div>
+
+    <script>
+        const defaultRecipes = [
+            {
+                id: "recipe_start_purge",
+                name: "개질기 기동 퍼지 & 압력 형성 시퀀스",
+                category: "STARTUP",
+                description: "시스템 기동 시 개질기 잔류 가스 질소 퍼지 및 연료 가압 라인 초기 밸브 순차 개방 로직입니다.",
+                steps: [
+                    { step: 1, title: "질소 퍼지 밸브 개방 및 대기", desc: "질소 퍼지 솔레노이드 밸브(DO_SV125)를 열고 3초간 잔류 가스를 주입 퍼지합니다.", actions: { DO_SV125: 1, DO_SV102: 0 }, wait_seconds: 3 },
+                    { step: 2, title: "연료가스 공급 가압 펌프 예열 분사", desc: "가압 펌프(AO_P108)를 20%로 구동하고 버퍼 탱크 압력(AI_PT109) 5.0kPa 이상을 감시합니다.", actions: { AO_P108: 13107 }, condition: { sensor: "AI_PT109", operator: ">=", target_val: 5.0 }, timeout_seconds: 10 },
+                    { step: 3, title: "개질가스 인입 전동 밸브 개방", desc: "개질 가스 인입 전동 밸브(DO_MV131)를 열고 안정화를 위해 5초간 대기합니다.", actions: { DO_MV131: 1 }, wait_seconds: 5 },
+                    { step: 4, title: "기동 퍼지 시퀀스 성공적 완료", desc: "모든 초기 가압 및 퍼지 조건이 달성되어 정상 구동 준비 상태로 전환됩니다.", actions: { DO_SV125: 0 }, wait_seconds: 1 }
+                ]
+            },
+            {
+                id: "recipe_safety_leak_test",
+                name: "수소/메탄 가스 누설 인터록 기동 테스트 모드",
+                category: "SAFETY",
+                description: "안전 가스 누설 경보기(GD501/502) 및 차단 밸브의 인터록 응답성을 시뮬레이션 검증합니다.",
+                steps: [
+                    { step: 1, title: "가스 메인 인입 솔레노이드 밸브 1 개방", desc: "메인 가스 밸브(DO_SV102)를 열어 테스트 라인을 가압 상태로 준비합니다.", actions: { DO_SV102: 1, DO_SV103: 1 }, wait_seconds: 2 },
+                    { step: 2, title: "가스 누설 감지 인터록 상시 감시 상태 진입", desc: "메탄 감지기(DI_GD501) 및 수소 감지기(DI_GD502)의 안전 차단 락다운 반응을 테스트합니다.", actions: {}, wait_seconds: 4 },
+                    { step: 3, title: "안전 인스펙션 완료 및 메인 밸브 복구 차단", desc: "안전 인터록 밸브 모듈 검증을 마치고 차단 상태로 원복합니다.", actions: { DO_SV102: 0, DO_SV103: 0 }, wait_seconds: 1 }
+                ]
+            },
+            {
+                id: "recipe_cooling_loop",
+                name: "스택 및 냉각수 순환 정밀 제어 시퀀스",
+                category: "COOLING",
+                description: "스택 1 냉각수 공급 펌프(AO_P370) 및 순환 유량계(AI_MFM315) 연동 자동 제어를 수행합니다.",
+                steps: [
+                    { step: 1, title: "Anode 냉각수 순환 물펌프 기동", desc: "Anode 냉각수 펌프(AO_P351)를 40% 속도로 가동합니다.", actions: { AO_P351: 26214 }, wait_seconds: 3 },
+                    { step: 2, title: "스택 1 냉각수 공급 펌프 램프업", desc: "냉각수 펌프(AO_P370)를 60% 속도로 증속하고 유량(AI_MFM315) 10.0 LPM 이상 도달을 확인합니다.", actions: { AO_P370: 39321 }, condition: { sensor: "AI_MFM315", operator: ">=", target_val: 10.0 }, timeout_seconds: 12 },
+                    { step: 3, title: "냉각수 정속 순환 유지 완료", desc: "냉각수 유량이 안정적으로 유지됨에 따라 순환 시퀀스를 완료합니다.", actions: {}, wait_seconds: 2 }
+                ]
+            },
+            {
+                id: "recipe_mfc_flow_control",
+                name: "BNG / PNG 질량 유량 제어기 (MFC) 자동 정속 분사 시퀀스",
+                category: "STARTUP",
+                description: "BNG(30L) 및 PNG(50L) 유량 제어 MFC(AO_MFC111/121)와 AI 센서 피드백 링크를 연동한 분사 시퀀스입니다.",
+                steps: [
+                    { step: 1, title: "가스 인입 전동 밸브 개방 및 가압 준비", desc: "PNG 인입 전동 밸브(DO_MV124) 및 인입 솔레노이드 밸브(DO_SV102)를 개방합니다.", actions: { DO_MV124: 1, DO_SV102: 1 }, wait_seconds: 2 },
+                    { step: 2, title: "BNG 유량 제어 MFC 30% 정량 분사", desc: "BNG MFC(AO_MFC111)에 1.5V (30% raw: 19660)를 설정하고 BNG 센서(AI_MFC111) 유량을 확인합니다.", actions: { AO_MFC111: 19660 }, condition: { sensor: "AI_MFC111", operator: ">=", target_val: 9.0 }, timeout_seconds: 8 },
+                    { step: 3, title: "PNG 유량 제어 MFC 50% 정량 분사", desc: "PNG MFC(AO_MFC121)에 2.5V (50% raw: 32767)를 설정하고 PNG 센서(AI_MFC121) 유량을 확인합니다.", actions: { AO_MFC121: 32767 }, condition: { sensor: "AI_MFC121", operator: ">=", target_val: 25.0 }, timeout_seconds: 8 },
+                    { step: 4, title: "MFC 듀얼 정량 공급 시퀀스 제어 완료", desc: "BNG 및 PNG MFC 유량이 정상 목표치에 도달하여 분사 시퀀스를 정속 상태로 유지합니다.", actions: {}, wait_seconds: 2 }
+                ]
+            },
+            {
+                id: "recipe_conditional_branch_purge",
+                name: "가스 버퍼탱크 압력 판별 IF 조건분기 및 정상기동/퍼지 시퀀스",
+                category: "SAFETY",
+                description: "가스 버퍼탱크 압력(AI_PT109)이 4.5bar 이상이면 정상 연소 기동(Step 4)으로 이동하고, 미달 시 질소 비상 퍼지(Step 7)로 조건 분기하는 지능형 시퀀스입니다.",
+                steps: [
+                    { step: 1, title: "가스 인입 전동 밸브 및 솔레노이드 개방", desc: "가스 인입 솔레노이드 밸브(DO_SV102) 및 PNG 인입 전동 밸브(DO_MV124)를 개방합니다.", actions: { DO_SV102: 1, DO_MV124: 1 }, wait_seconds: 2 },
+                    { step: 2, title: "연료 가압 펌프 예열 가동", desc: "연료 가압 펌프(AO_P108)를 30% 출력으로 점증 기동합니다.", actions: { AO_P108: 19660 }, wait_seconds: 3 },
+                    { step: 3, title: "🔀 가스 버퍼탱크 압력 판별 IF 조건분기", desc: "AI_PT109 가스 버퍼탱크 압력이 4.5bar 이상이면 Step 4(정상 기동), 미달이면 Step 7(비상 질소 퍼지)로 점프합니다.", type: "IF_BRANCH", condition: { sensor: "AI_PT109", operator: ">=", target_val: 4.5 }, jump_true: 4, jump_false: 7 },
+                    { step: 4, title: "정상 기동: 개질기 버너 연소 공기 블로어 점화 준비", desc: "압력 정상 확보됨. 버너 에어블로어(AO_AB221) 40% 구동 및 점화 트랜스(DO_IGN175)를 기동합니다.", actions: { AO_AB221: 26214, DO_IGN175: 1 }, wait_seconds: 3 },
+                    { step: 5, title: "정상 기동: 개질 버너 점화 완료 및 820℃ 승온 유지", desc: "점화 트랜스를 끄고 버너 온도(CH21) 820℃ 승온을 확인합니다.", actions: { DO_IGN175: 0 }, condition: { sensor: "CH21", operator: ">=", target_val: 820.0 }, timeout_seconds: 15 },
+                    { step: 6, title: "정상 기동 시퀀스 성취 완료 및 운전 전환", desc: "모든 상태가 정상 진입함에 따라 운전 모드로 자동 전환하고 시퀀스를 마칩니다.", actions: {}, wait_seconds: 2 },
+                    { step: 7, title: "비상 퍼지: 인입 밸브 차단 및 AOG VENT 전동 밸브 개방", desc: "가스 압력 부족으로 인입 밸브(DO_SV102) 차단 및 AOG VENT 밸브(DO_MV158)를 긴급 개방합니다.", actions: { DO_SV102: 0, DO_MV158: 1 }, wait_seconds: 2 },
+                    { step: 8, title: "비상 퍼지: 질소 드레인 밸브 개방 및 잔류가스 퍼지 완료", desc: "드레인 솔레노이드 밸브(DO_SV323)를 열고 잔류 수소/가스를 안전하게 퍼지 처리합니다.", actions: { DO_SV323: 1 }, wait_seconds: 3 }
+                ]
+            }
+        ];
+
+        let loadedRecipes = defaultRecipes;
+        let curSeqRecipe = loadedRecipes[0];
+        let simTimer = null;
+        let isSimulating = false;
+        let isSimPaused = false;
+        let simStepIdx = 0;
+
+        // ↙ 팝업창에서 메인 대시보드로 복귀 전역 함수 (인라인 onclick 및 event listener 모두 지원)
+        function requestDockBackToOpener() {
+            console.log("↙ [DOCK BACK] 메인 창으로 복귀 실행");
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: 'DOCK_BACK_SEQ' }, '*');
+                    if (window.opener.dockBackSequenceManager) {
+                        window.opener.dockBackSequenceManager();
+                    }
+                    window.opener.focus();
+                }
+            } catch (ex) {
+                console.error("Dock back error:", ex);
+            }
+            window.close();
+        }
+
+        // 🔄 팝업창에서 전체 초기화 요청 전역 함수
+        function triggerResetAllFromPopup() {
+            if (confirm("경고: 모든 릴레이 밸브를 닫고 DAC 출력을 0V로 즉시 초기화하시겠습니까?")) {
+                stopSimulatedSequence("전체 출력 초기화");
+                try {
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.postMessage({ type: 'REQUEST_RESET_ALL' }, '*');
+                        if (window.opener.resetAllOutputs) {
+                            window.opener.resetAllOutputs("팝업 창 요청 리셋");
+                        }
+                    }
+                } catch (ex) {}
+            }
+        }
+
+        // ➕ 매크로 모달 열기/닫기 전역 함수
+        function openMacroBuilderModal() {
+            const modal = document.getElementById('macro-modal-overlay');
+            if (modal) modal.style.display = 'flex';
+            setTimeout(() => {
+                if (typeof syncPidBySensor === 'function') syncPidBySensor();
+            }, 50);
+        }
+
+        function closeMacroBuilderModal() {
+            const modal = document.getElementById('macro-modal-overlay');
+            if (modal) modal.style.display = 'none';
+        }
+
+        const seqRecipeSelect = document.getElementById('seq-recipe-select');
+        const btnSeqStart = document.getElementById('btn-seq-start');
+        const btnSeqPause = document.getElementById('btn-seq-pause');
+        const btnSeqStop = document.getElementById('btn-seq-stop');
+        const btnDockBack = document.getElementById('btn-dock-back');
+        const btnPopupResetAll = document.getElementById('btn-popup-reset-all');
+        const seqConsoleLog = document.getElementById('seq-console-log');
+
+        if (btnDockBack) {
+            btnDockBack.addEventListener('click', requestDockBackToOpener);
+        }
+        if (btnPopupResetAll) {
+            btnPopupResetAll.addEventListener('click', triggerResetAllFromPopup);
+        }
+
+        // 부모 창 수신 리스너
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SYSTEM_RESET_COMPLETE') {
+                stopSimulatedSequence("부모 창 수신 전체 초기화 완료");
+            }
+        });
+
+        function seqLog(msg) {
+            const timeStr = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+            if (seqConsoleLog) {
+                seqConsoleLog.innerHTML += `<div>[${timeStr}] ${msg}</div>`;
+                seqConsoleLog.scrollTop = seqConsoleLog.scrollHeight;
+            }
+        }
+
+        function renderRecipeSelector(customList) {
+            let localSaved = [];
+            try {
+                localSaved = JSON.parse(localStorage.getItem('custom_h2_recipes') || "[]");
+            } catch(e) {}
+
+            const baseList = (customList && customList.length > 0) ? customList : defaultRecipes;
+            const map = new Map();
+            baseList.forEach(r => map.set(r.id, r));
+            localSaved.forEach(r => map.set(r.id, r));
+            loadedRecipes = Array.from(map.values());
+
+            const selectEl = document.getElementById('seq-recipe-select');
+            if (selectEl && loadedRecipes.length > 0) {
+                selectEl.innerHTML = loadedRecipes.map(r => {
+                    const titleStr = r.name || r.title || "시퀀스 레시피";
+                    const catStr = r.category || "CUSTOM";
+                    return `<option value="${r.id}">[${catStr}] ${titleStr}</option>`;
+                }).join('');
+
+                curSeqRecipe = loadedRecipes[0];
+                const descEl = document.getElementById('seq-recipe-desc');
+                if (descEl) descEl.innerText = `[${curSeqRecipe.category || 'CUSTOM'}] ${curSeqRecipe.description || ''}`;
+                renderSeqStepsUI(curSeqRecipe, -1);
+            }
+        }
+
+        // DOM 이 완전히 준비된 시점 및 온로드 시점에 100% 무조건 로딩 보장
+        document.addEventListener('DOMContentLoaded', () => {
+            renderRecipeSelector(defaultRecipes);
+            if (typeof syncPidBySensor === 'function') syncPidBySensor();
+        });
+        window.addEventListener('load', () => {
+            renderRecipeSelector(defaultRecipes);
+            if (typeof syncPidBySensor === 'function') syncPidBySensor();
+        });
+        renderRecipeSelector(defaultRecipes);
+
+        const selectEl = document.getElementById('seq-recipe-select');
+        if (selectEl) {
+            selectEl.addEventListener('change', (e) => {
+                const selId = e.target.value;
+                curSeqRecipe = loadedRecipes.find(r => r.id === selId);
+                if (curSeqRecipe) {
+                    document.getElementById('seq-recipe-desc').innerText = `[${curSeqRecipe.category || 'CUSTOM'}] ${curSeqRecipe.description || ''}`;
+                    renderSeqStepsUI(curSeqRecipe, -1);
+                }
+            });
+        }
+
+        function renderSeqStepsUI(recipe, curStepIdx) {
+            const container = document.getElementById('seq-steps-container');
+            if (!recipe || !recipe.steps) return;
+            container.innerHTML = recipe.steps.map((st, idx) => {
+                let statusBadge = '<span style="color:#64748b; font-size:9.5px;">대기</span>';
+                let borderStyle = 'border:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.2);';
+                if (idx < curStepIdx) {
+                    statusBadge = '<span style="color:#10b981; font-weight:700;">✓ 완료</span>';
+                } else if (idx === curStepIdx) {
+                    statusBadge = '<span style="color:#fde047; font-weight:800;">▶ 진행 중</span>';
+                    borderStyle = 'border:1px solid #f59e0b; background:rgba(245,158,11,0.12);';
+                }
+                return `
+                    <div style="padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; ${borderStyle}">
+                        <div>
+                            <span style="font-weight:700; color:#fff; font-size:11px;">Step ${st.step}. ${st.title}</span>
+                            <div style="font-size:9.5px; color:#cbd5e1; margin-top:2px;">${st.desc}</div>
+                        </div>
+                        <div>${statusBadge}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        var seqActionBroadcastChannel = null;
+        try {
+            seqActionBroadcastChannel = new BroadcastChannel('h2_seq_action_channel');
+        } catch(e) {}
+
+        // 메인 관제창(window.opener & BroadcastChannel)으로 릴레이/DAC 액션 파출 통지
+        function broadcastActionToOpener(actions) {
+            if (!actions) return;
+            // 1. 객체/배열 정규화 (Dictionary 형태로 통일)
+            let normalized = {};
+            if (Array.isArray(actions)) {
+                actions.forEach(a => {
+                    if (a.target) {
+                        if (a.type === "DO") normalized[a.target] = (a.state === "ON" || a.state === 1 || a.state === true) ? 1 : 0;
+                        else if (a.type === "DAC") normalized[a.target] = a.value || 0;
+                    }
+                });
+            } else if (typeof actions === 'object') {
+                normalized = actions;
+            }
+
+            // 2. 📡 BroadcastChannel 로 메인 윈도우에 초고속 송출 (창 참조 끊김 무관 100% 보장)
+            if (seqActionBroadcastChannel) {
+                try {
+                    seqActionBroadcastChannel.postMessage({ type: 'SEQ_ACTION', actions: normalized });
+                } catch(e) {}
+            }
+
+            // 3. 📩 window.opener postMessage 및 직접 바인딩 함수 실행
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: 'SEQ_ACTION', actions: normalized }, '*');
+                    if (typeof window.opener.applySequenceActionsFromPopup === 'function') {
+                        window.opener.applySequenceActionsFromPopup(normalized);
+                    }
+                }
+            } catch (ex) {}
+        }
+
+        // 🎛️ 메인 관제창으로 PID 실시간 텔레메트리 파출 통지 (SP, PV, MV%, MV전압)
+        function broadcastPidTelemetry(pidData) {
+            if (!pidData) return;
+            const payload = { type: 'PID_TELEMETRY', ...pidData };
+
+            if (seqActionBroadcastChannel) {
+                try {
+                    seqActionBroadcastChannel.postMessage(payload);
+                } catch(e) {}
+            }
+
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage(payload, '*');
+                    if (typeof window.opener.applyPidTelemetryFromPopup === 'function') {
+                        window.opener.applyPidTelemetryFromPopup(payload);
+                    }
+                }
+            } catch (ex) {}
+        }
+
+        let pidSubTimer = null;
+        let activePidInfo = null;
+        let bgPidLoops = {}; // 🎛️ 백그라운드에서 상시 유지되는 PID 폐루프 컬렉션 { [targetDac]: { timer, target_dac, feedback_sensor, sp, pv } }
+
+        function stopAllBackgroundPidLoops() {
+            Object.keys(bgPidLoops).forEach(dacKey => {
+                if (bgPidLoops[dacKey] && bgPidLoops[dacKey].timer) {
+                    clearInterval(bgPidLoops[dacKey].timer);
+                }
+                broadcastPidTelemetry({ active: false, target_dac: dacKey });
+            });
+            bgPidLoops = {};
+        }
+
+        function stopBackgroundPidLoop(dacKey) {
+            if (bgPidLoops[dacKey]) {
+                if (bgPidLoops[dacKey].timer) clearInterval(bgPidLoops[dacKey].timer);
+                broadcastPidTelemetry({ active: false, target_dac: dacKey });
+                delete bgPidLoops[dacKey];
+            }
+        }
+
+        function startSimulatedSequence(recipeId) {
+            stopSimulatedSequence("신규 시퀀스 시작");
+            let recipe = loadedRecipes.find(r => r.id === recipeId);
+            if (!recipe && loadedRecipes && loadedRecipes.length > 0) {
+                recipe = loadedRecipes[0];
+            }
+            if (!recipe) return;
+
+            isSimulating = true;
+            isSimPaused = false;
+            simStepIdx = 0;
+
+            const statusText = document.getElementById('seq-status-text');
+            const percentText = document.getElementById('seq-progress-percent');
+            const progressBar = document.getElementById('seq-progress-bar-inner');
+
+            statusText.innerText = "상태: RUNNING (시퀀스 자동 제어 가동 중)";
+            statusText.style.color = "#fde047";
+            progressBar.style.background = "linear-gradient(90deg, #f59e0b, #10b981)";
+
+            seqLog(`[시퀀스 시작] '${recipe.name}' 구동`);
+
+            function advanceToNextStep() {
+                if (!isSimulating || isSimPaused) return;
+                simStepIdx++;
+                runStep();
+            }
+
+            function runStep() {
+                if (!isSimulating || isSimPaused) return;
+                if (pidSubTimer) { clearInterval(pidSubTimer); pidSubTimer = null; }
+
+                const totalSteps = recipe.steps.length;
+                if (simStepIdx >= totalSteps) {
+                    statusText.innerText = "상태: COMPLETED (시퀀스 제어 성공 마감)";
+                    statusText.style.color = "#10b981";
+                    percentText.innerText = "100.0 %";
+                    progressBar.style.width = "100%";
+                    renderSeqStepsUI(recipe, totalSteps);
+                    seqLog("🎉 [성공] 모든 시퀀스 스텝 제어가 마쳤습니다!");
+                    isSimulating = false;
+                    return;
+                }
+
+                const st = recipe.steps[simStepIdx];
+                const pct = Number(((simStepIdx / totalSteps) * 100).toFixed(1));
+                percentText.innerText = `${pct} %`;
+                progressBar.style.width = `${pct}%`;
+
+                seqLog(`▶ [스텝 ${st.step}/${totalSteps}] '${st.title}' 구동 중...`);
+                renderSeqStepsUI(recipe, simStepIdx);
+
+                // 1. IF_BRANCH 조건 분기 스텝
+                if (st.type === "IF_BRANCH") {
+                    const jumpTrue = st.jump_true || 1;
+                    const jumpFalse = st.jump_false || 2;
+                    const isSimTrue = true; // 시뮬레이터 가상 참 평가
+                    const targetStep = isSimTrue ? jumpTrue : jumpFalse;
+                    seqLog(` 🔀 [IF 조건분기 시뮬레이션] 조건 참(TRUE) ➔ Step ${targetStep}로 점프`);
+                    let nextIdx = recipe.steps.findIndex(s => s.step === targetStep);
+                    if (nextIdx !== -1) {
+                        simStepIdx = nextIdx;
+                        simTimer = setTimeout(runStep, 1500);
+                        return;
+                    }
+                }
+
+                // 2. PID_CONTROL 폐루프 제어 스텝
+                if (st.type === "PID_CONTROL" || st.target_dac) {
+                    const targetDac = st.target_dac || "AO_P108";
+                    const feedbackSensor = st.feedback_sensor || "AI_PT109";
+                    const sp = st.setpoint !== undefined ? Number(st.setpoint) : 5.0;
+                    const durationSec = st.duration_seconds !== undefined ? Math.max(0, Number(st.duration_seconds)) : 6;
+                    
+                    let elapsed = 0;
+                    let currentPv = sp * 0.55; // 시작 PV값
+
+                    // 💡 [모드 1]: 0초 = 비차단 백그라운드 상시 유지 모드 (출력 유지하며 다음 스텝으로 즉시 이동)
+                    if (durationSec === 0) {
+                        stopBackgroundPidLoop(targetDac); // 기존 동일 DAC 루프 갱신
+
+                        seqLog(` 🎛️ [PID 백그라운드 가동] ${feedbackSensor} ➔ ${targetDac} (목표 SP: ${sp} | 백그라운드 유지 ➔ 다음 스텝 즉시 계속)`);
+
+                        const bgTimer = setInterval(() => {
+                            elapsed += 0.2;
+                            const error = sp - currentPv;
+                            currentPv += error * 0.18 + (Math.random() - 0.5) * 0.04;
+                            let mvPct = Math.min(100, Math.max(0, 45 + (sp - currentPv) * 18 + (Math.random() - 0.5) * 1.5));
+                            let mvRaw = Math.round((mvPct / 100) * 65535);
+                            let mvVolt = (mvPct / 100) * 5.0;
+
+                            broadcastPidTelemetry({
+                                active: true,
+                                target_dac: targetDac,
+                                feedback_sensor: feedbackSensor,
+                                setpoint: sp,
+                                pv: Number(currentPv.toFixed(2)),
+                                mv_percent: Number(mvPct.toFixed(1)),
+                                mv_raw: mvRaw,
+                                mv_volts: Number(mvVolt.toFixed(3)),
+                                duration_seconds: 0,
+                                elapsed_seconds: Number(elapsed.toFixed(1))
+                            });
+                        }, 200);
+
+                        bgPidLoops[targetDac] = {
+                            timer: bgTimer,
+                            target_dac: targetDac,
+                            feedback_sensor: feedbackSensor,
+                            sp: sp
+                        };
+
+                        // 블로킹 없이 다음 시퀀스로 즉시 진행!
+                        simTimer = setTimeout(advanceToNextStep, 800);
+                        return;
+                    }
+
+                    // 💡 [모드 2]: 지정 시간 블로킹 수렴 모드 (durationSec 초 동안 유지 후 다음 스텝 진행)
+                    activePidInfo = { target_dac: targetDac, feedback_sensor: feedbackSensor, setpoint: sp };
+                    seqLog(` 🎛️ [PID 제어 가동] ${feedbackSensor} ➔ ${targetDac} (목표 SP: ${sp} | 유지: ${durationSec}초)`);
+
+                    pidSubTimer = setInterval(() => {
+                        if (!isSimulating || isSimPaused) return;
+                        elapsed += 0.2;
+
+                        const error = sp - currentPv;
+                        currentPv += error * 0.18 + (Math.random() - 0.5) * 0.04;
+                        let mvPct = Math.min(100, Math.max(0, 45 + (sp - currentPv) * 18 + (Math.random() - 0.5) * 1.5));
+                        let mvRaw = Math.round((mvPct / 100) * 65535);
+                        let mvVolt = (mvPct / 100) * 5.0;
+
+                        broadcastPidTelemetry({
+                            active: true,
+                            target_dac: targetDac,
+                            feedback_sensor: feedbackSensor,
+                            setpoint: sp,
+                            pv: Number(currentPv.toFixed(2)),
+                            mv_percent: Number(mvPct.toFixed(1)),
+                            mv_raw: mvRaw,
+                            mv_volts: Number(mvVolt.toFixed(3)),
+                            duration_seconds: durationSec,
+                            elapsed_seconds: Number(elapsed.toFixed(1))
+                        });
+
+                        statusText.innerText = `🎛️ PID 가동 중: SP ${sp.toFixed(1)} | PV ${currentPv.toFixed(2)} | 출력 ${mvPct.toFixed(1)}% (${elapsed.toFixed(1)}s/${durationSec}s)`;
+                        statusText.style.color = "#38bdf8";
+
+                        if (elapsed >= durationSec) {
+                            clearInterval(pidSubTimer);
+                            pidSubTimer = null;
+                            seqLog(` 🎛️ [PID 제어 수렴 완료] ${durationSec}초 유지 완료 ➔ 현재 출력 유지하며 다음 스텝 진행`);
+                            activePidInfo = null;
+                            advanceToNextStep();
+                        }
+                    }, 200);
+
+                    return;
+                }
+
+                // 3. 일반 DO/DAC 액션 파출
+                if (st.actions) {
+                    // 만약 이 액션에서 특정 DAC를 수동/고정값으로 제어하거나 0V로 닫으면 백그라운드 PID 루프 자동 정리
+                    if (Array.isArray(st.actions)) {
+                        st.actions.forEach(a => {
+                            if (a.target && a.type === "DAC") stopBackgroundPidLoop(a.target);
+                        });
+                    } else if (typeof st.actions === 'object') {
+                        Object.keys(st.actions).forEach(k => {
+                            if (k.startsWith('AO_')) stopBackgroundPidLoop(k);
+                        });
+                    }
+
+                    broadcastActionToOpener(st.actions);
+                    seqLog(` └ ⚡ [릴레이/DAC 메인관제 제어 파출] ${JSON.stringify(st.actions)}`);
+                }
+
+                // 일반 스텝 대기 시간 (st.wait_seconds 또는 기본 2.2초)
+                const waitTime = (st.wait_seconds ? Number(st.wait_seconds) * 1000 : 2200);
+                simTimer = setTimeout(advanceToNextStep, waitTime);
+            }
+
+            runStep();
+        }
+
+        function pauseSimulatedSequence() {
+            if (!isSimulating) return;
+            const statusText = document.getElementById('seq-status-text');
+            if (!isSimPaused) {
+                isSimPaused = true;
+                statusText.innerText = "상태: PAUSED (일시 정지됨)";
+                statusText.style.color = "#f59e0b";
+                btnSeqPause.innerHTML = '<span style="font-size:14px;">▶</span> 재개';
+                seqLog("❚❚ [일시정지] 진행 중단");
+            } else {
+                isSimPaused = false;
+                statusText.innerText = "상태: RUNNING (재개됨)";
+                statusText.style.color = "#fde047";
+                btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+                seqLog("▶ [재개] 진행 가동");
+            }
+        }
+
+        function stopSimulatedSequence(reason = "강제 정지") {
+            if (simTimer) { clearTimeout(simTimer); simTimer = null; }
+            if (pidSubTimer) { clearInterval(pidSubTimer); pidSubTimer = null; }
+            stopAllBackgroundPidLoops(); // 모든 백그라운드 PID 루프 정리
+
+            isSimulating = false;
+            isSimPaused = false;
+            const statusText = document.getElementById('seq-status-text');
+            const percentText = document.getElementById('seq-progress-percent');
+            const progressBar = document.getElementById('seq-progress-bar-inner');
+
+            statusText.innerText = `상태: IDLE (${reason})`;
+            statusText.style.color = "#60a5fa";
+            percentText.innerText = "0.0 %";
+            progressBar.style.width = "0%";
+            btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+
+            // PID 해제 통지
+            broadcastPidTelemetry({ active: false });
+            activePidInfo = null;
+
+            // 메인 관제창 릴레이 안전 원복 파출 (메인 전원 DO_MC_SW: 1 상태는 유지!)
+            broadcastActionToOpener({ "DO_MC_SW": 1, "DO_SV125": 0, "DO_SV102": 0, "DO_SV103": 0, "DO_MV131": 0 });
+
+            if (curSeqRecipe) {
+                renderSeqStepsUI(curSeqRecipe, -1);
+            }
+            seqLog(`◼ [강제 정지] ${reason}`);
+        }
+
+        btnSeqStart.addEventListener('click', () => {
+            let recipeId = seqRecipeSelect.value;
+            if (!recipeId && loadedRecipes && loadedRecipes.length > 0) {
+                recipeId = loadedRecipes[0].id;
+            }
+            startSimulatedSequence(recipeId);
+        });
+
+        btnSeqPause.addEventListener('click', () => {
+            pauseSimulatedSequence();
+        });
+
+        btnSeqStop.addEventListener('click', () => {
+            stopSimulatedSequence("사용자 요청 정지");
+        });
+        // =========================================================================
+        // 🔴 1. 시퀀스 매크로 레코더 & 비주얼 빌더 JS 엔진 (전역 스코프 안전 초기화)
+        // =========================================================================
+        var isRecordingMacro = false;
+        var recordedSteps = [];
+        var macroBroadcastChannel = null;
+
+        try {
+            macroBroadcastChannel = new BroadcastChannel('h2_macro_channel');
+            macroBroadcastChannel.onmessage = function(event) {
+                var data = event.data;
+                if (!data) return;
+                if (data.type === "RECORD_MACRO_STEP") {
+                    console.log("🔴 [MACRO REC Broadcast] Step received:", data.step, "isRecording:", isRecordingMacro);
+                    if (isRecordingMacro) {
+                        appendMacroStep(data.step);
+                    }
+                }
+            };
+        } catch(e) {
+            console.warn("BroadcastChannel not supported or error:", e);
+        }
+
+        // postMessage 수신 호환 보강
+        window.addEventListener('message', function(event) {
+            var data = event.data;
+            if (!data) return;
+            if (data.type === "RECORD_MACRO_STEP") {
+                console.log("🔴 [MACRO REC postMessage] Step received:", data.step, "isRecording:", isRecordingMacro);
+                if (isRecordingMacro) {
+                    appendMacroStep(data.step);
+                }
+            }
+        });
+
+        // 🔗 메인 윈도우와의 크로스 창 바인딩 연동
+        if (window.opener) {
+            try {
+                window.opener.seqPopupWindow = window;
+                console.log("🔗 [IPC BUILDER] 메인 대시보드 윈도우(opener)에 팝업 핸들 바인딩 수립 완료!");
+            } catch(e) {}
+        }
+
+        // 🔗 짝꿍 피드백 센서 1:1 자동 연동 바인딩 테이블 및 DAC 명칭 맵 (AI_ 아날로그 입력 센서 전용)
+        var DAC_NAME_MAP = {
+            "AO_AB212": "AO_AB212 (STACK 공기 공급 에어블로어)",
+            "AO_AB221": "AO_AB221 (개질기 연소용 에어블로어)",
+            "AO_AB232": "AO_AB232 (Prox 제어용 에어블로어)",
+            "AO_MFC111": "AO_MFC111 (BNG 유량 제어 MFC)",
+            "AO_MFC121": "AO_MFC121 (PNG 유량 제어 MFC)",
+            "AO_P108":   "AO_P108 (연료가스 공급 가압 펌프)",
+            "AO_P341":   "AO_P341 (AOG 회수라인 응축수 펌프)",
+            "AO_P351":   "AO_P351 (Anode 냉각수 순환 물펌프)",
+            "AO_P370":   "AO_P370 (STACK 1 냉각수 공급 펌프)",
+            "AO_P375":   "AO_P375 (STACK 2 냉각수 공급 펌프 10kW)",
+            "AO_P380":   "AO_P380 (개질기 물 공급 정량 펌프)"
+        };
+
+        var SENSOR_FEEDBACK_PAIR_MAP = {
+            "AI_PT109":  "AO_P108",   // 가스 버퍼탱크 압력 센서 -> 연료가스 가압 펌프
+            "AI_PT105":  "AO_P108",   // 가스 인입 압력 센서 -> 연료가스 가압 펌프
+            "AI_PT123":  "AO_P108",   // 개질기 입구 압력 센서 -> 연료가스 가압 펌프
+            "AI_PT162":  "AO_P341",   // AOG 회수 압력 센서 -> AOG 회수 응축수 펌프
+            "AI_MFM211": "AO_AB212", // STACK 공기 유량 센서 -> STACK 공기 에어블로어
+            "AI_MFM222": "AO_AB221", // 개질기 연소 공기 유량 센서 -> 개질기 연소 에어블로어
+            "AI_MFM231": "AO_AB232", // Prox 공기 주입 유량 센서 -> Prox 에어블로어
+            "AI_MFC111": "AO_MFC111", // BNG 유량 센서 -> BNG MFC
+            "AI_MFC121": "AO_MFC121", // PNG 유량 센서 -> PNG MFC
+            "AI_MFM315": "AO_P370"    // STACK 냉각수 유량 센서 -> STACK 1 냉각수 펌프
+        };
+
+        // ⚡ 작업자가 [센서]를 선택하면 짝꿍 DAC 구동 장치가 1:1 자동 짝짓기 선택되는 로직
+        window.syncPidBySensor = function() {
+            try {
+                var dacHiddenEl = document.getElementById('pid-dac-target');
+                var dacDisplayEl = document.getElementById('pid-dac-target-display');
+                var sensorEl = document.getElementById('pid-sensor-id');
+                var dacBox = document.getElementById('pid-dac-box');
+                if (!sensorEl) return;
+
+                var selectedSensor = sensorEl.value;
+                var matchedDac = SENSOR_FEEDBACK_PAIR_MAP[selectedSensor] || "AO_P108";
+                var matchedName = DAC_NAME_MAP[matchedDac] || matchedDac;
+                
+                // 1. 값 업데이트 (hidden input & span text)
+                if (dacHiddenEl) dacHiddenEl.value = matchedDac;
+                if (dacDisplayEl) dacDisplayEl.innerText = matchedName;
+
+                // 2. 지정 DAC 부모 박스 시각적 펄스 하이라이트
+                if (dacBox) {
+                    dacBox.style.transition = "all 0.15s ease";
+                    dacBox.style.border = "2px solid #f59e0b";
+                    dacBox.style.boxShadow = "0 0 16px rgba(245, 158, 11, 0.95)";
+                    dacBox.style.background = "#1e293b";
+                    if (dacDisplayEl) dacDisplayEl.style.color = "#ffffff";
+                    setTimeout(function() {
+                        dacBox.style.border = "1px solid #f59e0b";
+                        dacBox.style.boxShadow = "0 0 6px rgba(245, 158, 11, 0.3)";
+                        dacBox.style.background = "#020617";
+                        if (dacDisplayEl) dacDisplayEl.style.color = "#fde047";
+                    }, 600);
+                }
+            } catch(err) {
+                console.error("syncPidBySensor error:", err);
+            }
+        };
+
+        window.openMacroBuilderModal = function() {
+            var el = document.getElementById('macro-modal-overlay');
+            if (el) el.style.display = 'flex';
+            setTimeout(window.syncPidBySensor, 50);
+        };
+
+        window.closeMacroBuilderModal = function() {
+            var el = document.getElementById('macro-modal-overlay');
+            if (el) el.style.display = 'none';
+        };
+
+        window.toggleMacroRecording = function() {
+            try {
+                isRecordingMacro = !isRecordingMacro;
+                var btn = document.getElementById('btn-toggle-recording');
+                var dot = document.getElementById('macro-rec-dot');
+                var txt = document.getElementById('macro-rec-status-text');
+
+                // 🔴 메인 대시보드 창으로 레코딩 상태 동기화 브로드캐스트
+                if (macroBroadcastChannel) {
+                    try {
+                        macroBroadcastChannel.postMessage({ type: "SET_RECORDING_STATE", state: isRecordingMacro });
+                    } catch(e) {}
+                }
+
+                if (isRecordingMacro) {
+                    if (btn) {
+                        btn.innerText = "⏹️ 레코딩 중단";
+                        btn.style.background = "#475569";
+                    }
+                    if (dot) {
+                        dot.style.background = "#ef4444";
+                        dot.style.boxShadow = "0 0 10px #ef4444";
+                    }
+                    if (txt) {
+                        txt.innerText = "🔴 레코딩 활성화 중! 메인 대시보드 조작 또는 아래 쾌속 툴바 버튼 클릭 시 스텝이 실시간 조립됩니다.";
+                        txt.style.color = "#fde047";
+                    }
+                } else {
+                    if (btn) {
+                        btn.innerText = "🔴 레코딩 시작";
+                        btn.style.background = "#ef4444";
+                    }
+                    if (dot) {
+                        dot.style.background = "#64748b";
+                        dot.style.boxShadow = "none";
+                    }
+                    if (txt) {
+                        txt.innerText = "레코딩 대기 중... (메인 대시보드 조작 또는 아래 쾌속 툴바 버튼으로 스텝 추가)";
+                        txt.style.color = "#cbd5e1";
+                    }
+                }
+            } catch(e) {
+                console.error("toggleMacroRecording error:", e);
+            }
+        };
+
+        // 📡 3. 팝업창 전용 백엔드 직결 WebSocket 커넥션 (ws://localhost:8888)
+        var popupWs = null;
+        function connectPopupWebSocket() {
+            try {
+                popupWs = new WebSocket("ws://localhost:8888");
+                popupWs.onopen = function() {
+                    console.log("🌐 [POPUP WS] 백엔드 브릿지 서비스 (ws://localhost:8888) 단독 직결 성공!");
+                    popupWs.send(JSON.stringify({ type: "GET_RECIPES" }));
+                };
+                popupWs.onmessage = function(evt) {
+                    try {
+                        var msg = JSON.parse(evt.data);
+                        if (msg.type === "RECIPE_LIST" && msg.recipes && msg.recipes.length > 0) {
+                            renderRecipeSelector(msg.recipes);
+                        } else if (msg.type === "SAVE_RECIPE_SUCCESS") {
+                            console.log("🎉 [RECIPE SAVE SUCCESS]", msg);
+                            alert(`🎉 [저장 완비] ${msg.msg}`);
+                            if (msg.recipes) {
+                                renderRecipeSelector(msg.recipes);
+                            }
+                            closeMacroBuilderModal();
+                        } else if (msg.type === "SAVE_RECIPE_ERROR") {
+                            alert(`🚨 [저장 실패] ${msg.msg}`);
+                        } else if (msg.type === "DELETE_RECIPE_SUCCESS") {
+                            console.log("🗑️ [RECIPE DELETE SUCCESS]", msg);
+                            if (msg.recipes) {
+                                renderRecipeSelector(msg.recipes);
+                            }
+                        } else if (msg.type === "DELETE_RECIPE_ERROR") {
+                            alert(`🚨 [삭제 실패] ${msg.msg}`);
+                        }
+                    } catch(e) {}
+                };
+                popupWs.onclose = function() {
+                    setTimeout(connectPopupWebSocket, 3000);
+                };
+            } catch(e) {
+                console.error("Popup WS connect error:", e);
+            }
+        }
+        connectPopupWebSocket();
+
+        // ✏️ 선택된 시퀀스 레시피 편집기(매크로 빌더)로 불러오기 기능
+        window.editSelectedRecipe = function() {
+            try {
+                var selEl = document.getElementById('seq-recipe-select');
+                var recipeId = selEl ? selEl.value : null;
+                if (!recipeId) {
+                    alert("수정할 레시피를 먼저 선택해주세요.");
+                    return;
+                }
+                var recipe = loadedRecipes.find(function(r) { return r.id === recipeId; });
+                if (!recipe) {
+                    alert("선택된 레시피 정보를 찾을 수 없습니다.");
+                    return;
+                }
+
+                // 1. 모달 폼 필드에 기존 데이터 채우기
+                var idInput = document.getElementById('macro-recipe-id');
+                var titleInput = document.getElementById('macro-recipe-title');
+                var catSelect = document.getElementById('macro-recipe-category');
+                var descInput = document.getElementById('macro-recipe-desc');
+
+                if (idInput) idInput.value = recipe.id || '';
+                if (titleInput) titleInput.value = recipe.title || recipe.name || '';
+                if (catSelect) catSelect.value = recipe.category || 'CUSTOM';
+                if (descInput) descInput.value = recipe.description || recipe.desc || '';
+
+                // 2. 기존 스텝을 조립 스텝(recordedSteps)으로 역변환
+                recordedSteps = [];
+                if (recipe.steps && Array.isArray(recipe.steps)) {
+                    recipe.steps.forEach(function(st, idx) {
+                        if (st.type === "IF_BRANCH" || st.jump_true !== undefined) {
+                            recordedSteps.push({
+                                action_type: "IF_BRANCH",
+                                sensor_id: st.sensor_id || "AI_PT109",
+                                operator: st.operator || ">=",
+                                target_val: st.target_val !== undefined ? st.target_val : 4.5,
+                                jump_true_step: st.jump_true || 1,
+                                jump_false_step: st.jump_false || 2,
+                                description: st.desc || st.title || `🔀 [조건분기] ${st.sensor_id} ${st.operator} ${st.target_val}`
+                            });
+                        } else if (st.type === "PID_CONTROL" || st.target_dac) {
+                            recordedSteps.push({
+                                action_type: "PID_CONTROL",
+                                target_dac: st.target_dac || "AO_P108",
+                                feedback_sensor: st.feedback_sensor || "AI_PT109",
+                                setpoint: st.setpoint !== undefined ? st.setpoint : 5.0,
+                                duration_seconds: st.duration_seconds || 5,
+                                description: st.desc || st.title || `🎛️ [PID제어] ${st.feedback_sensor} ➔ ${st.target_dac} (SP: ${st.setpoint})`
+                            });
+                        } else if (st.type === "WAIT_SENSOR" || st.condition || st.sensor) {
+                            var sens = st.sensor || (st.condition ? st.condition.sensor : "AI_PT109");
+                            var op = st.operator || (st.condition ? st.condition.operator : ">=");
+                            var val = st.target_val !== undefined ? st.target_val : (st.condition ? st.condition.target_val : 5.0);
+                            var timeout = st.timeout_seconds || 10;
+                            recordedSteps.push({
+                                action_type: "WAIT_SENSOR",
+                                sensor: sens,
+                                operator: op,
+                                target_val: val,
+                                timeout_seconds: timeout,
+                                description: st.desc || st.title || `🎯 [센서감시] ${sens} ${op} ${val} (${timeout}초 대기)`
+                            });
+                        } else if (st.actions && Object.keys(st.actions).length > 0) {
+                            for (var target in st.actions) {
+                                var v = st.actions[target];
+                                if (target.startsWith("DO_")) {
+                                    var isOn = (v === 1 || v === true || v === "ON");
+                                    recordedSteps.push({
+                                        action_type: "SET_DO",
+                                        target: target,
+                                        state: isOn,
+                                        description: `${target} ${isOn ? 'ON (열기)' : 'OFF (닫기)'}`
+                                    });
+                                } else if (target.startsWith("AO_")) {
+                                    var speedPct = Math.round((v / 65535) * 100);
+                                    recordedSteps.push({
+                                        action_type: "SET_DAC",
+                                        target: target,
+                                        value: v,
+                                        speed_percent: speedPct,
+                                        description: `${target} 출력 속도 -> ${speedPct}% (${v} raw)`
+                                    });
+                                }
+                            }
+                            if (st.wait_seconds) {
+                                recordedSteps.push({
+                                    action_type: "WAIT",
+                                    wait_seconds: st.wait_seconds,
+                                    description: `${st.wait_seconds}초간 대기`
+                                });
+                            }
+                        } else if (st.wait_seconds) {
+                            recordedSteps.push({
+                                action_type: "WAIT",
+                                wait_seconds: st.wait_seconds,
+                                description: `${st.wait_seconds}초간 대기`
+                            });
+                        } else {
+                            recordedSteps.push({
+                                action_type: "WAIT",
+                                wait_seconds: 1,
+                                description: st.title || st.desc || "1초 대기"
+                            });
+                        }
+                    });
+                }
+
+                // 3. 조립 스텝 렌더링 및 모달 열기
+                renderRecordedSteps();
+                openMacroBuilderModal();
+
+                var statusTxt = document.getElementById('macro-rec-status-text');
+                if (statusTxt) {
+                    statusTxt.innerText = `✏️ 레시피 편집 모드: '${recipe.title || recipe.name}' 스텝 로드 완료. (추가/삭제/수정 후 [저장] 클릭)`;
+                    statusTxt.style.color = "#38bdf8";
+                }
+            } catch(e) {
+                console.error("editSelectedRecipe error:", e);
+                alert(`레시피 불러오기 오류: ${e.message}`);
+            }
+        };
+
+        // 🗑️ 선택된 시퀀스 레시피 영구 삭제 기능
+        window.deleteSelectedRecipe = function() {
+            try {
+                var selEl = document.getElementById('seq-recipe-select');
+                var recipeId = selEl ? selEl.value : null;
+                if (!recipeId) {
+                    alert("삭제할 레시피를 먼저 선택해주세요.");
+                    return;
+                }
+                var recipe = loadedRecipes.find(function(r) { return r.id === recipeId; });
+                if (!recipe) {
+                    alert("선택된 레시피 정보를 찾을 수 없습니다.");
+                    return;
+                }
+
+                var recipeName = recipe.title || recipe.name || recipe.id;
+                if (!confirm(`정말로 레시피 '${recipeName}' (ID: ${recipeId})를 삭제하시겠습니까?\n\n※ 삭제 후 복구할 수 없습니다.`)) {
+                    return;
+                }
+
+                // 1. localStorage custom_h2_recipes 에서 삭제
+                try {
+                    var localRecipes = JSON.parse(localStorage.getItem('custom_h2_recipes') || "[]");
+                    localRecipes = localRecipes.filter(function(r) { return r.id !== recipeId; });
+                    localStorage.setItem('custom_h2_recipes', JSON.stringify(localRecipes));
+                } catch(e) {}
+
+                // 2. 인메모리 loadedRecipes 에서 삭제
+                loadedRecipes = loadedRecipes.filter(function(r) { return r.id !== recipeId; });
+
+                // 3. 백엔드로 삭제 요청 전송 (WebSocket 및 postMessage)
+                var payload = JSON.stringify({ type: "DELETE_RECIPE", recipe_id: recipeId });
+                if (popupWs && popupWs.readyState === WebSocket.OPEN) {
+                    try { popupWs.send(payload); } catch(e) {}
+                }
+                try {
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.postMessage({ type: 'DELETE_RECIPE', recipe_id: recipeId }, '*');
+                    }
+                } catch(e) {}
+
+                // 4. 셀렉트 UI 갱신 및 첫 번째 레시피 선택
+                renderRecipeSelector(loadedRecipes);
+                if (loadedRecipes.length > 0) {
+                    var firstId = loadedRecipes[0].id;
+                    if (selEl) selEl.value = firstId;
+                    renderRecipeSteps(firstId);
+                }
+
+                alert(`🗑️ [삭제 완료] '${recipeName}' 레시피가 성공적으로 삭제되었습니다.`);
+            } catch(e) {
+                console.error("deleteSelectedRecipe error:", e);
+                alert(`레시피 삭제 오류: ${e.message}`);
+            }
+        };
+
+        function appendMacroStep(step) {
+            recordedSteps.push(step);
+            renderRecordedSteps();
+            var container = document.getElementById('macro-step-list-container');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function addDelayStepPrompt() {
+            var sec = prompt("대기할 시간을 초(sec) 단위로 입력하십시오:", "3");
+            if (sec !== null && !isNaN(parseFloat(sec))) {
+                appendMacroStep({
+                    action_type: "WAIT",
+                    wait_seconds: parseFloat(sec),
+                    description: `${parseFloat(sec)}초간 대기`
+                });
+            }
+        }
+
+        function clearRecordedSteps() {
+            if (confirm("조립된 시퀀스 스텝을 모두 삭제하시겠습니까?")) {
+                recordedSteps = [];
+                renderRecordedSteps();
+            }
+        }
+
+        function removeMacroStep(idx) {
+            recordedSteps.splice(idx, 1);
+            renderRecordedSteps();
+        }
+
+        function renderRecordedSteps() {
+            var container = document.getElementById('macro-step-list-container');
+            var countEl = document.getElementById('macro-step-count');
+            if (countEl) countEl.innerText = recordedSteps.length;
+            if (!container) return;
+            
+            if (recordedSteps.length === 0) {
+                container.innerHTML = `<div style="color:#64748b; font-size:11px; text-align:center; padding-top:60px;">메인 화면에서 밸브/펌프를 클릭하거나 아래 ⚡ 툴바 버튼을 누르면 스텝이 조립됩니다.</div>`;
+                return;
+            }
+            container.innerHTML = "";
+            recordedSteps.forEach(function(step, idx) {
+                var itemDiv = document.createElement('div');
+                itemDiv.style.cssText = "background:rgba(30,41,59,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; font-size:11px;";
+                
+                var badgeColor = "#38bdf8";
+                if (step.action_type === "SET_DO") badgeColor = "#fde047";
+                else if (step.action_type === "SET_DAC") badgeColor = "#a7f3d0";
+                else if (step.action_type === "WAIT") badgeColor = "#60a5fa";
+                else if (step.action_type === "PID_CONTROL") badgeColor = "#f59e0b";
+                else if (step.action_type === "IF_BRANCH") badgeColor = "#c084fc";
+
+                itemDiv.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:800; color:${badgeColor};">Step ${idx + 1}.</span>
+                        <span style="color:#fff; font-weight:700;">[${step.action_type}] ${step.description}</span>
+                    </div>
+                    <button onclick="removeMacroStep(${idx})" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:10px;">삭제</button>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+
+        // 🛠️ 1. 쾌속 DO 릴레이 스텝 수동 추가 기능
+        function addQuickDoStep() {
+            try {
+                const target = document.getElementById('quick-do-target').value;
+                const action = document.getElementById('quick-do-action').value;
+                const isTargetOn = (action === "ON");
+
+                appendMacroStep({
+                    action_type: "SET_DO",
+                    target: target,
+                    state: isTargetOn,
+                    description: `${target} ${isTargetOn ? 'ON (열기)' : 'OFF (닫기)'}`
+                });
+            } catch(e) { console.error("addQuickDoStep error:", e); }
+        }
+
+        // 🛠️ 2. 쾌속 DAC 아날로그 속도/전압 스텝 수동 추가 기능
+        function addQuickDacStep() {
+            try {
+                const target = document.getElementById('quick-dac-target').value;
+                const speedPct = parseFloat(document.getElementById('quick-dac-speed').value) || 0;
+                const dacRaw = Math.round((speedPct / 100) * 65535);
+
+                appendMacroStep({
+                    action_type: "SET_DAC",
+                    target: target,
+                    value: dacRaw,
+                    speed_percent: speedPct,
+                    description: `${target} 출력 속도 -> ${speedPct}% (${dacRaw} raw)`
+                });
+            } catch(e) { console.error("addQuickDacStep error:", e); }
+        }
+
+        // 🛠️ 3. 🎯 쾌속 센서 피드백 목표 조건 대기 스텝 추가 기능
+        function addQuickSensorStep() {
+            try {
+                const sensorId = document.getElementById('quick-sensor-id').value;
+                const op = document.getElementById('quick-sensor-op').value;
+                const val = parseFloat(document.getElementById('quick-sensor-val').value) || 0;
+                const timeout = parseInt(document.getElementById('quick-sensor-timeout').value) || 10;
+
+                appendMacroStep({
+                    action_type: "WAIT_SENSOR",
+                    sensor: sensorId,
+                    operator: op,
+                    target_val: val,
+                    timeout_seconds: timeout,
+                    description: `🎯 [센서감시] ${sensorId} ${op} ${val} (최대 ${timeout}초 대기)`
+                });
+            } catch(e) { console.error("addQuickSensorStep error:", e); }
+        }
+
+        // 🛠️ 4. 🎛️ 쾌속 PID 자동 폐루프 제어 스텝 추가 기능
+        function addQuickPidStep() {
+            try {
+                const dacTargetEl = document.getElementById('pid-dac-target');
+                const sensorIdEl = document.getElementById('pid-sensor-id');
+                const setpointEl = document.getElementById('pid-setpoint');
+                const durationEl = document.getElementById('pid-duration');
+
+                const dacTarget = dacTargetEl ? dacTargetEl.value : "AO_P108";
+                const sensorId = sensorIdEl ? sensorIdEl.value : "AI_PT109";
+                const setpoint = setpointEl ? (parseFloat(setpointEl.value) || 0) : 5.0;
+                let duration = durationEl ? parseInt(durationEl.value) : 5;
+                if (isNaN(duration) || duration < 0) duration = 0;
+
+                const durationDesc = (duration === 0) ? "백그라운드 상시 유지" : `${duration}초 유지`;
+
+                appendMacroStep({
+                    action_type: "PID_CONTROL",
+                    target_dac: dacTarget,
+                    feedback_sensor: sensorId,
+                    setpoint: setpoint,
+                    duration_seconds: duration,
+                    kp: 1.2, ki: 0.05, kd: 0.01,
+                    description: `🎛️ [PID제어] ${dacTarget} <-> ${sensorId} (목표: ${setpoint}, ${durationDesc})`
+                });
+            } catch(e) { console.error("addQuickPidStep error:", e); }
+        }
+
+        // 🛠️ 5. 🔀 쾌속 IF 조건 분기 스텝 추가 기능
+        function addQuickIfBranchStep() {
+            try {
+                const sensorId = document.getElementById('if-sensor-target').value;
+                const operator = document.getElementById('if-operator').value;
+                const targetVal = parseFloat(document.getElementById('if-target-val').value) || 0.0;
+                const jumpTrue = parseInt(document.getElementById('if-jump-true').value) || 1;
+                const jumpFalse = parseInt(document.getElementById('if-jump-false').value) || 2;
+
+                appendMacroStep({
+                    action_type: "IF_BRANCH",
+                    sensor_id: sensorId,
+                    operator: operator,
+                    target_val: targetVal,
+                    jump_true_step: jumpTrue,
+                    jump_false_step: jumpFalse,
+                    description: `🔀 [IF조건분기] ${sensorId} ${operator} ${targetVal} ➔ (참: Step ${jumpTrue} / 거짓: Step ${jumpFalse})`
+                });
+            } catch(e) { console.error("addQuickIfBranchStep error:", e); }
+        }
+
+        // 🤖 MCU용 C/C++ 헤더 파일 (sequence_recipes.h) 다이렉트 추출
+        function exportMcuCHeader() {
+            const recipeId = document.getElementById('macro-recipe-id').value.trim() || `custom_recipe_${Date.now()}`;
+            const title = document.getElementById('macro-recipe-title').value.trim() || `[CUSTOM] 신규 시퀀스 레시피`;
+
+            if (recordedSteps.length === 0) {
+                alert("[C코드 추출 불가] 조립된 시퀀스 스텝이 최소 1개 이상 존재해야 합니다.");
+                return;
+            }
+
+            let cCode = `/**\n * @file sequence_recipes.h\n * @brief 수소 연료전지 MCU 임베디드 시퀀스 레시피 이식 C 헤더\n * @generated ${new Date().toLocaleString('ko-KR')}\n */\n\n`;
+            cCode += `#ifndef SEQUENCE_RECIPES_H\n#define SEQUENCE_RECIPES_H\n\n#include <stdint.h>\n\n`;
+            cCode += `typedef enum {\n    ACTION_DO = 0,\n    ACTION_DAC = 1,\n    ACTION_WAIT_SENSOR = 2,\n    ACTION_PID_CONTROL = 3,\n    ACTION_IF_BRANCH = 4\n} StepType_t;\n\n`;
+            cCode += `typedef struct {\n    uint8_t step_index;\n    StepType_t type;\n    uint32_t do_mask_on;\n    uint32_t do_mask_off;\n    uint16_t dac_val;\n    char sensor_id[16];\n    float target_val;\n    uint16_t timeout_sec;\n    uint8_t jump_true;\n    uint8_t jump_false;\n} SequenceStep_t;\n\n`;
+            cCode += `// 레시피: ${title} (${recipeId})\n`;
+            cCode += `static const SequenceStep_t MCU_${recipeId.toUpperCase()}_STEPS[] = {\n`;
+
+            const DO_LABEL_BIT_MAP = {
+                "DO_MC_SW": 0, "DO_SV102": 1, "DO_SV103": 2, "DO_SV125": 3,
+                "DO_SV145": 4, "DO_SV149": 5, "DO_SV323": 6, "DO_MV124": 7,
+                "DO_MV131": 8, "DO_MV148": 9, "DO_MV150": 10, "DO_MV155": 11,
+                "DO_MV158": 12, "DO_MV300": 13, "DO_MV390": 14, "DO_HT193": 15,
+                "DO_HT194": 16, "DO_HT195": 17, "DO_HT196": 18, "DO_IGN175": 19
+            };
+
+            recordedSteps.forEach((st, idx) => {
+                let typeStr = "ACTION_DO";
+                let doOnHex = "0x00000000", doOffHex = "0x00000000", dacVal = 0, sensorId = '""', targetVal = 0.0, timeout = st.wait_seconds || 0;
+                let jumpTrue = 0, jumpFalse = 0;
+                
+                if (st.action_type === "SET_DO") {
+                    typeStr = "ACTION_DO";
+                    const bitIdx = DO_LABEL_BIT_MAP[st.target];
+                    if (bitIdx !== undefined) {
+                        const maskVal = (1 << bitIdx);
+                        const hexStr = "0x" + maskVal.toString(16).padStart(8, '0').toUpperCase();
+                        if (st.state) doOnHex = hexStr;
+                        else doOffHex = hexStr;
+                    }
+                } else if (st.action_type === "SET_DAC") {
+                    typeStr = "ACTION_DAC";
+                    dacVal = st.value || 0;
+                } else if (st.action_type === "WAIT_SENSOR") {
+                    typeStr = "ACTION_WAIT_SENSOR";
+                    sensorId = `"${st.sensor}"`;
+                    targetVal = st.target_val || 0.0;
+                    timeout = st.timeout_seconds || 10;
+                } else if (st.action_type === "PID_CONTROL") {
+                    typeStr = "ACTION_PID_CONTROL";
+                    sensorId = `"${st.feedback_sensor}"`;
+                    targetVal = st.setpoint || 0.0;
+                    timeout = st.duration_seconds || 5;
+                } else if (st.action_type === "IF_BRANCH") {
+                    typeStr = "ACTION_IF_BRANCH";
+                    sensorId = `"${st.sensor_id}"`;
+                    targetVal = st.target_val || 0.0;
+                    jumpTrue = st.jump_true_step || 0;
+                    jumpFalse = st.jump_false_step || 0;
+                }
+
+                cCode += `    { ${idx + 1}, ${typeStr}, ${doOnHex}, ${doOffHex}, ${dacVal}, ${sensorId}, ${targetVal}f, ${timeout}, ${jumpTrue}, ${jumpFalse} }, // ${st.description}\n`;
+            });
+
+            cCode += `};\n\n#define MCU_${recipeId.toUpperCase()}_STEP_COUNT ${recordedSteps.length}\n\n#endif // SEQUENCE_RECIPES_H\n`;
+
+            const blob = new Blob([cCode], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `sequence_recipes_${recipeId}.h`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            alert(`🤖 [MCU C코드 추출 완료] 'sequence_recipes_${recipeId}.h' 파일이 생성되었습니다!\nMCU STM32/ESP32 프로젝트 폴더에 바로 이식할 수 있습니다.`);
+        }
+
+        // 📡 RS-422 통신 패킷으로 MCU 비휘발성 메모리(EEPROM/Flash) 다이렉트 전송
+        function sendRecipeToMcuViaRs422() {
+            const recipeId = document.getElementById('macro-recipe-id').value.trim() || `custom_recipe_${Date.now()}`;
+            const title = document.getElementById('macro-recipe-title').value.trim() || `[CUSTOM] 신규 시퀀스 레시피`;
+
+            if (recordedSteps.length === 0) {
+                alert("[전송 불가] 조립된 시퀀스 스텝이 최소 1개 이상 존재해야 합니다.");
+                return;
+            }
+
+            const recipeObj = buildRecipeObject(recipeId, title, "CUSTOM", "MCU RS-422 On-the-fly Download");
+            const payload = JSON.stringify({
+                type: "DOWNLOAD_RECIPE_TO_MCU",
+                recipe: recipeObj
+            });
+
+            let sent = false;
+            if (popupWs && popupWs.readyState === WebSocket.OPEN) {
+                try { popupWs.send(payload); sent = true; } catch(e) {}
+            }
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: "DOWNLOAD_RECIPE_TO_MCU", payload: payload }, '*');
+                    sent = true;
+                }
+            } catch(e) {}
+
+            if (sent) {
+                alert(`📡 [MCU 전송 성공] '${title}' 레시피가 RS-422 통신선을 타고 MCU 제어 보드 비휘발성 메모리로 직결 송출되었습니다!`);
+            } else {
+                alert(`📡 [로컬 시뮬레이션] RS-422 실기기 포트가 닫혀 있어 패킷 생성 및 로컬 메모리 버퍼로 테스트 동기화되었습니다.`);
+            }
+        }
+
+        // 📥 레시피 JSON 파일 다이렉트 다운로드 유틸리티
+        function downloadRecipeJsonFile() {
+            const recipeId = document.getElementById('macro-recipe-id').value.trim() || `custom_recipe_${Date.now()}`;
+            const title = document.getElementById('macro-recipe-title').value.trim() || `[CUSTOM] 신규 시퀀스 레시피`;
+            const category = document.getElementById('macro-recipe-category').value;
+            const desc = document.getElementById('macro-recipe-desc').value.trim() || `사용자 지정 매크로 레시피`;
+
+            if (recordedSteps.length === 0) {
+                alert("[다운로드 불가] 조립된 시퀀스 스텝이 최소 1개 이상 존재해야 합니다.");
+                return;
+            }
+
+            const recipeObj = buildRecipeObject(recipeId, title, category, desc);
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(recipeObj, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${recipeId}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            alert(`📥 [다운로드 완비] '${recipeId}.json' 파일이 내 컴퓨터로 다운로드되었습니다!`);
+        }
+
+        function buildRecipeObject(recipeId, title, category, desc) {
+            const steps = recordedSteps.map((st, idx) => {
+                const stepObj = {
+                    step: idx + 1,
+                    title: st.description || `Step ${idx + 1}`,
+                    desc: st.description || '',
+                    type: st.action_type || "DO",
+                    actions: {}
+                };
+                if (st.action_type === "SET_DO") {
+                    stepObj.actions[st.target] = st.state ? 1 : 0;
+                } else if (st.action_type === "SET_DAC") {
+                    stepObj.actions[st.target] = st.value || 0;
+                } else if (st.action_type === "WAIT") {
+                    stepObj.wait_seconds = st.wait_seconds;
+                } else if (st.action_type === "WAIT_SENSOR") {
+                    stepObj.sensor = st.sensor;
+                    stepObj.operator = st.operator;
+                    stepObj.target_val = st.target_val;
+                    stepObj.timeout_seconds = st.timeout_seconds;
+                } else if (st.action_type === "PID_CONTROL") {
+                    stepObj.target_dac = st.target_dac;
+                    stepObj.feedback_sensor = st.feedback_sensor;
+                    stepObj.setpoint = st.setpoint;
+                    stepObj.duration_seconds = st.duration_seconds;
+                } else if (st.action_type === "IF_BRANCH") {
+                    stepObj.sensor_id = st.sensor_id;
+                    stepObj.operator = st.operator;
+                    stepObj.target_val = st.target_val;
+                    stepObj.jump_true = st.jump_true_step;
+                    stepObj.jump_false = st.jump_false_step;
+                }
+                return stepObj;
+            });
+
+            return {
+                id: recipeId,
+                name: title,
+                title: title,
+                category: category,
+                description: desc,
+                steps: steps
+            };
+        }
+
+        function saveMacroRecipeToBackend() {
+            const recipeId = document.getElementById('macro-recipe-id').value.trim() || `custom_recipe_${Date.now()}`;
+            const title = document.getElementById('macro-recipe-title').value.trim() || `[CUSTOM] 신규 시퀀스 레시피`;
+            const category = document.getElementById('macro-recipe-category').value;
+            const desc = document.getElementById('macro-recipe-desc').value.trim() || `사용자 지정 매크로 레시피`;
+
+            if (recordedSteps.length === 0) {
+                alert("[저장 불가] 조립된 시퀀스 스텝이 최소 1개 이상 존재해야 합니다.");
+                return;
+            }
+
+            const recipeObj = buildRecipeObject(recipeId, title, category, desc);
+
+            // 💾 2차 (로컬스토리지 보존 저장): 백엔드 오프라인 시에도 드롭다운 선택목록에 무조건 즉시 반영!
+            try {
+                let localRecipes = JSON.parse(localStorage.getItem('custom_h2_recipes') || "[]");
+                localRecipes = localRecipes.filter(r => r.id !== recipeId);
+                localRecipes.push(recipeObj);
+                localStorage.setItem('custom_h2_recipes', JSON.stringify(localRecipes));
+                
+                // 인메모리 및 UI 갱신
+                const existingIdx = loadedRecipes.findIndex(r => r.id === recipeId);
+                if (existingIdx !== -1) {
+                    loadedRecipes[existingIdx] = recipeObj;
+                } else {
+                    loadedRecipes.push(recipeObj);
+                }
+                renderRecipeSelector(loadedRecipes);
+                document.getElementById('seq-recipe-select').value = recipeId;
+            } catch(e) {}
+
+            // 📡 1차 (파이썬 백엔드 sample_recipes.json 저장):
+            const payload = JSON.stringify({
+                type: "SAVE_SEQUENCE_RECIPE",
+                recipe: recipeObj
+            });
+
+            let sentSuccess = false;
+            if (popupWs && popupWs.readyState === WebSocket.OPEN) {
+                try { popupWs.send(payload); sentSuccess = true; } catch(e) {}
+            }
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage({ type: "SAVE_SEQUENCE_RECIPE", payload: payload }, '*');
+                    sentSuccess = true;
+                }
+            } catch(e) {}
+
+            if (sentSuccess) {
+                alert(`🎉 [저장 완비] '${title}' 레시피가 파이썬 백엔드(sample_recipes.json) 및 로컬스토리지에 성공적으로 저장되었습니다!`);
+                closeMacroBuilderModal();
+            } else {
+                alert(`🎉 [로컬저장 완비] 파이썬 백엔드가 오프라인 상태이지만, 로컬 저장소에 레시피가 즉시 저장되어 드롭다운에서 바로 선택/기동할 수 있습니다!`);
+                closeMacroBuilderModal();
+            }
+        }
+    </script>
+</body>
+</html>

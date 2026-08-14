@@ -1,0 +1,13 @@
+﻿"Symbol";"Value";"Unit";
+"TraceParts.PartNumber";"90-20022024-011455";"";
+"REFERENCE";"1818339";"";
+"rs_stock_number";"8816913";"";
+"TraceParts.PartTitle";"PCB Header 1818339";"";
+"url";"https://uk.rs-online.com/web/p/pluggable-terminal-blocks/8816913//?cm_mmc=aff-_-uk-_-traceparts-_-8816913";"";
+"SUPPLIER_NAME";"RS Components";"";
+"SUPPLIER";"Phoenix Contact";"";
+"DESIGN";"PCB Header 1818339";"";
+"TraceParts.InstanceId";"90-20022024-0114552N3XX9WWY2MK673V115V3T3RA";"";
+"TRACEPARTS";"TRACEPARTS";"";
+"TraceParts.PartLanguage";"en";"";
+"TraceParts.PartVersion";"1.0.1";"";

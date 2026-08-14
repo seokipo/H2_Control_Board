@@ -1,0 +1,9 @@
+Manufacturer=Phoenix Contact
+PartNumber=1818025
+PartCategory=Connector
+PackageCategory=Other
+PinCount=7
+Version=6.2
+Released=2022-01-10 16:19:22
+Downloaded=2026-07-30 23:07:18
+3D=Y

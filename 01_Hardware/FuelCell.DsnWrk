@@ -1,0 +1,10 @@
+[ProjectGroup]
+Version=1.0
+[Project1]
+ProjectPath=FuelCell.PrjPcb
+[Project2]
+ProjectPath=..\..\..\Data\Altium\Lib\KipoAlt.LibPkg
+[Project3]
+ProjectPath=..\H2Sensor\H2Sensor.PrjPcb
+[Project4]
+ProjectPath=..\AioJig\AioJig.PrjPcb

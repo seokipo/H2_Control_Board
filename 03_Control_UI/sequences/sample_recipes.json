@@ -1,0 +1,247 @@
+{
+  "recipes": [
+    {
+      "id": "recipe_start_purge",
+      "name": "개질기 기동 퍼지 & 압력 형성 시퀀스",
+      "category": "STARTUP",
+      "description": "시스템 기동 시 개질기 잔류 가스 질소 퍼지 및 연료 가압 라인 초기 밸브 순차 개방 로직입니다.",
+      "steps": [
+        {
+          "step": 1,
+          "title": "질소 퍼지 밸브 개방 및 대기",
+          "desc": "질소 퍼지 솔레노이드 밸브(DO_SV125)를 열고 3초간 잔류 가스를 주입 퍼지합니다.",
+          "actions": {
+            "DO_SV125": 1,
+            "DO_SV102": 0
+          },
+          "wait_seconds": 3
+        },
+        {
+          "step": 2,
+          "title": "연료가스 공급 가압 펌프 예열 분사",
+          "desc": "가압 펌프(AO_P108)를 20%로 구동하고 버퍼 탱크 압력(AI_PT109) 5.0kPa 이상을 감시합니다.",
+          "actions": {
+            "AO_P108": 13107
+          },
+          "condition": {
+            "sensor": "AI_PT109",
+            "operator": ">=",
+            "target_val": 5.0
+          },
+          "timeout_seconds": 10
+        },
+        {
+          "step": 3,
+          "title": "개질가스 인입 전동 밸브 개방",
+          "desc": "개질 가스 인입 전동 밸브(DO_MV131)를 열고 안정화를 위해 5초간 대기합니다.",
+          "actions": {
+            "DO_MV131": 1
+          },
+          "wait_seconds": 5
+        },
+        {
+          "step": 4,
+          "title": "기동 퍼지 시퀀스 성공적 완료",
+          "desc": "모든 초기 가압 및 퍼지 조건이 달성되어 정상 구동 준비 상태로 전환됩니다.",
+          "actions": {
+            "DO_SV125": 0
+          },
+          "wait_seconds": 1
+        }
+      ]
+    },
+    {
+      "id": "recipe_safety_leak_test",
+      "name": "수소/메탄 가스 누설 인터록 기동 테스트 모드",
+      "category": "SAFETY",
+      "description": "안전 가스 누설 경보기(GD501/502) 및 차단 밸브의 인터록 응답성을 시뮬레이션 검증합니다.",
+      "steps": [
+        {
+          "step": 1,
+          "title": "가스 메인 인입 솔레노이드 밸브 1 개방",
+          "desc": "메인 가스 밸브(DO_SV102)를 열어 테스트 라인을 가압 상태로 준비합니다.",
+          "actions": {
+            "DO_SV102": 1,
+            "DO_SV103": 1
+          },
+          "wait_seconds": 2
+        },
+        {
+          "step": 2,
+          "title": "가스 누설 감지 인터록 상시 감시 상태 진입",
+          "desc": "메탄 감지기(DI_GD501) 및 수소 감지기(DI_GD502)의 안전 차단 락다운 반응을 테스트합니다.",
+          "actions": {},
+          "wait_seconds": 4
+        },
+        {
+          "step": 3,
+          "title": "안전 인스펙션 완료 및 메인 밸브 복구 차단",
+          "desc": "안전 인터록 밸브 모듈 검증을 마치고 차단 상태로 원복합니다.",
+          "actions": {
+            "DO_SV102": 0,
+            "DO_SV103": 0
+          },
+          "wait_seconds": 1
+        }
+      ]
+    },
+    {
+      "id": "recipe_cooling_loop",
+      "name": "스택 및 냉각수 순환 정밀 제어 시퀀스",
+      "category": "COOLING",
+      "description": "스택 1 냉각수 공급 펌프(AO_P370) 및 순환 유량계(AI_MFM315) 연동 자동 제어를 수행합니다.",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Anode 냉각수 순환 물펌프 기동",
+          "desc": "Anode 냉각수 펌프(AO_P351)를 40% 속도로 가동합니다.",
+          "actions": {
+            "AO_P351": 26214
+          },
+          "wait_seconds": 3
+        },
+        {
+          "step": 2,
+          "title": "스택 1 냉각수 공급 펌프 램프업",
+          "desc": "냉각수 펌프(AO_P370)를 60% 속도로 증속하고 유량(AI_MFM315) 10.0 LPM 이상 도달을 확인합니다.",
+          "actions": {
+            "AO_P370": 39321
+          },
+          "condition": {
+            "sensor": "AI_MFM315",
+            "operator": ">=",
+            "target_val": 10.0
+          },
+          "timeout_seconds": 12
+        },
+        {
+          "step": 3,
+          "title": "냉각수 정속 순환 유지 완료",
+          "desc": "냉각수 유량이 안정적으로 유지됨에 따라 순환 시퀀스를 완료합니다.",
+          "actions": {},
+          "wait_seconds": 2
+        }
+      ]
+    },
+    {
+      "id": "recipe_mfc_flow_control",
+      "name": "BNG / PNG 질량 유량 제어기 (MFC) 자동 정속 분사 시퀀스",
+      "category": "STARTUP",
+      "description": "BNG(30L) 및 PNG(50L) 유량 제어 MFC(AO_MFC111/121)와 AI 센서 피드백 링크를 연동한 분사 시퀀스입니다.",
+      "steps": [
+        {
+          "step": 1,
+          "title": "가스 인입 전동 밸브 개방 및 가압 준비",
+          "desc": "PNG 인입 전동 밸브(DO_MV124) 및 인입 솔레노이드 밸브(DO_SV102)를 개방합니다.",
+          "actions": {
+            "DO_MV124": 1,
+            "DO_SV102": 1
+          },
+          "wait_seconds": 2
+        },
+        {
+          "step": 2,
+          "title": "BNG 유량 제어 MFC 30% 정량 분사",
+          "desc": "BNG MFC(AO_MFC111)에 1.5V (30% raw: 19660)를 설정하고 BNG 센서(AI_MFC111) 유량을 확인합니다.",
+          "actions": {
+            "AO_MFC111": 19660
+          },
+          "condition": {
+            "sensor": "AI_MFC111",
+            "operator": ">=",
+            "target_val": 9.0
+          },
+          "timeout_seconds": 8
+        },
+        {
+          "step": 3,
+          "title": "PNG 유량 제어 MFC 50% 정량 분사",
+          "desc": "PNG MFC(AO_MFC121)에 2.5V (50% raw: 32767)를 설정하고 PNG 센서(AI_MFC121) 유량을 확인합니다.",
+          "actions": {
+            "AO_MFC121": 32767
+          },
+          "condition": {
+            "sensor": "AI_MFC121",
+            "operator": ">=",
+            "target_val": 25.0
+          },
+          "timeout_seconds": 8
+        },
+        {
+          "step": 4,
+          "title": "MFC 듀얼 정량 공급 시퀀스 제어 완료",
+          "desc": "BNG 및 PNG MFC 유량이 정상 목표치에 도달하여 분사 시퀀스를 정속 상태로 유지합니다.",
+          "actions": {},
+          "wait_seconds": 2
+        }
+      ]
+    },
+    {
+      "id": "recipe_conditional_branch_purge",
+      "name": "가스 버퍼탱크 압력 판별 IF 조건분기 및 정상기동/퍼지 시퀀스",
+      "category": "SAFETY",
+      "description": "가스 버퍼탱크 압력(AI_PT109)이 4.5bar 이상이면 정상 연소 기동(Step 4)으로 이동하고, 미달 시 질소 비상 퍼지(Step 7)로 조건 분기하는 지능형 시퀀스입니다.",
+      "steps": [
+        {
+          "step": 1,
+          "title": "가스 인입 전동 밸브 및 솔레노이드 개방",
+          "desc": "가스 인입 솔레노이드 밸브(DO_SV102) 및 PNG 인입 전동 밸브(DO_MV124)를 개방합니다.",
+          "actions": { "DO_SV102": 1, "DO_MV124": 1 },
+          "wait_seconds": 2
+        },
+        {
+          "step": 2,
+          "title": "연료 가압 펌프 예열 가동",
+          "desc": "연료 가압 펌프(AO_P108)를 30% 출력으로 점증 기동합니다.",
+          "actions": { "AO_P108": 19660 },
+          "wait_seconds": 3
+        },
+        {
+          "step": 3,
+          "title": "🔀 가스 버퍼탱크 압력 판별 IF 조건분기",
+          "desc": "AI_PT109 가스 버퍼탱크 압력이 4.5bar 이상이면 Step 4(정상 기동), 미달이면 Step 7(비상 질소 퍼지)로 점프합니다.",
+          "type": "IF_BRANCH",
+          "condition": { "sensor": "AI_PT109", "operator": ">=", "target_val": 4.5 },
+          "jump_true": 4,
+          "jump_false": 7
+        },
+        {
+          "step": 4,
+          "title": "정상 기동: 개질기 버너 연소 공기 블로어 점화 준비",
+          "desc": "압력 정상 확보됨. 버너 에어블로어(AO_AB221) 40% 구동 및 점화 트랜스(DO_IGN175)를 기동합니다.",
+          "actions": { "AO_AB221": 26214, "DO_IGN175": 1 },
+          "wait_seconds": 3
+        },
+        {
+          "step": 5,
+          "title": "정상 기동: 개질 버너 점화 완료 및 820℃ 승온 유지",
+          "desc": "점화 트랜스를 끄고 버너 온도(CH21) 820℃ 승온을 확인합니다.",
+          "actions": { "DO_IGN175": 0 },
+          "condition": { "sensor": "CH21", "operator": ">=", "target_val": 820.0 },
+          "timeout_seconds": 15
+        },
+        {
+          "step": 6,
+          "title": "정상 기동 시퀀스 성취 완료 및 운전 전환",
+          "desc": "모든 상태가 정상 진입함에 따라 운전 모드로 자동 전환하고 시퀀스를 마칩니다.",
+          "actions": {},
+          "wait_seconds": 2
+        },
+        {
+          "step": 7,
+          "title": "비상 퍼지: 인입 밸브 차단 및 AOG VENT 전동 밸브 개방",
+          "desc": "가스 압력 부족으로 인입 밸브(DO_SV102) 차단 및 AOG VENT 밸브(DO_MV158)를 긴급 개방합니다.",
+          "actions": { "DO_SV102": 0, "DO_MV158": 1 },
+          "wait_seconds": 2
+        },
+        {
+          "step": 8,
+          "title": "비상 퍼지: 질소 드레인 밸브 개방 및 잔류가스 퍼지 완료",
+          "desc": "드레인 솔레노이드 밸브(DO_SV323)를 열고 잔류 수소/가스를 안전하게 퍼지 처리합니다.",
+          "actions": { "DO_SV323": 1 },
+          "wait_seconds": 3
+        }
+      ]
+    }
+  ]
+}

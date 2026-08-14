@@ -1,0 +1,14 @@
+=====Winstar Smart Display GUI Builder Install Guide====
+
+1.Install USB to interface Driver
+For CAN: Run "stlink_winusb_install.bat"
+For RS485: Run "CDM212364_Setup.exe"
+
+2.Install Microsoft Visual C++ 2015-2019 Redistributable (x86)
+Run VC_redist.x86.exe
+
+3.Install Smart Display GUI Builder
+Run WinstarSmartDisplayGUIBuilderSetup_v0.8.4.msi
+
+4.Start creating with WinstarSmartDisplayGUIBuilder.
+To perform a live simulation with the Smart Display DEMO set, please connect your PC to the module via the USB to interface dongle.

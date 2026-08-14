@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP 1751581
+D FFKDSA1/V1-5,08-10 - Printed circuit board terminal, nominal current: 15 A, rated voltage (III/2): 400 V, nominal cross section: 1.5 mm<sup>2</sup>, number of potentials: 10, number of rows: 1, number of positions per row: 10, product range: FFKDS(A)/V1, pitch: 5.08 mm, connection method: Push-in spring connection, mounting: Wave soldering, conductor/PCB connection direction: 90 , color: green, Pin layout: Linear pinning, Solder pin [P]: 3.4 mm, number of solder pins per potential: 2, type of packaging: pa
+K
+F https://www.phoenixcontact.com/en-us/products/printed-circuit-board-terminal-ffkdsa1v1-508-10-1751581?type=pdf
+$ENDCMP
+#
+#End Doc Library

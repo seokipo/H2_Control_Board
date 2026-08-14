@@ -1,0 +1,18 @@
+.1751581 :1 ;FFKDSA1/V1-5,08-10 - Printed circuit board terminal, nominal current: 15 A, rated voltage (III/2): 400 V, nominal cross section: 1.5 mm<sup>2</sup>, number of potentials: 10, number of rows: 1, number of positions per row: 10, product range: FFKDS(A)/V1, pitch: 5.08 mm, connection method: Push-in spring connection, mounting: Wave soldering, conductor/PCB connection direction: 90 , color: green, Pin layout: Linear pinning, Solder pin [P]: 3.4 mm, number of solder pins per potential: 2, type of packaging: pa
+"1751581"
+*STM J
+*NGS
+*PLB 1="1.1" 2="1.2" 3="2.1" 4="2.2" 5="3.1" 6="3.2" 7="4.1" 8="4.2" 9="5.1" 10="5.2" 11="6.1" 12="6.2" 13="7.1" 14="7.2" 15="8.1" 16="8.2" 17="9.1" 18="9.2" 19="10.1" 20="10.2"
+*MXP 20
+*DFN 1751581
+~!Manufacturer_Name (Phoenix Contact)
+~!Manufacturer_Part_Number (1751581)
+~!Mouser Part Number (651-1751581)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/Phoenix-Contact/1751581?qs=5SfROSHwb7CCaVxuhSvzeQ%3D%3D)
+~!Arrow Part Number (-)
+~!Arrow Price/Stock (-)
+~!Link Datasheet (https://www.phoenixcontact.com/en-us/products/printed-circuit-board-terminal-ffkdsa1v1-508-10-1751581?type=pdf)
+~!Height (13.6mm)
+~!3D_Model (1751581)
+"1751581"
+1.1!U 2.1!U 3.1!U 4.1!U 5.1!U 6.1!U 7.1!U 8.1!U 9.1!U 10.1!U 11.1!U 12.1!U 13.1!U 14.1!U 15.1!U 16.1!U 17.1!U 18.1!U 19.1!U 20.1!U 
