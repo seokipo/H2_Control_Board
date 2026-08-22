@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H2_Control_Board 시스템 의존성 지도 (Interactive Dependency Map)</title>
+    <!-- Vis-Network CDN -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #060913;
+            --panel-bg: rgba(13, 20, 38, 0.90);
+            --border-color: rgba(56, 189, 248, 0.25);
+            --primary: #38bdf8;
+            --accent: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --purple: #a855f7;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.05) 0%, transparent 45%),
+                radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.05) 0%, transparent 45%);
+        }
+
+        /* 메인 네트워크 캔버스 영역 */
+        #network-canvas {
+            flex: 1;
+            height: 100%;
+            cursor: grab;
+            position: relative;
+        }
+
+        #network-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* 좌측 상단 툴바 */
+        .top-toolbar {
+            position: absolute;
+            top: 14px;
+            left: 18px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--panel-bg);
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .title-group h1 {
+            font-size: 14px;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .title-group p {
+            font-size: 10.5px;
+            color: var(--text-muted);
+        }
+
+        .filter-btn-group {
+            display: flex;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .btn-filter {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-muted);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-filter:hover {
+            background: rgba(56, 189, 248, 0.18);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-filter.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(16, 185, 129, 0.35));
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+        }
+
+        /* 줌 및 뷰 모드 제어 플로팅 버튼 */
+        .view-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+            background: var(--panel-bg);
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-ctrl {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-ctrl:hover {
+            background: var(--primary);
+            color: #000;
+        }
+
+        /* 우측 상세 정보 사이드바 */
+        #sidebar {
+            width: 380px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(16px);
+            z-index: 10;
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .search-box {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .search-box input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .info-panel {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-panel h2 {
+            font-size: 12.5px;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+            padding-bottom: 6px;
+        }
+
+        .node-card {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .node-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .node-layer-badge {
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .node-desc {
+            font-size: 12px;
+            color: #cbd5e1;
+            line-height: 1.55;
+        }
+
+        .meta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+        }
+
+        .meta-val {
+            color: #fde047;
+            font-family: 'Fira Code', monospace;
+            font-weight: 600;
+        }
+
+        .connection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 4px;
+        }
+
+        .conn-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .conn-item:hover {
+            background: rgba(56, 189, 248, 0.18);
+            color: #fff;
+            transform: translateX(2px);
+        }
+
+        /* 하단 범례 */
+        .legend-card {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 상단 플로팅 툴바 -->
+    <div class="top-toolbar">
+        <div class="title-group">
+            <h1>🗺️ H2_Control_Board 시스템 의존성 지도</h1>
+            <p>3계층 SCADA 관제 ↔ 중계 게이트웨이 ↔ dsPIC33CK MCU 펌웨어 구조도</p>
+        </div>
+        <div class="filter-btn-group">
+            <button class="btn-filter active" id="btn-filter-all" onclick="filterGraph('ALL')">전체 보기 (All Nodes)</button>
+            <button class="btn-filter" id="btn-filter-comm" onclick="filterGraph('COMM')">통신 & 제어 흐름</button>
+            <button class="btn-filter" id="btn-filter-sensor" onclick="filterGraph('SENSOR')">센서 & 버스 공유</button>
+            <button class="btn-filter" id="btn-filter-output" onclick="filterGraph('OUTPUT')">20 DO / 11 DAC 출력</button>
+        </div>
+    </div>
+
+    <!-- 좌측 하단 줌 컨트롤 툴바 -->
+    <div class="view-controls">
+        <button class="btn-ctrl" onclick="zoomIn()" title="확대">➕ 확대</button>
+        <button class="btn-ctrl" onclick="zoomOut()" title="축소">➖ 축소</button>
+        <button class="btn-ctrl" onclick="fitAll()" title="화면 전체 맞춤" style="background: rgba(56, 189, 248, 0.25); border-color: var(--primary);">⛶ 전체 맞춤</button>
+        <button class="btn-ctrl" id="btn-toggle-layout" onclick="toggleLayout()">🔄 계층 ↔ 분산 배치 전환</button>
+    </div>
+
+    <!-- 메인 비주얼 네트워크 캔버스 -->
+    <div id="network-canvas"></div>
+
+    <!-- 우측 상세 정보 사이드바 -->
+    <div id="sidebar">
+        <div class="search-box">
+            <input type="text" id="node-search" placeholder="모듈명, 파일명 검색 (예: modbus, dac, main)..." oninput="searchNodes(this.value)">
+        </div>
+
+        <div class="info-panel" id="info-panel">
+            <h2>모듈 상세 정보</h2>
+            <div id="node-detail-content">
+                <div class="node-card" style="text-align: center; color: var(--text-muted); padding: 30px 10px;">
+                    💡 노드를 클릭하면 해당 파일의 역할, 의존성, 공유 버스 및 레지스터 정보가 표시됩니다.
+                </div>
+            </div>
+
+            <h2 style="margin-top: 10px;">연결된 모듈 (Connected Edges)</h2>
+            <div id="connected-nodes-list" class="connection-list">
+                <div style="font-size: 11px; color: var(--text-muted); font-style: italic;">선택된 모듈 없음</div>
+            </div>
+        </div>
+
+        <!-- 하단 범례 -->
+        <div class="legend-card">
+            <div class="legend-title">계층별 색상 범례</div>
+            <div class="legend-grid">
+                <div class="legend-item"><div class="legend-dot" style="background: #38bdf8;"></div><span>UI / 프론트엔드</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background: #10b981;"></div><span>Python 중계 브릿지</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background: #ef4444;"></div><span>MCU 코어 & 통신</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background: #f59e0b;"></div><span>아날로그 & 센서 계측</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background: #a855f7;"></div><span>드라이빙 & 메모리</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background: #64748b;"></div><span>물리 하드웨어 부하</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 전체 노드 정의 (18개 핵심 모듈)
+        const rawNodes = [
+            // [LAYER 4] UI & 프론트엔드
+            { id: "index_html", label: "🖥️ index.html\n(FHD SCADA UI)", group: "UI", level: 1, desc: "1920x1025 FHD 통합 관제 대시보드. 실시간 게이지, 31개 열전대 테이블, DO 토글, 슬라이더 제어 및 표준 CRC-16 프레임 빌더 탑재", file: "03_Control_UI/index.html", bus: "WebSocket (ws://)" },
+            { id: "seq_manager", label: "🤖 sequence_manager.html\n(시퀀스 엔진)", group: "UI", level: 1, desc: "독립 팝업 자동 운전 매크로 레코더 & 플로우차트 레시피 실행기", file: "03_Control_UI/sequence_manager.html", bus: "BroadcastChannel" },
+
+            // [LAYER 3] Gateway & Python Bridge
+            { id: "serial_bridge", label: "🐍 serial_bridge.py\n(비동기 게이트웨이)", group: "BRIDGE", level: 2, desc: "물리 시리얼 포트(COM3)와 WebSocket(Port 8888)을 중계하는 비동기 브릿지. 400ms 주기 자동 폴링 및 안전 전체 리셋 송출", file: "03_Control_UI/serial_bridge.py", bus: "Serial ↔ WS" },
+            { id: "sample_recipes", label: "📋 sample_recipes.json\n(공정 레시피 DB)", group: "BRIDGE", level: 2, desc: "수소 개질 및 스택 시동/정지/비상정지 자동 공정 레시피 저장소", file: "03_Control_UI/sequences/sample_recipes.json", bus: "File I/O" },
+
+            // [LAYER 2] dsPIC33CK MCU Firmware Core
+            { id: "main_c", label: "⚡ main.c\n(메인 스케줄러)", group: "MCU_CORE", level: 3, desc: "시스템 부팅 시 전체 드라이버 일괄 초기화, 200ms 센서 스캔 루프, Modbus DB 바인딩 및 20채널 DO 하드웨어 동기화", file: "02_Firmware/main.c", bus: "CPU Core" },
+            { id: "pin_map_h", label: "📍 pin_map.h\n(GPIO 핀 맵)", group: "MCU_CORE", level: 3, desc: "dsPIC33CK512MP710의 모든 물리 GPIO, TRIS/LAT 매크로 및 IntelliSense 가상 레지스터 선언", file: "02_Firmware/pin_map.h", bus: "SFR Direct" },
+            { id: "modbus_c", label: "📡 modbus.c/.h\n(Modbus RTU 슬레이브)", group: "MCU_CORE", level: 3, desc: "Modbus RTU 슬레이브 엔진 (FC 0x01/02/03/04/05/06/10). Modbus_SetDO를 통해 20개 물리 릴레이 즉시 스위칭 및 DAC SPI 전송", file: "02_Firmware/modbus.c", bus: "UART2 / SPI1" },
+            { id: "rs422_c", label: "🔌 rs422.c/.h\n(RS-422 드라이버)", group: "MCU_CORE", level: 3, desc: "관제 PC 연동용 Full-Duplex UART2 드라이버 (115200 bps)", file: "02_Firmware/rs422.c", bus: "UART2" },
+            { id: "rs485_c", label: "🔌 rs485.c/.h\n(RS-485 드라이버)", group: "MCU_CORE", level: 3, desc: "현장 필드 인버터(INV506) 및 개질수 순시 유량계(FM382) 연동용 Half-Duplex UART1 드라이버", file: "02_Firmware/rs485.c", bus: "UART1 (DIR: RD0)" },
+
+            // [LAYER 2-B] Sensor Drivers (Shared Buses)
+            { id: "thermocouple_c", label: "🌡️ thermocouple.c/.h\n(31ch 열전대 MUX)", group: "SENSOR", level: 4, desc: "MAX31856 및 6개 ADG706 아날로그 MUX 스위칭을 통한 31채널 고온/저온 온도 계측 드라이버", file: "02_Firmware/thermocouple.c", bus: "SPI1 (공유 버스)" },
+            { id: "ads1115_c", label: "📊 ads1115.c/.h\n(16ch ADC 드라이버)", group: "SENSOR", level: 4, desc: "I2C1 버스 상의 4개 ADS1115(0x48~0x4B)를 통한 16채널 아날로그 센서(압력/유량) 계측 드라이버", file: "02_Firmware/ads1115.c", bus: "I2C1 (공유 버스)" },
+            { id: "rtc_c", label: "⏰ rtc.c/.h\n(DS3231 고정밀 RTC)", group: "SENSOR", level: 4, desc: "I2C1 버스 기반 DS3231 RTC 실시간 시각 획득 드라이버 (년/월/일/시/분/초)", file: "02_Firmware/rtc.c", bus: "I2C1 (0x68 공유)" },
+
+            // [LAYER 2-C] Actuators & Memory Drivers
+            { id: "dac60516_c", label: "🎛️ dac60516.c/.h\n(12ch 16bit DAC)", group: "DRIVER", level: 4, desc: "16비트 고정밀 DAC60516(IC501)을 통한 12채널 아날로그 전압 출력(0~5V) 제어 드라이버", file: "02_Firmware/dac60516.c", bus: "SPI1 (공유 버스)" },
+            { id: "ethernet_c", label: "🌐 ethernet.c/.h\n(듀얼 W5500 이더넷)", group: "DRIVER", level: 4, desc: "SPI2 버스 기반 듀얼 W5500 하드웨어 TCP/IP 이더넷 컨트롤러 드라이버", file: "02_Firmware/ethernet.c", bus: "SPI2 버스" },
+            { id: "flash_c", label: "💾 flash.c/.h\n(W25Q256 SPI 플래시)", group: "DRIVER", level: 4, desc: "SPI3 버스 기반 256Mbit SPI 플래시 메모리 드라이버 (원격 레시피/에러 로그)", file: "02_Firmware/flash.c", bus: "SPI3 버스" },
+
+            // [LAYER 1] Physical Actuators & Hardware Loads
+            { id: "hw_do_relays", label: "⚡ 20채널 DO 디지털 릴레이\n(SV 6개 / MV 8개 / 히터 4개 / 점화 / MC_SW)", group: "HARDWARE", level: 5, desc: "솔레노이드 밸브 6종, 모터 밸브 8종, LTS/Prox 히터 4종, 점화 트랜스 및 메인 전원 스위치", file: "물리 하드웨어 회로", bus: "24V Power Relay" },
+            { id: "hw_dac_actuators", label: "🎛️ 11채널 아날로그 구동기\n(블로어 3종 / 펌프 6종 / MFC 2종)", group: "HARDWARE", level: 5, desc: "0~5.0V 전압 지령으로 제어되는 에어블로어, 수순환 물펌프, 가스 가압펌프, BNG/PNG MFC", file: "물리 하드웨어 회로", bus: "0~5V Analog Out" },
+            { id: "hw_sensors", label: "🌡️ 47개 물리 센서 계측군\n(TC 31ch, ADC 16ch, DI 16ch)", group: "HARDWARE", level: 5, desc: "T-Type/K-Type 열전대 온도 센서 31개, 압력/유량/전도도 센서 16개, 화염/가스/팬 DI 알람", file: "물리 하드웨어 회로", bus: "Physical Sensors" }
+        ];
+
+        // 2. 전체 엣지 정의 (Edges)
+        const rawEdges = [
+            // UI ↔ Gateway
+            { from: "index_html", to: "serial_bridge", label: "WebSocket (8888)", color: { color: "#38bdf8" }, dashes: false, width: 3 },
+            { from: "seq_manager", to: "index_html", label: "postMessage / Broadcast", color: { color: "#38bdf8" }, dashes: true, width: 2 },
+            { from: "serial_bridge", to: "sample_recipes", label: "JSON Read/Write", color: { color: "#10b981" }, dashes: false, width: 2 },
+
+            // Gateway ↔ MCU Modbus (Dual Redundant: RS-422 Serial + Dual W5500 Ethernet)
+            { from: "serial_bridge", to: "rs422_c", label: "RS-422 Modbus RTU + CRC16", color: { color: "#f59e0b" }, dashes: false, width: 3 },
+            { from: "rs422_c", to: "modbus_c", label: "UART2 RX/TX FIFO", color: { color: "#f59e0b" }, dashes: false, width: 3 },
+            { from: "serial_bridge", to: "ethernet_c", label: "🌐 이더넷 LAN (Modbus TCP 502 / TCP Socket)", color: { color: "#38bdf8" }, dashes: true, width: 2.5 },
+            { from: "ethernet_c", to: "modbus_c", label: "Modbus TCP 패킷 처리", color: { color: "#a855f7" }, dashes: true, width: 2 },
+
+            // MCU Main ↔ Modules
+            { from: "main_c", to: "modbus_c", label: "Modbus_Task()", color: { color: "#ef4444" }, width: 2 },
+            { from: "main_c", to: "pin_map_h", label: "GPIO_Initialize()", color: { color: "#ef4444" }, width: 2 },
+            { from: "main_c", to: "thermocouple_c", label: "200ms 주기 TC_Read()", color: { color: "#ef4444" }, width: 2 },
+            { from: "main_c", to: "ads1115_c", label: "200ms 주기 ADS1115_Read()", color: { color: "#ef4444" }, width: 2 },
+            { from: "main_c", to: "rtc_c", label: "RTC_GetTime()", color: { color: "#ef4444" }, width: 2 },
+            { from: "main_c", to: "dac60516_c", label: "DAC60516_Initialize()", color: { color: "#ef4444" }, width: 2 },
+            { from: "main_c", to: "ethernet_c", label: "ETH_Initialize()", color: { color: "#ef4444" }, width: 1.5 },
+            { from: "main_c", to: "flash_c", label: "FLASH_Initialize()", color: { color: "#ef4444" }, width: 1.5 },
+            { from: "main_c", to: "rs485_c", label: "RS485_Initialize()", color: { color: "#ef4444" }, width: 1.5 },
+
+            // Modbus Direct Controls
+            { from: "modbus_c", to: "dac60516_c", label: "DAC60516_WriteRaw()", color: { color: "#a855f7" }, width: 3 },
+            { from: "modbus_c", to: "pin_map_h", label: "Modbus_SetDO() LAT 스위칭", color: { color: "#ef4444" }, width: 3 },
+
+            // Shared Bus Clustered Edges
+            { from: "thermocouple_c", to: "dac60516_c", label: "⚡ SPI1 버스 공유 (CS 분리)", color: { color: "#f59e0b" }, dashes: true, width: 2 },
+            { from: "ads1115_c", to: "rtc_c", label: "⚡ I2C1 버스 공유 (주소 분리)", color: { color: "#10b981" }, dashes: true, width: 2 },
+
+            // Firmware Drivers ↔ Physical Hardware Loads
+            { from: "pin_map_h", to: "hw_do_relays", label: "물리 LAT 핀 On/Off 출력", color: { color: "#ef4444" }, width: 3 },
+            { from: "dac60516_c", to: "hw_dac_actuators", label: "0~5V 아날로그 지령 전압", color: { color: "#a855f7" }, width: 3 },
+            { from: "hw_sensors", to: "thermocouple_c", label: "열전대 기전력 (ADG706)", color: { color: "#f59e0b" }, width: 2 },
+            { from: "hw_sensors", to: "ads1115_c", label: "0~5V / 1~5V 센서 전압", color: { color: "#10b981" }, width: 2 },
+            { from: "hw_sensors", to: "pin_map_h", label: "DI 알람 신호 (PORTF)", color: { color: "#64748b" }, width: 2 }
+        ];
+
+        // 3. 그룹별 테마 색상 정의 (고대비 딥 컬러 & 진노랑/앰버 최적화)
+        const groupColors = {
+            UI: { 
+                background: "#0369a1", 
+                border: "#38bdf8", 
+                highlight: { background: "#0c4a6e", border: "#7dd3fc" },
+                hover: { background: "#0284c7", border: "#bae6fd" }
+            },
+            BRIDGE: { 
+                background: "#065f46", 
+                border: "#10b981", 
+                highlight: { background: "#064e3b", border: "#6ee7b7" },
+                hover: { background: "#059669", border: "#a7f3d0" }
+            },
+            MCU_CORE: { 
+                background: "#991b1b", 
+                border: "#ef4444", 
+                highlight: { background: "#7f1d1d", border: "#fca5a5" },
+                hover: { background: "#b91c1c", border: "#fecaca" }
+            },
+            SENSOR: { 
+                background: "#78350f", // 짙은 고대비 찐노랑/다크 앰버
+                border: "#f59e0b",     // 선명한 골드 테두리
+                highlight: { background: "#451a03", border: "#fde047" },
+                hover: { background: "#92400e", border: "#fef08a" }
+            },
+            DRIVER: { 
+                background: "#6b21a8", 
+                border: "#a855f7", 
+                highlight: { background: "#581c87", border: "#d8b4fe" },
+                hover: { background: "#7e22ce", border: "#e9d5ff" }
+            },
+            HARDWARE: { 
+                background: "#1e293b", 
+                border: "#64748b", 
+                highlight: { background: "#0f172a", border: "#94a3b8" },
+                hover: { background: "#334155", border: "#cbd5e1" }
+            }
+        };
+
+        const nodesData = rawNodes.map(n => ({
+            ...n,
+            color: groupColors[n.group],
+            font: { 
+                color: "#ffffff", 
+                size: 11.5, 
+                face: "Inter", 
+                bold: true,
+                strokeWidth: 2,
+                strokeColor: "#050811" // 폰트 외곽선(다크 스트로크)을 넣어 어떤 배경에서도 텍스트가 뚜렷하게 읽히도록 처리
+            },
+            shape: "box",
+            margin: 10,
+            borderWidth: 2,
+            shadow: { enabled: true, color: "rgba(0,0,0,0.6)", size: 8, x: 0, y: 3 }
+        }));
+
+        const nodes = new vis.DataSet(nodesData);
+        const edges = new vis.DataSet(rawEdges);
+
+        // 4. 네트워크 레이아웃 옵션 (안정적 Force-Atlas 물리 엔진 & 자동 맞춤)
+        let isHierarchical = false;
+
+        function getOptions(hierarchicalMode) {
+            const baseOptions = {
+                interaction: { 
+                    hover: true, 
+                    tooltipDelay: 80, 
+                    navigationButtons: true, 
+                    keyboard: true,
+                    selectConnectedEdges: true
+                },
+                nodes: {
+                    chosen: {
+                        node: function(values, id, selected, hovering) {
+                            if (selected) {
+                                values.borderWidth = 3.5;
+                                values.shadow = true;
+                                values.shadowColor = "#38bdf8";
+                                values.shadowSize = 16;
+                            }
+                        }
+                    }
+                },
+                edges: {
+                    arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+                    font: { color: "#94a3b8", size: 9.5, align: "horizontal", background: "rgba(6,9,19,0.90)", strokeWidth: 0 }
+                }
+            };
+
+            if (hierarchicalMode) {
+                return {
+                    ...baseOptions,
+                    layout: {
+                        hierarchical: {
+                            direction: "UD",
+                            sortMethod: "directed",
+                            levelSeparation: 110,
+                            nodeSpacing: 200,
+                            treeSpacing: 220
+                        }
+                    },
+                    physics: {
+                        hierarchicalRepulsion: {
+                            centralGravity: 0.0,
+                            springLength: 90,
+                            springConstant: 0.01,
+                            nodeDistance: 180
+                        },
+                        solver: "hierarchicalRepulsion"
+                    },
+                    edges: {
+                        ...baseOptions.edges,
+                        smooth: { type: "cubicBezier", forceDirection: "vertical", roundness: 0.4 }
+                    }
+                };
+            } else {
+                return {
+                    ...baseOptions,
+                    layout: { randomSeed: 42 },
+                    physics: {
+                        solver: "forceAtlas2Based",
+                        forceAtlas2Based: {
+                            gravitationalConstant: -70,
+                            centralGravity: 0.01,
+                            springLength: 120,
+                            springConstant: 0.08,
+                            damping: 0.4,
+                            avoidOverlap: 0.8
+                        },
+                        stabilization: { iterations: 150 }
+                    },
+                    edges: {
+                        ...baseOptions.edges,
+                        smooth: { type: "continuous" }
+                    }
+                };
+            }
+        }
+
+        const container = document.getElementById('network-canvas');
+        const data = { nodes, edges };
+        let network = new vis.Network(container, data, getOptions(isHierarchical));
+
+        // 5. 노드 선택 시 사이드바 상세 정보 렌더링
+        network.on("selectNode", function (params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const nodeObj = rawNodes.find(n => n.id === nodeId);
+                if (nodeObj) {
+                    showNodeDetail(nodeObj);
+                }
+            }
+        });
+
+        function showNodeDetail(node) {
+            const detailContainer = document.getElementById('node-detail-content');
+            const connContainer = document.getElementById('connected-nodes-list');
+
+            const groupNameMap = {
+                UI: "관제 UI 레이어",
+                BRIDGE: "중계 서버 레이어",
+                MCU_CORE: "MCU 코어 & 통신",
+                SENSOR: "아날로그 & 센서 계측",
+                DRIVER: "출력 & 메모리 드라이버",
+                HARDWARE: "물리 하드웨어 부하"
+            };
+
+            detailContainer.innerHTML = `
+                <div class="node-card">
+                    <div class="node-title">
+                        <span>${node.label.split('\n')[0]}</span>
+                        <span class="node-layer-badge" style="background: ${groupColors[node.group].background}; color: #fff;">
+                            ${groupNameMap[node.group]}
+                        </span>
+                    </div>
+                    <div class="node-desc">${node.desc}</div>
+                    <div class="meta-group">
+                        <div class="meta-row">
+                            <span class="meta-label">소스 파일 경로</span>
+                            <span class="meta-val">${node.file}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">통신 / 공유 버스</span>
+                            <span class="meta-val">${node.bus}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">아키텍처 계층</span>
+                            <span class="meta-val">Layer ${5 - node.level}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 연결된 엣지 및 모듈 탐색
+            const connectedEdges = rawEdges.filter(e => e.from === node.id || e.to === node.id);
+            if (connectedEdges.length > 0) {
+                connContainer.innerHTML = connectedEdges.map(e => {
+                    const isTarget = (e.from === node.id);
+                    const neighborId = isTarget ? e.to : e.from;
+                    const neighbor = rawNodes.find(n => n.id === neighborId);
+                    const directionTxt = isTarget ? "➔ 송신/지시" : "⬅ 수신/의존";
+                    return `
+                        <div class="conn-item" onclick="selectNodeById('${neighborId}')">
+                            <span><b>${neighbor ? neighbor.label.split('\n')[0] : neighborId}</b> <span style="color: var(--text-muted); font-size: 10px;">(${e.label})</span></span>
+                            <span style="color: ${isTarget ? '#34d399' : '#60a5fa'}; font-weight: bold; font-size: 10px;">${directionTxt}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                connContainer.innerHTML = '<div style="font-size: 11px; color: var(--text-muted);">연결된 관계 없음</div>';
+            }
+        }
+
+        function selectNodeById(id) {
+            network.selectNodes([id]);
+            const node = rawNodes.find(n => n.id === id);
+            if (node) showNodeDetail(node);
+        }
+
+        // 6. 검색 기능
+        function searchNodes(query) {
+            if (!query) return;
+            const q = query.toLowerCase();
+            const matched = rawNodes.find(n => n.label.toLowerCase().includes(q) || n.file.toLowerCase().includes(q) || n.desc.toLowerCase().includes(q));
+            if (matched) {
+                selectNodeById(matched.id);
+                network.focus(matched.id, { scale: 1.1, animation: true });
+            }
+        }
+
+        // 7. 필터 버튼 핸들링
+        function filterGraph(type) {
+            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-filter-${type.toLowerCase()}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            if (type === 'ALL') {
+                nodes.forEach(n => nodes.update({ id: n.id, hidden: false }));
+            } else if (type === 'COMM') {
+                const commIds = ['index_html', 'serial_bridge', 'rs422_c', 'modbus_c', 'main_c', 'rs485_c', 'hw_do_relays'];
+                nodes.forEach(n => nodes.update({ id: n.id, hidden: !commIds.includes(n.id) }));
+            } else if (type === 'SENSOR') {
+                const sensorIds = ['main_c', 'thermocouple_c', 'ads1115_c', 'rtc_c', 'hw_sensors', 'dac60516_c'];
+                nodes.forEach(n => nodes.update({ id: n.id, hidden: !sensorIds.includes(n.id) }));
+            } else if (type === 'OUTPUT') {
+                const outputIds = ['index_html', 'serial_bridge', 'modbus_c', 'pin_map_h', 'dac60516_c', 'hw_do_relays', 'hw_dac_actuators'];
+                nodes.forEach(n => nodes.update({ id: n.id, hidden: !outputIds.includes(n.id) }));
+            }
+            setTimeout(() => network.fit({ animation: true }), 100);
+        }
+
+        // 8. 줌 및 레이아웃 제어
+        function fitAll() {
+            network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+        }
+
+        function zoomIn() {
+            const scale = network.getScale() * 1.25;
+            network.moveTo({ scale: scale, animation: true });
+        }
+
+        function zoomOut() {
+            const scale = network.getScale() * 0.8;
+            network.moveTo({ scale: scale, animation: true });
+        }
+
+        function toggleLayout() {
+            isHierarchical = !isHierarchical;
+            network.setOptions(getOptions(isHierarchical));
+            document.getElementById('btn-toggle-layout').innerText = isHierarchical ? "🔄 자유 분산 물리 뷰로 전환" : "🔄 계층형 트리 뷰로 전환";
+            setTimeout(() => network.fit({ animation: true }), 200);
+        }
+
+        // 🚀 초기 로드 시 18개 전체 노드를 한 화면에 100% 자동 맞춤
+        network.once("stabilizationIterationsDone", function () {
+            network.fit({ animation: false });
+            selectNodeById('main_c');
+        });
+
+        setTimeout(() => {
+            network.fit({ animation: false });
+        }, 300);
+    </script>
+</body>
+</html>

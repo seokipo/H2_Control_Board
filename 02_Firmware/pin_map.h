@@ -10,7 +10,132 @@
 #ifndef PIN_MAP_H
 #define PIN_MAP_H
 
-#include <xc.h>
+#if defined(__XC16__) || defined(__XC)
+    #include <xc.h>
+#else
+    // 💡 에디터(VS Code / Antigravity IDE) 구문 검사기(IntelliSense) 빨간 밑줄 방지용 dsPIC33CK 가상 레지스터 맵
+    #include <stdint.h>
+    #include <stdbool.h>
+
+    typedef struct {
+        unsigned LAT0:1;  unsigned LAT1:1;  unsigned LAT2:1;  unsigned LAT3:1;
+        unsigned LAT4:1;  unsigned LAT5:1;  unsigned LAT6:1;  unsigned LAT7:1;
+        unsigned LAT8:1;  unsigned LAT9:1;  unsigned LAT10:1; unsigned LAT11:1;
+        unsigned LAT12:1; unsigned LAT13:1; unsigned LAT14:1; unsigned LAT15:1;
+    } __SFR_BITS;
+
+    typedef struct {
+        unsigned TRIS0:1;  unsigned TRIS1:1;  unsigned TRIS2:1;  unsigned TRIS3:1;
+        unsigned TRIS4:1;  unsigned TRIS5:1;  unsigned TRIS6:1;  unsigned TRIS7:1;
+        unsigned TRIS8:1;  unsigned TRIS9:1;  unsigned TRIS10:1; unsigned TRIS11:1;
+        unsigned TRIS12:1; unsigned TRIS13:1; unsigned TRIS14:1; unsigned TRIS15:1;
+    } __TRIS_BITS;
+
+    typedef struct {
+        unsigned RA0:1;  unsigned RA1:1;  unsigned RA2:1;  unsigned RA3:1;
+        unsigned RA4:1;  unsigned RA5:1;  unsigned RA6:1;  unsigned RA7:1;
+        unsigned RA8:1;  unsigned RA9:1;  unsigned RA10:1; unsigned RA11:1;
+        unsigned RA12:1; unsigned RA13:1; unsigned RA14:1; unsigned RA15:1;
+        unsigned LAT0:1;  unsigned LAT1:1;  unsigned LAT2:1;  unsigned LAT3:1;
+        unsigned LAT4:1;  unsigned LAT5:1;  unsigned LAT6:1;  unsigned LAT7:1;
+        unsigned LAT8:1;  unsigned LAT9:1;  unsigned LAT10:1; unsigned LAT11:1;
+        unsigned LAT12:1; unsigned LAT13:1; unsigned LAT14:1; unsigned LAT15:1;
+        unsigned TRISA0:1;  unsigned TRISA1:1;  unsigned TRISA2:1;  unsigned TRISA3:1;
+        unsigned TRISA4:1;  unsigned TRISA5:1;  unsigned TRISA6:1;  unsigned TRISA7:1;
+        unsigned TRISA8:1;  unsigned TRISA9:1;  unsigned TRISA10:1; unsigned TRISA11:1;
+        unsigned TRISA12:1; unsigned TRISA13:1; unsigned TRISA14:1; unsigned TRISA15:1;
+        unsigned LATA0:1;  unsigned LATA1:1;  unsigned LATA2:1;  unsigned LATA3:1;
+        unsigned LATA4:1;  unsigned LATA5:1;  unsigned LATA6:1;  unsigned LATA7:1;
+        unsigned LATA8:1;  unsigned LATA9:1;  unsigned LATA10:1; unsigned LATA11:1;
+        unsigned LATA12:1; unsigned LATA13:1; unsigned LATA14:1; unsigned LATA15:1;
+    } __PORTA_BITS;
+
+    typedef struct {
+        unsigned RB0:1;  unsigned RB1:1;  unsigned RB2:1;  unsigned RB3:1;
+        unsigned RB4:1;  unsigned RB5:1;  unsigned RB6:1;  unsigned RB7:1;
+        unsigned RB8:1;  unsigned RB9:1;  unsigned RB10:1; unsigned RB11:1;
+        unsigned RB12:1; unsigned RB13:1; unsigned RB14:1; unsigned RB15:1;
+        unsigned TRISB0:1;  unsigned TRISB1:1;  unsigned TRISB2:1;  unsigned TRISB3:1;
+        unsigned TRISB4:1;  unsigned TRISB5:1;  unsigned TRISB6:1;  unsigned TRISB7:1;
+        unsigned TRISB8:1;  unsigned TRISB9:1;  unsigned TRISB10:1; unsigned TRISB11:1;
+        unsigned TRISB12:1; unsigned TRISB13:1; unsigned TRISB14:1; unsigned TRISB15:1;
+        unsigned LATB0:1;  unsigned LATB1:1;  unsigned LATB2:1;  unsigned LATB3:1;
+        unsigned LATB4:1;  unsigned LATB5:1;  unsigned LATB6:1;  unsigned LATB7:1;
+        unsigned LATB8:1;  unsigned LATB9:1;  unsigned LATB10:1; unsigned LATB11:1;
+        unsigned LATB12:1; unsigned LATB13:1; unsigned LATB14:1; unsigned LATB15:1;
+    } __PORTB_BITS;
+
+    typedef struct {
+        unsigned RC0:1;  unsigned RC1:1;  unsigned RC2:1;  unsigned RC3:1;
+        unsigned RC4:1;  unsigned RC5:1;  unsigned RC6:1;  unsigned RC7:1;
+        unsigned RC8:1;  unsigned RC9:1;  unsigned RC10:1; unsigned RC10_unused:1;
+        unsigned RC11:1; unsigned RC12:1; unsigned RC13:1; unsigned RC14:1; unsigned RC15:1;
+        unsigned TRISC0:1;  unsigned TRISC1:1;  unsigned TRISC2:1;  unsigned TRISC3:1;
+        unsigned TRISC4:1;  unsigned TRISC5:1;  unsigned TRISC6:1;  unsigned TRISC7:1;
+        unsigned TRISC8:1;  unsigned TRISC9:1;  unsigned TRISC10:1; unsigned TRISC11:1;
+        unsigned TRISC12:1; unsigned TRISC13:1; unsigned TRISC14:1; unsigned TRISC15:1;
+        unsigned LATC0:1;  unsigned LATC1:1;  unsigned LATC2:1;  unsigned LATC3:1;
+        unsigned LATC4:1;  unsigned LATC5:1;  unsigned LATC6:1;  unsigned LATC7:1;
+        unsigned LATC8:1;  unsigned LATC9:1;  unsigned LATC10:1; unsigned LATC11:1;
+        unsigned LATC12:1; unsigned LATC13:1; unsigned LATC14:1; unsigned LATC15:1;
+    } __PORTC_BITS;
+
+    typedef struct {
+        unsigned RD0:1;  unsigned RD1:1;  unsigned RD2:1;  unsigned RD3:1;
+        unsigned RD4:1;  unsigned RD5:1;  unsigned RD6:1;  unsigned RD7:1;
+        unsigned RD8:1;  unsigned RD9:1;  unsigned RD10:1; unsigned RD11:1;
+        unsigned RD12:1; unsigned RD13:1; unsigned RD14:1; unsigned RD15:1;
+        unsigned TRISD0:1;  unsigned TRISD1:1;  unsigned TRISD2:1;  unsigned TRISD3:1;
+        unsigned TRISD4:1;  unsigned TRISD5:1;  unsigned TRISD6:1;  unsigned TRISD7:1;
+        unsigned TRISD8:1;  unsigned TRISD9:1;  unsigned TRISD10:1; unsigned TRISD11:1;
+        unsigned TRISD12:1; unsigned TRISD13:1; unsigned TRISD14:1; unsigned TRISD15:1;
+        unsigned LATD0:1;  unsigned LATD1:1;  unsigned LATD2:1;  unsigned LATD3:1;
+        unsigned LATD4:1;  unsigned LATD5:1;  unsigned LATD6:1;  unsigned LATD7:1;
+        unsigned LATD8:1;  unsigned LATD9:1;  unsigned LATD10:1; unsigned LATD11:1;
+        unsigned LATD12:1; unsigned LATD13:1; unsigned LATD14:1; unsigned LATD15:1;
+    } __PORTD_BITS;
+
+    typedef struct {
+        unsigned RE0:1;  unsigned RE1:1;  unsigned RE2:1;  unsigned RE3:1;
+        unsigned RE4:1;  unsigned RE5:1;  unsigned RE6:1;  unsigned RE7:1;
+        unsigned RE8:1;  unsigned RE9:1;  unsigned RE10:1; unsigned RE11:1;
+        unsigned RE12:1; unsigned RE13:1; unsigned RE14:1; unsigned RE15:1;
+        unsigned TRISE0:1;  unsigned TRISE1:1;  unsigned TRISE2:1;  unsigned TRISE3:1;
+        unsigned TRISE4:1;  unsigned TRISE5:1;  unsigned TRISE6:1;  unsigned TRISE7:1;
+        unsigned TRISE8:1;  unsigned TRISE9:1;  unsigned TRISE10:1; unsigned TRISE11:1;
+        unsigned TRISE12:1; unsigned TRISE13:1; unsigned TRISE14:1; unsigned TRISE15:1;
+        unsigned LATE0:1;  unsigned LATE1:1;  unsigned LATE2:1;  unsigned LATE3:1;
+        unsigned LATE4:1;  unsigned LATE5:1;  unsigned LATE6:1;  unsigned LATE7:1;
+        unsigned LATE8:1;  unsigned LATE9:1;  unsigned LATE10:1; unsigned LATE11:1;
+        unsigned LATE12:1; unsigned LATE13:1; unsigned LATE14:1; unsigned LATE15:1;
+    } __PORTE_BITS;
+
+    typedef struct {
+        unsigned RF0:1;  unsigned RF1:1;  unsigned RF2:1;  unsigned RF3:1;
+        unsigned RF4:1;  unsigned RF5:1;  unsigned RF6:1;  unsigned RF7:1;
+        unsigned RF8:1;  unsigned RF9:1;  unsigned RF10:1; unsigned RF11:1;
+        unsigned RF12:1; unsigned RF13:1; unsigned RF14:1; unsigned RF15:1;
+        unsigned TRISF0:1;  unsigned TRISF1:1;  unsigned TRISF2:1;  unsigned TRISF3:1;
+        unsigned TRISF4:1;  unsigned TRISF5:1;  unsigned TRISF6:1;  unsigned TRISF7:1;
+        unsigned TRISF8:1;  unsigned TRISF9:1;  unsigned TRISF10:1; unsigned TRISF11:1;
+        unsigned TRISF12:1; unsigned TRISF13:1; unsigned TRISF14:1; unsigned TRISF15:1;
+        unsigned LATF0:1;  unsigned LATF1:1;  unsigned LATF2:1;  unsigned LATF3:1;
+        unsigned LATF4:1;  unsigned LATF5:1;  unsigned LATF6:1;  unsigned LATF7:1;
+        unsigned LATF8:1;  unsigned LATF9:1;  unsigned LATF10:1; unsigned LATF11:1;
+        unsigned LATF12:1; unsigned LATF13:1; unsigned LATF14:1; unsigned LATF15:1;
+    } __PORTF_BITS;
+
+    extern volatile __PORTA_BITS PORTAbits, TRISAbits, LATAbits;
+    extern volatile __PORTB_BITS PORTBbits, TRISBbits, LATBbits;
+    extern volatile __PORTC_BITS PORTCbits, TRISCbits, LATCbits;
+    extern volatile __PORTD_BITS PORTDbits, TRISDbits, LATDbits;
+    extern volatile __PORTE_BITS PORTEbits, TRISEbits, LATEbits;
+    extern volatile __PORTF_BITS PORTFbits, TRISFbits, LATFbits;
+    
+    #ifndef ClrWdt
+    #define ClrWdt()
+    #endif
+#endif
 
 /* ==========================================================================
  * 1. 디지털 출력 (Digital Outputs - LAT & TRIS)
@@ -24,17 +149,21 @@
 #define DO_HT193_LAT             LATBbits.LATB9
 #define DO_HT193_TRIS            TRISBbits.TRISB9
 
-// 86번 핀: DO_HT196 (RD3) -> Prox 히터 2 제어
-#define DO_HT196_LAT             LATDbits.LATD3
-#define DO_HT196_TRIS            TRISDbits.TRISD3
-
-// 85번 핀: DO_HT_SPEAR1 (RD4) -> 배열 회수 입구 전동 볼 밸브 여유 히터 제어
+// 85번 핀: DO_HT194 / DO_HT_SPEAR1 (RD4) -> LTS 촉매 히터 2 제어
+#define DO_HT194_LAT             LATDbits.LATD4
+#define DO_HT194_TRIS            TRISDbits.TRISD4
 #define DO_HT_SPEAR1_LAT         LATDbits.LATD4
 #define DO_HT_SPEAR1_TRIS        TRISDbits.TRISD4
 
-// 88번 핀: DO_TRI (RD2) -> 트라이액 제어
+// 88번 핀: DO_HT195 / DO_TRI (RD2) -> Prox 히터 1 제어
+#define DO_HT195_LAT             LATDbits.LATD2
+#define DO_HT195_TRIS            TRISDbits.TRISD2
 #define DO_TRI_LAT               LATDbits.LATD2
 #define DO_TRI_TRIS              TRISDbits.TRISD2
+
+// 86번 핀: DO_HT196 (RD3) -> Prox 히터 2 제어
+#define DO_HT196_LAT             LATDbits.LATD3
+#define DO_HT196_TRIS            TRISDbits.TRISD3
 
 // 91번 핀: DO_MV131 (RD0) -> 개질 가스 인입 밸브 제어
 #define DO_MV131_LAT             LATDbits.LATD0

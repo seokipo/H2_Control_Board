@@ -111,4 +111,11 @@ bool ADS1115_ReadRaw(ADS1115_SensorChannel_t channel, int16_t *value);
  */
 bool ADS1115_ReadVoltage(ADS1115_SensorChannel_t channel, float *voltage);
 
+/**
+ * @brief 특정 센서 채널의 16비트 ADC 원시 값 직접 반환 (main.c 바인딩용)
+ * @param channel 계측할 센서 채널 인덱스
+ * @return uint16_t 16비트 ADC 원시 값
+ */
+uint16_t ADS1115_ReadChannel(ADS1115_SensorChannel_t channel);
+
 #endif /* ADS1115_H */

@@ -55,6 +55,15 @@ nbproject/private/
 # Graphify intermediate cache
 graphify-out/cache/
 
+# Node.js & Electron
+node_modules/
+**/node_modules/
+.userData/
+**/.userData/
+dist_electron/
+**/dist_electron/
+package-lock.json
+
 # OS & Editor
 .DS_Store
 Thumbs.db
@@ -62,3 +71,4 @@ Thumbs.db
 .idea/
 *.swp
 *.bak
+

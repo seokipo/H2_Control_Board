@@ -1,5 +1,252 @@
 # 📝 H2_Control_Board 개발 일지 (DEVELOPMENT_LOG)
 
+## 📅 2026-08-22: 일렉트론(Electron) 기반 산업용 데스크톱 SCADA 관제 앱 환경 구축 및 깃허브(GitHub) 원격 저장소 백업 동기화 🖥️📦☁️
+금일 웹 기반 실시간 수소 플랜트 관제 대시보드를 **일렉트론(Electron) 기반의 프레임리스(Frameless) 산업용 데스크톱 네이티브 애플리케이션으로 구동 및 패키징할 수 있는 환경을 구축**하고, 전체 하드웨어 도면(Altium), MCU 펌웨어(dsPIC33CK C 소스), Python 시리얼 브릿지 통신 스택, 인터랙티브 의존성 지도 및 지식 그래프(Graphify)를 포함한 최신 개발 결과물을 GitHub 원격 저장소에 완벽 동기화(백업)하였습니다.
+
+### 1. [Desktop Packaging] Electron 기반 프레임리스 SCADA 데스크톱 관제 환경 구축
+- **`일렉트론 메인 프로세스(main.js) 및 설정 완비`**:
+  - `03_Control_UI/electron/main.js` 및 `03_Control_UI/package.json`을 구성하여 1920x1080 해상도의 프레임리스 다크테마 관제 창 구현.
+  - 원클릭 실행 배치 파일(`03_Control_UI/실행_데스크톱관제.bat`)을 통해 더블 클릭만으로 손쉽게 데스크톱 관제 앱을 구동할 수 있도록 환경 구축.
+  - `.gitignore`에 `node_modules/`, `.userData/`, `dist_electron/` 등 빌드/캐시 아티팩트를 제외 처리하여 저장소 경량화 및 보안 유지.
+
+### 2. [Repository Sync & Backup] GitHub 원격 저장소 백업 및 무결성 관리
+- **`하드웨어, 펌웨어, UI, 의존성 지도 전 영역 동기화`**:
+  - 01_Hardware (Altium 회로도 및 PCB 문서, BOM 분석본)
+  - 02_Firmware (dsPIC33CK main.c, ads1115.c/h, modbus.c/h, pin_map.h 16ch ADC 및 20ch DO 제어 스택)
+  - 03_Control_UI (웹/데스크톱 관제 대시보드, 시퀀스 매니저, Python 비동기 시리얼 브릿지)
+  - 의존성 지도 및 지식 그래프 (`dependency_map.md`, `dependency_map.html`, `graphify-out/`)
+  - 프로그래밍 용어사전 (`PROGRAMMING_TERMS.md` 489번 일렉트론 데스크톱 SCADA 아키텍처 추가)
+
+---
+
+## 📅 2026-08-20: 실물 PCB 보드 입고 대응 통신 스택 전면 점검 및 20채널 DO / 11채널 DAC 실시간 하드웨어 제어·동기화 구현 🚀🔌✨
+금일 실물 수소 제어 보드(PCB) 입고에 맞춰, **관제 대시보드(UI) ↔ 파이썬 시리얼 브릿지(Python Bridge) ↔ dsPIC33CK MCU 펌웨어 간의 Modbus RTU 통신 무결성 스택을 전면 점검**하고, UI에서 지시하는 모든 출력(20채널 DO 릴레이 밸브, 11채널 DAC 아날로그 전압)이 실제 PCB 하드웨어에서 100% 즉시 구동 및 제어되도록 완벽한 양방향 통신 및 제어 루프를 구축하였습니다.
+
+### 1. [Communication Integrity] 표준 Modbus RTU CRC-16 계산 및 패킷 드롭 방지
+- **`UI 및 파이썬 브릿지 표준 CRC-16(다항식 0xA001) 엔진 탑재`**:
+  - 기존 UI의 가상 목업 CRC(`A23B`, `E84A` 등)를 **표준 Modbus RTU CRC-16 계산 유틸리티(`calculateModbusCRC`, `buildModbusRTUFrame`)**로 전면 교체.
+  - 슬레이브 국번(`0x01`), 펑션 코드, 시작 번지, 설정값/개수에 따라 정밀한 16비트 검사합(CRC Low, CRC High)을 실시간 자동 부착하여 송출함으로써 MCU의 CRC 검증에서 패킷이 폐기(Drop)되는 현상을 원천 차단.
+- **`비동기 브릿지 자동 폴링(Auto-Polling) 엔진 구축`**:
+  - `serial_bridge.py`에서 물리 시리얼 포트 개방 시, 백그라운드 태스크로 주기적(약 400ms 주기) Modbus Read 명령(0x04 Input Registers 56개, 0x03 Holding Registers 40개)을 자동 송출.
+  - MCU가 응답하는 31개 열전대 온도(TC), 16개 아날로그 전압(ADC), RTC 시각, DAC 및 DO 현재 상태를 웹 대시보드로 실시간 스트리밍 중계.
+
+### 2. [Hardware Output Control] 20채널 DO 디지털 릴레이 & 11채널 DAC 아날로그 출력 실시간 제어
+- **`20채널 디지털 출력(DO) 물리 GPIO(LAT) 즉각 스위칭`**:
+  - 솔레노이드 밸브 6종(`DO_SV102`, `DO_SV103`, `DO_SV125`, `DO_SV145`, `DO_SV149`, `DO_SV323`), 전동 모터 밸브 8종(`DO_MV124`, `DO_MV131`, `DO_MV148`, `DO_MV150`, `DO_MV155`, `DO_MV158`, `DO_MV300`, `DO_MV390`), 메인 전원 스위치(`DO_MC_SW`), 촉매/Prox 히터 4종(`DO_HT193`, `DO_HT194`, `DO_HT195`, `DO_HT196`), 점화 트랜스(`DO_IGN175`) 전체 20채널에 대한 `Modbus_SetDO(index, state)` 드라이버를 구현.
+  - Modbus 펑션 코드 **`0x05 (Write Single Coil)`**, **`0x06 (Write Holding Reg 20~39)`**, **`0x10 (Write Multiple Regs)`**, **`0x01 (Read Coils)`**를 모두 지원하여 어떤 관제 명령이 인입되어도 즉시 해당 물리 LAT 핀을 스위칭.
+- **`11채널 DAC60516 아날로그 전압 출력(0~5V) 1:1 매핑 연동`**:
+  - UI Holding Register 0~11번지와 MCU의 16비트 DAC60516 드라이버(`DAC60516_WriteRaw`) 채널을 1:1 매핑 배열(`dac_channel_map`)로 일치화.
+  - 슬라이더 조작 시 16비트 해상도(0~65535, 0~5.000V)로 즉각 SPI 통신을 수행하여 에어블로어, 수순환 펌프, MFC 유량 지령 전압을 하드웨어로 즉시 출력.
+
+- **`main.c 미정의 열거형 심볼 제거 및 필수 드라이버 초기화 보강`**:
+  - `thermocouple.h` 채널 규격에 맞게 존재하지 않던 레거시 예외 처리(`TC_CH0_UNUSED`, `TC_CH20_UNUSED`)를 제거하여 C 구문 오류 완전 해소.
+  - `ads1115.h` 및 `ads1115.c`에 **`ADS1115_ReadChannel`** 함수를 선언/구현하여 `main.c`의 16채널 ADC 바인딩 루틴과의 함수 시그니처 불일치 에러 해결.
+  - 시스템 부팅 루틴에 누락되어 있던 **`ADS1115_Initialize()`**(16채널 ADC) 및 **`DAC60516_Initialize()`**(12채널 아날로그 출력)를 추가하여 부팅 직후 센서 및 전압 출력이 즉시 정상 작동하도록 완비.
+  - `index.html` 내 중복 중첩되어 있던 `toggleVirtualCoil` / `toggleDO` / `calculateModbusCRC` 자바스크립트 선언 순서를 정돈하여 프론트엔드 구문 에러 3건 완전 해소.
+  - 상단 `#include <xc.h>`에 에디터 정적 분석 래퍼를 적용하여 VS Code/IDE 구문 검사 경고를 100% 정리 완료.
+
+### 3. [Bidirectional Sync & Safety Reset] 에코백 상태 동기화 및 하드웨어 비상 안전 리셋
+- **`양방향 에코백(Echo-back) 응답 파서 탑재`**:
+  - UI `processSerialPacket(hexStr)`에서 MCU의 수신 응답(0x06, 0x05, 0x04, 0x03, 0x01)을 실시간 파싱하여 실제 보드에 반영된 출력 상태(`[HW ACK]`)를 대시보드 화면에 일치화.
+- **`전체 출력 안전 리셋 (RESET_ALL_OUTPUTS) 하드웨어 송출 완비`**:
+  - 긴급 리셋 트리거 시 메인 전원(`DO_MC_SW`: ON 1 유지)을 보존하면서 모든 부하 릴레이(DO 19채널 OFF)와 DAC 11채널(0V)을 물리적으로 일괄 차단하는 Modbus 제어 패킷을 보드로 즉각 송출.
+- **`인터랙티브 의존성 지도(dependency_map.html) 시각화 뷰어 구축 및 graphify 지식 그래프 갱신`**:
+  - 3계층 아키텍처(UI ↔ Python Bridge ↔ dsPIC33CK MCU ↔ 물리 액추에이터)와 공유 버스(SPI1, I2C1, UART1, UART2)를 인터랙티브하게 탐색할 수 있는 **[dependency_map.html](file:///d:/Work/H2_Control_Board/dependency_map.html)** 시각화 대시보드를 신규 구축.
+  - [dependency_map.md](file:///d:/Work/H2_Control_Board/dependency_map.md)를 20채널 DO 제어 및 CRC-16 무결성 스택 기반으로 최신화.
+  - `graphify update`를 실행하여 [graph.html](file:///d:/Work/H2_Control_Board/graphify-out/graph.html) 및 [graph_report.md](file:///d:/Work/H2_Control_Board/graphify-out/graph_report.md)를 103개 노드, 160개 엣지의 최신 지식 그래프로 완벽 동기화.
+
+### 4. [Documentation] 프로그래밍 용어 사전 갱신
+- `PROGRAMMING_TERMS.md`에 신규 용어 반영:
+  - 478번: `Modbus RTU CRC-16 다항식 무결성 검증 (Modbus RTU CRC-16 Polynomial Integrity Verification)`
+  - 479번: `실시간 제어기 에코백 상태 동기화 (Bidirectional Controller Echo-back State Synchronization)`
+  - 480번: `비동기 시리얼-웹소켓 중계 브릿지 자동 폴링 엔진 (Asynchronous Serial-to-WebSocket Bridge Auto-Polling Engine)`
+  - 481번: `크로스 에디터 하드웨어 레지스터 정적 분석 목업 (Cross-Editor Hardware Register Mocking for IntelliSense)`
+  - 482번: `웹 프론트엔드 표준 삼위일체 아키텍처 (HTML5 / CSS3 / JavaScript Web Triad Architecture)`
+  - 483번: `트랜스파일 및 웹어셈블리 프론트엔드 확장 (TypeScript / JSX & WebAssembly Frontend Ecosystem)`
+  - 484번: `벡터 그래픽 및 데이터 구조화 마크업 (SVG Vector Graphics & JSON Data Binding)`
+  - 485번: `브라우저 샌드박스 보안 격리와 백엔드 하드웨어 브릿지 (Browser Sandbox Isolation & Backend Hardware Bridge)`
+  - 486번: `풀스택 다중 백엔드 런타임 생태계 (Full-Stack Multi-Backend Runtime Ecosystem)`
+
+---
+
+## 📅 2026-08-19: 아날로그 출력(AO/DAC) 제어 구조 분석 및 PID 파라미터 지정/설정 기준 가이드 정립 🎛️⚙️
+아날로그 제어 출력 장치(DAC 전압/전류, 비례제어 밸브, 펌프/블로어, 히터 등)의 운용 시 **PID 제어 파라미터($K_p, K_i, K_d$)의 필수 지정 여부**에 대한 제어 아키텍처별 기준을 명확히 정립하고 프로그래밍 용어사전을 업데이트하였습니다.
+
+### 1. [Control Architecture] 플랜트 11종 구동 장비별 PID 파라미터 지정 필요 여부 분석
+- **`스마트 액추에이터 그룹 (자체 PID 내장 - 2종)`**:
+  - `BNG 유량 제어 (AO_MFC111)` ↔ `AI_MFC111`
+  - `PNG 유량 제어 (AO_MFC121)` ↔ `AI_MFC121`
+  - **특징**: MFC 내부에 자체 PID 컨트롤러와 밸브가 일체형으로 탑재되어 있어, 제어기는 목표 유량 전압(0~5V)만 지령하면 자체적으로 오차를 수렴하므로 **별도 PID 게인 불필요**.
+- **`플랜트 폐루프 제어 그룹 (보드/프로그램 실시간 PID 연산 필수 - 9종)`**:
+  - **에어 블로어 3종** (`AO_AB212`, `AO_AB221`, `AO_AB232` ↔ MFM 공기 유량계): 목표 풍량(LPM) 추종용 유량 PID 파라미터 필요.
+  - **가압 펌프 (`AO_P108` ↔ 버퍼탱크 압력계 `AI_PT109`)**: 목표 압력(kPa) 유지용 압력 PID 파라미터 필요.
+  - **냉각수/응축수 펌프 4종** (`AO_P341`, `AO_P351`, `AO_P370`, `AO_P375` ↔ T-Type 열전대): 스택/개질기 목표 온도(℃) 제어용 온도 PID 파라미터 필요.
+  - **물 공급 정량 펌프 (`AO_P380` ↔ 순시 유량계 `FN382`)**: 정량 유량(LPM) 제어용 유량 PID 파라미터 필요.
+- **`운전 UX 및 엔지니어링 튜닝 분리 전략`**:
+  - **운전원 화면**: 복잡한 $K_p, K_i, K_d$ 수식을 숨기고, 직관적인 **목표값($SP$)과 [🔗 LINK / 🔓 수동] 토글**만 조작하도록 추상화.
+  - **시스템 백엔드**: 각 장비별 물리적 시정수(Time Constant)에 맞춰 **사전 튜닝된 기본 PID 게인값(Default Preset)**을 플래시/UI 설정에 주입하고, 필요 시 엔지니어 전용 모달에서 미세 튜닝 지원.
+
+### 2. [System Architecture Sync] 독립 자율 운전(MCU+HMI LCD) & 관제 UI 원격 플래시 레시피 개발 방향 동기화
+- **`현장 실운전 (Standalone Autonomous)`**:
+  - 외부 PC 없이도 **BOP 제어 보드(dsPIC33CK MCU) + 전면 HMI 터치 LCD(RS-485)**만으로 플랜트 전체의 운전/정지/부하별 운전(50%, 70%, 100%), 안전 인터락, PID 폐루프 제어를 완벽히 독립 자율 수행.
+- **`개발/시운전 및 원격 업그레이드 (SCADA / Flowchart Recipe)`**:
+  - PC 관제 UI는 센서 계측/제어 출력 확인 및 운전 알고리즘/플로우차트 도출용 엔지니어링 도구로 활용.
+  - 관제 UI에서 조립/개선된 시퀀스 플로우차트(스텝, 조건, 목표 SP, PID 게인)를 제어 보드의 **외장 플래시 메모리(SPI Flash)**에 원격 주입(Flash Recipe Table)하여, MCU 전체 소스 재컴파일 없이도 유연하게 버전업 및 알고리즘 교체가 가능한 스마트 아키텍처 확립.
+
+### 3. [Documentation] 프로그래밍 용어 사전 갱신
+- `PROGRAMMING_TERMS.md`에 신규 용어 반영:
+  - 462번: `개루프 제어 vs 폐루프 제어 (Open-Loop Control vs Closed-Loop Control)`
+  - 463번: `아날로그 출력 PID 제어 파라미터 (Analog Output PID Control Parameters)`
+  - 464번: `스마트 액추에이터 vs 플랜트 폐루프 제어 (Smart Actuator vs Plant Closed-Loop Control)`
+  - 465번: `제어 루프 파라미터 사전 튜닝 및 기본값 주입 (Pre-Tuned Loop Parameters & Default Gain Injection)`
+  - 466번: `펌웨어 내장형 PID vs 호스트 소프트웨어 PID (Embedded Firmware PID vs Host Software PID)`
+  - 467번: `결정론적 실시간 제어 주기 (Deterministic Real-Time Control Cycle)`
+  - 468번: `독립 자율 제어형 임베디드 플랜트 아키텍처 (Standalone Autonomous Embedded Plant Architecture)`
+  - 469번: `플래시 기반 원격 시퀀스 레시피 주입 (Flash-Based Remote Sequence Recipe Injection / OTA)`
+  - 470번: `Altium Designer VCS 상태 표시자 (Altium Designer Version Control Status Indicators)`
+  - 471번: `ECAD 하드웨어 형상 관리 (ECAD Version Control & Design Traceability)`
+  - 472번: `아날로그 출력 기능 검사 지그 (Analog Output Functional Test Jig)`
+  - 473번: `아날로그 측정단 과전압 보호 회로 (Analog Input OVP / Over-Voltage Protection)`
+  - 474번: `가변 아날로그 신호 발생 회로 (0~5V Adjustable Analog Signal Generator)`
+  - 475번: `볼티지 팔로워 임피던스 버퍼링 (Voltage Follower / Unity-Gain Buffer Isolation)`
+  - 476번: `전압 추종기 부귀환 루프 결선 (Voltage Follower Negative Feedback Connection)`
+  - 477번: `비(非) Rail-to-Rail Op-Amp의 헤드룸 전압 강하 (Output Voltage Headroom Drop)`
+
+### 4. [Hardware Test Jig] 아날로그 입출력 검사 지그 회로 설계 및 도면 검토 완료 ✅
+- **출력 검사단(AO 검사)**: FND 볼트메터 모듈 및 OVP(5.1V 제너+댐핑저항) 보호 회로 완료.
+- **입력 검사단(AI 검사 - 0~5V 가변 신호 발생기 회로도 최종 승인)**:
+  - 7805 레귤레이터 기반 정밀 5V 전원 및 LM358 전압 추종기(Unity-Gain Buffer) 구성 완료.
+  - Vdd를 24V로 공급하여 0~5.0V 풀스윙 출력 보장.
+  - 가변저항 3단자 선형 분압 및 출력 RC 필터(100Ω + 0.1uF) 최적화 반영.
+  - 회로도 검토 및 무결성 검증 완료 -> 아트워크/제작 준비 완료.
+
+---
+
+
+
+
+
+
+
+
+
+
+## 📅 2026-08-18: 아날로그 제어 출력(DAC) & 피드백 센서 짝짓기 매칭 UI 재배치 및 PID 링크/수동 토글 제어 구현 🎛️🔗✨
+수소 제어 보드 메인 관제 대시보드에서 제어 출력 장비(DAC 11채널)와 그에 대응하는 물리적 피드백 측정 센서(ADC, TC, RS-485 유량계)를 1:1 일체형 서브 행으로 짝짓기 매칭하고, PID 폐루프 연동(`[🔗 LINK]`)과 단독 수동 직결 출력(`[🔓 수동]`)을 런타임에 자유롭게 토글할 수 있는 인터랙티브 SCADA 제어 환경을 완벽히 구축하였습니다.
+
+### 1. [UI Layout & Panel Reorganization] 좌/우측 패널 최적화 재배치
+- **`시리얼 통신 장치 카드 좌측 이전`**:
+  - 우측 패널의 DAC 11채널 + 피드백 센서 서브 행의 고밀도 매칭 공간을 확보하기 위해, `시리얼 통신 장치 현황 (RS-485)` 카드를 좌측 패널(독립 ADC 카드 바로 아래)로 이전 배치.
+- **`좌측 독립 ADC 8채널 분리 렌더링`**:
+  - 좌측 `아날로그 입력 수신 현황 (ADS1115 ADC 독립 계측)` 카드에서 DAC 피드백 센서로 짝짓기된 6개 센서를 분리하고, 순수 독립 계측 센서 8개(`AI_PT105`, `AI_PT113`, `AI_PT123`, `AI_PT146`, `AI_PT162`, `AI_PT383`, `AI_CS324`, `AI_MFM315`)만 2열 그리드로 깔끔하게 렌더링하여 화면 중복성 제거.
+- **`우측 DAC 11채널 & 피드백 센서 서브 행 1:1 매칭`**:
+  - DAC 출력 행 바로 아래에 연동된 피드백 센서(`↳ AI_MFM211`, `↳ AI_MFM222`, `↳ AI_MFM231`, `↳ AI_MFC111`, `↳ AI_MFC121`, `↳ AI_PT109`, `↳ CH17`, `↳ CH14`, `↳ CH15`, `↳ CH16`, `↳ FM382`)의 원시 RAW, 전압, 실시간 계측값을 일체형 서브 행으로 렌더링.
+  - 각 항목별 **`[🔗 LINK / 🔓 수동]`** 링크 토글 버튼 및 목표값 뱃지 칩(`🎯 SP: xx.x`) 제공.
+
+### 2. [Control Logic & Interaction] 동적 PID 폐루프 vs 단독 수동 제어 모달
+- **`동적 링크 모드 스위칭 & 폐루프 PID 수렴 연동`**:
+  - `LINK ON (PID AUTO)`: 피드백 센서 계측값(PV)이 설정된 목표값(SP)을 추종하도록 Closed-Loop PID 레지스트리에 자동 등록 및 실시간 수렴 시뮬레이션 연동.
+  - `LINK OFF (MANUAL)`: 피드백 센서와 상관없이 사용자가 지정한 슬라이더/전압(0~5V, 0~100%, RAW 0~65535)으로 Direct DAC 수동 송출.
+- **`적응형 제어 모달 (Decoupled Mode Dialog)`**:
+  - 링크 상태에 따라 모달 창 내에서 [PID 목표값 SP 설정 섹션]과 [수동 직결 출력 슬라이더 섹션]이 동적으로 자동 전환.
+  - 모달 상단에 `[🔗 PID LINK ON / 🔓 MANUAL]` 스위치를 탑재하여 모달을 닫지 않고도 즉시 제어 모드 변경 가능.
+  - 목표값 저장 시 `targetSp` 즉각 반영 및 해당 피드백 센서 펄스 하이라이트 트리거.
+
+### 3. [Visual Dynamics] 오차 적응형 실시간 3단계 네온 펄스 시각화 & 일체형 장비 블록화
+- **`오차(Error = |SP - PV|) 크기 기반 자동 색상/주기 가변`**:
+  - **1단계 (정상 수렴 안정, 오차 ≤ 5%)**: 부드러운 청록/에메랄드 숨쉬기 펄스 (`pidGlowStable`, 1.8s) + `[🎯 AUTO]` 뱃지.
+  - **2단계 (목표 추종 접근, 5% < 오차 ≤ 20%)**: 생생한 골드/앰버 펄스 (`pidGlowTracking`, 1.0s) + `[⚡ 추종 xx%]` 뱃지.
+  - **3단계 (대형 편차/급변 경고, 오차 > 20%)**: 강렬한 네온 오렌지/레드 고속 펄스 (`pidGlowAlert`, 0.55s) + `[⚠️ 편차 xx%]` 뱃지.
+- **`일체형 장비 블록화 & 고대비 장비 간 분리선 (Hierarchical Border Separation)`**:
+  - 메인 제어 장비(블로어/펌프/MFC)와 종속 피드백 센서 행 사이의 내부 경계선은 완화하고 좌측 포인트 바(`border-left: 3.5px~4px`)로 묶어 하나의 일체형 블록으로 형성.
+  - 서로 다른 제어 장비(페어) 간에는 `border-bottom: 3.5px solid #030712` 고대비 두꺼운 분리선을 적용하여 개별 장비 단위의 경계를 극명하게 구분.
+
+- **`메인 전원 (SYSTEM MAIN POWER) 카드 컴팩트 최적화 & 외곽 테두리 시인성 보수`**:
+  - 카드 내부 패딩을 10px에서 5px 12px로 정밀 축소하고 텍스트 및 전원 토글 버튼 사이즈를 컴팩트하게 리사이징(`padding: 4px 10px; font-size: 10px;`).
+  - 카드 하단에 여백(`margin: 1px 0`)을 확보하고 테두리 두께(`border: 1.5px solid`)를 강화하여 하단 네온 발광 및 외곽 테두리가 잘림 없이 선명하게 노출되도록 개선.
+
+- **`통신 인터페이스 셀렉트 목록 정예화 (RS-422 & Ethernet)`**:
+  - 디버그 모니터 및 포트 설정 팝업에서 실제 현장 스펙에 맞춰 불필요한 레거시 프로토콜(`RS-485`, `RS-232`)을 삭제하고 실 사용 인터페이스인 `RS-422 (기본)`과 `Ethernet (Modbus TCP)` 2종으로 드롭다운 메뉴를 정예화.
+- **`보드 중계형 서브 시리얼 계측 아키텍처 명확화`**:
+  - 인버터/LCD/유량계 등의 시리얼 장치는 PC와 직결되는 것이 아니라 **BOP 제어 보드 내부 서브 버스**로 연결되어 계측된 뒤, 제어 보드가 취합하여 **PC와는 메인 RS-422 / Ethernet 단일 통신망으로 일괄 송수신**되는 구조임을 UI 상의 카드 명칭(`보드 연동 시리얼 장치 계측 현황`) 및 라벨(`인버터 제어기`)에 명확히 반영.
+- **`디지털 입력(DI) 채널 정예화 및 공식 스펙 동기화`**:
+  - `DI_FD176(버너 화염감지기)`는 점화 트랜스(`DO_IGN175`)의 피드백 센서로 이미 통합 연동되어 있으므로 독립 DI 목록에서는 제외 유지.
+  - 임의 포함되어 있던 수위 센서(`DI_WT_HIGH`, `DI_WT_LOW`)를 공식 BOP 사양에 맞춰 **`DI_SPARE1`, `DI_SPARE2` (예비 디지털 입력)** 로 완벽 원복.
+- **`시퀀스 매크로 빌더 센서 대기 및 IF 분기 센서 풀(Pool) 전면 확장`**:
+  - `sequence_manager.html`의 '🎯 센서 대기' 및 '🔀 IF 분기' 드롭다운 목록에서 하드코딩된 예제 고정 온도를 제거하고, **열전대 온도 센서 전체(K-Type CH21~CH40, T-Type CH01~CH20 총 40개 채널)** 및 **아날로그 압력/유량/전도도 센서 14종**, **시리얼 유량계**를 `<optgroup>`으로 완벽 계층화.
+  - 사용자가 선택한 센서 종류(TC 고온/저온, AI 압력, AI 유량 등)에 따라 오른쪽 목표값 입력창의 플레이스홀더(`목표℃`, `목표kPa`, `목표LPM`, `목표uS`)와 기본 권장 설정값이 실시간 자동 전환되는 동적 단위 힌팅(`updateSensorUnitHint`) 구현.
+  - 사용자가 특정 센서를 선택한 후 원하는 목표 온도/압력/유량 수치를 자유롭게 직접 입력하여 유연하고 정밀한 공정 시퀀스를 조립할 수 있도록 고도화.
+
+### 4. [Documentation] 프로그래밍 용어 사전 갱신
+- `PROGRAMMING_TERMS.md`에 신규 용어 반영:
+  - 459번: `모드버스 패킷 프레임 필드 구조 (Modbus Packet Frame Fields)`
+  - 460번: `가상 프로토콜 패킷 에뮬레이션 및 수동 송출 (Virtual Protocol Packet Emulation & Manual Transmission)`
+  - 461번: `계층 그룹화 센서 인코딩 및 동적 단위 힌팅 (Categorized Sensor Encoding & Dynamic Unit Hinting)`
+
+---
+
+## 📅 2026-08-15: 일렉트론(Electron) 기반 프레임리스 데스크톱 SCADA/HMI 패키징 아키텍처 및 산업용 UI 디자인 스킬 구축 💻⚡🎨
+웹 브라우저의 한계를 극복하고 수소 제어 및 SCADA 관제 프로그램을 독립된 전용 윈도우 응용 프로그램(`.exe`)으로 탈바꿈하기 위해, **일렉트론(Electron) 프레임리스 윈도우 래핑 아키텍처 구축, UserData 캐시 경로 격리 안정화, 산업용 SCADA 디자인 시스템(다이얼 게이지, P&ID 애니메이션, 고대비 다크 테마) 분석 및 전용 Antigravity 커스텀 스킬(`electron-desktop-scada`) 개발 및 글로벌 등록**을 완료하였습니다.
+
+### 1. [Desktop Architecture] 일렉트론(Electron) 패키징 및 Frameless 환경 완성
+- **`프레임리스 윈도우 (frame: false) 및 커스텀 헤더바`**:
+  - OS 기본의 투박한 흰색 타이틀바와 브라우저 주소창을 100% 제거하고, 딥 다크 배경(`backgroundColor: '#0b0f19'`)의 일체형 관제 소프트웨어로 구현.
+  - 상단 헤더바에 마우스 드래그 이동 영역(`-webkit-app-region: drag;`)을 적용하고, 우측 상단에 세련된 커스텀 `[ ─ 최소화 | 🗖 최대화/복원 | ✕ 프로그램 종료 ]` 버튼을 배치.
+  - 마우스 클릭 가로채기 방지를 위해 버튼 영역에 `-webkit-app-region: no-drag !important;` 및 `pointer-events: auto !important;`를 엄격 적용하여 클릭 반응성 확보.
+- **`한글 윈도우 사용자명 캐시 에러 원천 차단 (UserData Path Isolation)`**:
+  - `C:\Users\서기철\...` 한글 계정 경로로 인한 Chromium 디스크/GPU 캐시 접근 실패 오류(`Unable to move/create cache (0x5)`)를 방지하기 위해 `app.setPath('userData', ...)`로 프로젝트 로컬 영문 폴더(`.userData`)로 안전하게 격리.
+- **`IPC 통신 파이프라인 & 하이브리드 지원`**:
+  - `preload.js`의 `contextBridge`를 통해 `window.electronAPI`를 노출하고 메인 프로세스의 창 제어(최소화/최대화/닫기)와 1:1 비동기 연동.
+  - 일반 웹 브라우저(Chrome/Edge)와 일렉트론 데스크톱 앱 양쪽 환경에서 모두 완벽히 호환되는 하이브리드 로직 완비.
+  - `실행_데스크톱관제.bat` 원클릭 실행 런처 배치 파일 제공.
+- **`WebFrame 동적 줌 스케일링 (Ctrl + 휠 줌 & 단축키 완비)`**:
+  - 일반 브라우저처럼 **`Ctrl + 마우스 휠 위/아래 스크롤`** 시 화면 배율을 50% ~ 250%까지 실시간 부드럽게 Zoom-In / Zoom-Out 조절.
+  - 키보드 단축키 **`Ctrl + (+)`(확대), `Ctrl + (-)`(축소), `Ctrl + 0`(100% 원본 배율 초기화)** 완벽 지원.
+- **`독립 팝업 윈도우(시퀀스 매니저) Frameless 일관성 통합`**:
+  - `window.open`으로 띄우는 모든 자식 팝업 창에 대해 `setWindowOpenHandler`를 적용하여 흰색 타이틀바와 메뉴바(`File, Edit...`)를 100% 제거.
+  - 팝업창 상단에도 드래그 영역과 `[ ─ | 🗖 | ✕ ]` 커스텀 버튼을 탑재하고, `BrowserWindow.fromWebContents(event.sender)` 기반 멀티 윈도우 IPC 제어로 팝업창 독립 최소화/최대화/닫기 완벽 지원.
+- **`시퀀스 매크로 레코더 딜레이(Delay/Wait) 스텝 추가 고도화 & UI 최적화`**:
+  - Electron 환경에서 브라우저 동기 팝업(`prompt`)이 차단되는 문제를 해결하기 위해, 쾌속 툴바에 **`⏱️ 지연 대기: [ 초 입력 ] [+ 딜레이 스텝]`** 전용 컨트롤 행을 신설.
+  - 상단에 중복 배치되어 있던 딜레이 추가 버튼을 정리하여 툴바 중심의 일관되고 직관적인 조립 UX 완성.
+
+
+
+
+
+- **`초기 1회 설정 및 실시간 반영 (Hot Reloading)`**:
+  - 일렉트론 메인 프로세스(`main.js`), 보안 브릿지(`preload.js`), 빌드 설정(`package.json`)을 프로젝트에 최초 1회만 구성.
+  - 평소 개발 시에는 웹 소스(HTML/CSS/JS) 수정 시 일렉트론 화면에 0.1초 만에 즉각 갱신되는 **라이브 리로드(Live Reload)** 개발 환경 구축.
+  - 최종 납품 시에는 단 한 줄의 명령어(`npm run dist`)로 독립 실행 파일(`.exe`) 및 자동 설치 패키지(NSIS)를 빌드하는 원클릭 배포 파이프라인 확립.
+- **`브라우저 제약 탈피 & 로컬 자원 접근`**:
+  - 일반 웹 브라우저의 보안 제약(Same-Origin Policy, 파일/시리얼 포트 접근 한계)을 극복하고, 메인 프로세스(Node.js)를 통해 RS-485 시리얼 및 로컬 파일 시스템 직접 제어 가능.
+
+### 2. [UI/UX Design] 프레임리스(Frameless) 윈도우 & 산업용 SCADA 디자인 시스템 정의
+- **`프레임리스 윈도우 (frame: false)`**:
+  - OS 기본의 투박한 흰색 타이틀바와 테두리를 완전히 제거하고, 순수 CSS/JS 기반의 **다크 메탈릭 커스텀 헤더바**를 배치.
+  - 상단바 드래그 영역(`-webkit-app-region: drag;`)과 커스텀 최소화/최대화/종료 버튼을 연동하여 전문 계측 장비 일체형 룩앤필 완성.
+- **`산업용 SCADA/HMI 시각화 컴포넌트`**:
+  - **아날로그 다이얼 게이지**: 압력(bar), 유량(LPM), 온도(℃)를 실제 계측기처럼 부드러운 바늘 침 애니메이션으로 시각화.
+  - **P&ID 배관/밸브 애니메이션**: 밸브 개폐 회전 및 배관 유체 흐름(Fluid Glow Flow) 실시간 연동.
+  - **고대비 사이버 다크 테마**: 현장 터치스크린 및 어두운 관제실에서도 직관적으로 판독 가능한 네온 LED 뱃지(`[🎛️ PID AUTO]`, `[🎯 SP]`).
+
+### 3. [Skill Development] `electron-desktop-scada` 전용 커스텀 스킬 개발 및 글로벌 등록
+- **스킬 위치**: `C:\Users\서기철\.gemini\config\skills\electron-desktop-scada\SKILL.md`
+- **스킬 내용**:
+  - 1단계: 일렉트론 및 빌더 초기 환경 구성 (`package.json`, `main.js`, `preload.js`)
+  - 2단계: 프레임리스 산업용 커스텀 헤더바 및 IPC 통신 구축
+  - 3단계: 산업용 SCADA 디자인 시스템(게이지, P&ID 애니메이션, 차트) 결합
+  - 4단계: 원클릭 `.exe` 단독 실행 파일 패키징 및 NSIS 인스톨러 빌드 자동화 가이드 완비.
+
+### 4. [Documentation] 프로그래밍 용어 사전 갱신
+- `PROGRAMMING_TERMS.md`에 신규 용어 5건 추가 반영:
+  - 444번: `일렉트론 프레임워크 (Electron Framework)`
+  - 445번: `애플리케이션 패키징 및 번들링 (Application Packaging & Bundling)`
+  - 446번: `핫 리로딩 / 라이브 리로드 (Hot Reloading / Live Reload)`
+  - 447번: `프레임리스 윈도우 (Frameless Window)`
+  - 448번: `산업용 SCADA/HMI 디자인 시스템 (Industrial SCADA/HMI Design System)`
+
+---
+
 ## 📅 2026-08-14: 수소 연료전지 SCADA/HMI 관제 화면 & 실시간 센서 그래프 트렌드 및 비밀번호 보안 인증 검토 💻📊🔒
 수소 연료전지/개질기(Reformer)/스택(Stack #1, #2) 계통의 복잡한 공정 배관 및 데이터 계측 관제 대시보드(SCADA/HMI) 초안 도면을 기반으로, 웹 기술(HTML/CSS/JS/SVG) 구현 방식과 파이썬/데스크톱 GUI 방식 간의 장단점 비교 검토, **발주처 제안/설득 전략 수립과 하이브리드 SCADA 아키텍처, 프로그램 실행 비밀번호 잠금 보안 기능 및 점진적 모듈 통합 로드맵 정의**를 완료하였습니다.
 

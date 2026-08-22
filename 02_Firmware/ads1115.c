@@ -164,3 +164,14 @@ bool ADS1115_ReadVoltage(ADS1115_SensorChannel_t channel, float *voltage)
     *voltage = (float)raw_val * 0.000125f;
     return true;
 }
+
+uint16_t ADS1115_ReadChannel(ADS1115_SensorChannel_t channel)
+{
+    int16_t raw_val = 0;
+    if (ADS1115_ReadRaw(channel, &raw_val))
+    {
+        return (uint16_t)raw_val;
+    }
+    return 0;
+}
+

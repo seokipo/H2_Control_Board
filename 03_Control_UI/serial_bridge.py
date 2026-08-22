@@ -18,17 +18,58 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 recipes_path = os.path.join(script_dir, "sequences", "sample_recipes.json")
 seq_engine = SequenceEngine(recipes_path)
 
+def modbus_crc16(data: bytes) -> int:
+    """표준 Modbus RTU CRC-16 계산 (다항식 0xA001)"""
+    crc = 0xFFFF
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            if crc & 0x0001:
+                crc = (crc >> 1) ^ 0xA001
+            else:
+                crc >>= 1
+    return crc
+
+def build_modbus_frame(slave_id: int, func_code: int, addr: int, val_or_qty: int) -> bytes:
+    """표준 Modbus RTU 요청 바이트 프레임 생성 (CRC16 포함)"""
+    packet = bytes([
+        slave_id & 0xFF,
+        func_code & 0xFF,
+        (addr >> 8) & 0xFF,
+        addr & 0xFF,
+        (val_or_qty >> 8) & 0xFF,
+        val_or_qty & 0xFF
+    ])
+    crc = modbus_crc16(packet)
+    return packet + bytes([crc & 0xFF, (crc >> 8) & 0xFF])
+
 async def serial_reader(ws, loop):
     global serial_port, mock_active
+    poll_step = 0
     while True:
         try:
             if serial_port and serial_port.is_open:
-                # 시리얼 포트 데이터 수신
+                # [1] 물리 보드로 주기적 Modbus 센서/상태 계측 질의 송출 (자동 폴링)
+                # poll_step 0: Input Registers (온도 0~30, ADC 32~47, RTC 50~55)
+                # poll_step 1: Holding Registers (DAC 0~11, DO 20~39)
+                try:
+                    if poll_step == 0:
+                        req = build_modbus_frame(1, 4, 0, 56) # 0x04 Read Input Regs (56 regs)
+                    else:
+                        req = build_modbus_frame(1, 3, 0, 40) # 0x03 Read Holding Regs (40 regs)
+                    serial_port.write(req)
+                    poll_step = (poll_step + 1) % 2
+                except Exception as tx_err:
+                    pass
+
+                await asyncio.sleep(0.08) # 보드 응답 대기 (약 80ms)
+
+                # [2] 시리얼 포트 데이터 수신 및 웹소켓 중계
                 if serial_port.in_waiting > 0:
                     data = serial_port.read(serial_port.in_waiting)
                     hex_data = data.hex().upper()
                     formatted_hex = " ".join([hex_data[i:i+2] for i in range(0, len(hex_data), 2)])
-                    print(f"[SERIAL -> WS] Transmitting: {formatted_hex}")
+                    # print(f"[SERIAL -> WS] Transmitting: {formatted_hex}")
                     await ws.send(json.dumps({
                         "type": "SERIAL_RX",
                         "hex": formatted_hex
@@ -45,7 +86,7 @@ async def serial_reader(ws, loop):
                 await ws.send(json.dumps(mock_packet))
         except Exception as e:
             print(f"Reader Error: {e}")
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.2)
 
 async def handler(websocket, path):
     global serial_port, mock_active, tcp_host, tcp_port
@@ -165,10 +206,27 @@ async def handler(websocket, path):
 
             elif req_type == "RESET_ALL_OUTPUTS":
                 seq_engine.stop_recipe("RESET_ALL")
+                if serial_port and serial_port.is_open:
+                    try:
+                        # 1. 모든 DAC (0~11번지) 0V 리셋
+                        for dac_idx in range(12):
+                            pkt = build_modbus_frame(1, 6, dac_idx, 0)
+                            serial_port.write(pkt)
+                            await asyncio.sleep(0.01)
+                        # 2. 부하 DO 릴레이 (20~39번지) 닫힘, 단 DO_MC_SW(인덱스 14, 34번지)는 ON(1) 유지
+                        for do_idx in range(20):
+                            reg_addr = 20 + do_idx
+                            val = 1 if do_idx == 14 else 0  # DO_MC_SW (인덱스 14) 전원 보존
+                            pkt = build_modbus_frame(1, 6, reg_addr, val)
+                            serial_port.write(pkt)
+                            await asyncio.sleep(0.01)
+                    except Exception as reset_ex:
+                        print(f"[RESET ERROR] Failed to send hardware reset: {reset_ex}")
+
                 print("[SAFETY EMERGENCY] ALL OUTPUTS RESET DISPATCHED (DO_MC_SW=1 [POWER ON PRESERVED], DO_LOADS=0, AO=0)")
                 await websocket.send(json.dumps({
                     "type": "SYSTEM_RESET_ACK",
-                    "msg": "🚨 메인 전원(DO_MC_SW: ON) 보존 & 모든 부하 릴레이(DO 19채널 닫힘, DAC 9채널 0V) 초기화 완료!"
+                    "msg": "🚨 메인 전원(DO_MC_SW: ON) 보존 & 모든 부하 릴레이(DO 19채널 닫힘, DAC 11채널 0V) 초기화 완료!"
                 }))
 
             elif req_type == "SAVE_SEQUENCE_RECIPE":

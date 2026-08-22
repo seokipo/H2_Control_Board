@@ -1,98 +1,112 @@
 # 🗺️ H2_Control_Board 시스템 의존성 지도 (dependency_map.md)
 
-이 문서는 6kW 및 10kW BOP(Balance of Plant) 제어 시스템의 **dsPIC33CK 펌웨어**와 **PC 관제 UI 대시보드** 간의 구조적 파일 의존성 및 통신 연결성을 한눈에 보여주는 아키텍처 지도입니다.
+이 문서는 6kW 및 10kW BOP(Balance of Plant) 수소 제어 시스템의 **dsPIC33CK MCU 펌웨어**, **파이썬 비동기 브릿지 서버**, **FHD SCADA 관제 UI** 간의 상호 의존성, 공유 버스, 통신 무결성 및 출력 제어 흐름을 한눈에 보여주는 최신 아키텍처 지도입니다.
+
+> 💡 **시각화 대시보드 안내**: 본 의존성 지도를 브라우저에서 인터랙티브하게 탐색할 수 있는 **[dependency_map.html](file:///d:/Work/H2_Control_Board/dependency_map.html)** 시각화 뷰어가 제공됩니다.
 
 ---
 
-## 🏗️ 1. 전체 아키텍처 개요
-
-시스템은 **임베디드 제어기(Firmware)**, **중계 서버(Python Bridge)**, 그리고 **프론트엔드 대시보드(Control UI)**의 3계층 아키텍처로 구성되어 있습니다.
+## 🏗️ 1. 전체 3계층 시스템 아키텍처 및 데이터 흐름
 
 ```mermaid
 graph TD
-    subgraph 03_Control_UI [관제 UI 및 게이트웨이]
-        UI[index.html <br> FHD 대시보드] <-->|WebSocket ws://| PY[serial_bridge.py <br> 파이썬 브릿지]
+    subgraph Layer3 [03_Control_UI : 프론트엔드 관제 레이어]
+        UI["🖥️ index.html / sequence_manager.html<br>(FHD SCADA 대시보드 & 시퀀스 엔진)"]
+        CRC_JS["⚙️ calculateModbusCRC()<br>(표준 다항식 0xA001 검사합)"]
+        UI --- CRC_JS
     end
 
-    subgraph 02_Firmware [제어기 펌웨어]
-        PY <-->|RS-422 Modbus RTU| MB[modbus.c/.h <br> 프로토콜 스택]
-        MB <--> UART2[rs422.c/.h <br> UART2 드라이버]
-        main[main.c <br> 메인 스케줄러] --> MB
-        
-        main --> TC[thermocouple.c/.h <br> 열전대 MUX 스캐너]
-        main --> ADC[ads1115.c/.h <br> I2C ADC 드라이버]
-        main --> DAC[dac60516.c/.h <br> SPI DAC 드라이버]
-        main --> RTC[rtc.c/.h <br> 고정밀 RTC]
-        main --> ETH[ethernet.c/.h <br> 듀얼 W5500 드라이버]
-        main --> FLASH[flash.c/.h <br> SPI Flash 드라이버]
-        main --> RS485[rs485.c/.h <br> UART1 드라이버]
-        
-        TC & DAC --> SPI1[SPI1 공유 버스]
-        ADC & RTC --> I2C1[I2C1 공유 버스]
+    subgraph Layer2 [Gateway Bridge : 중계 서버 레이어]
+        PY["🐍 serial_bridge.py<br>(비동기 WebSocket & Modbus RTU 게이트웨이)"]
+        AUTO_POLL["⏱️ Auto-Polling Task<br>(400ms 주기 0x04/0x03 질의)"]
+        PY --- AUTO_POLL
     end
+
+    subgraph Layer1 [02_Firmware : dsPIC33CK MCU 펌웨어 레이어]
+        MB["📡 modbus.c/.h<br>(Modbus RTU 슬레이브 스택)"]
+        MAIN["⚡ main.c<br>(메인 루프 & 200ms 스케줄러)"]
+        PIN["📍 pin_map.h<br>(GPIO & SFR 매핑/초기화)"]
+        
+        UART2["🔌 rs422.c/.h<br>(UART2 Full-Duplex 115200bps)"]
+        UART1["🔌 rs485.c/.h<br>(UART1 Half-Duplex 필드 센서)"]
+        
+        TC["🌡️ thermocouple.c/.h<br>(MAX31856 + ADG706 6개 MUX)"]
+        ADC["📊 ads1115.c/.h<br>(ADS1115 4개 16ch ADC)"]
+        DAC["🎛️ dac60516.c/.h<br>(DAC60516 12ch 16비트 DAC)"]
+        RTC["⏰ rtc.c/.h<br>(DS3231 고정밀 RTC)"]
+        ETH["🌐 ethernet.c/.h<br>(듀얼 W5500 이더넷)"]
+        FLASH["💾 flash.c/.h<br>(W25Q256 SPI 플래시)"]
+        
+        MAIN --> MB
+        MAIN --> TC & ADC & DAC & RTC & ETH & FLASH & UART1 & UART2
+        MB --> UART2
+        MB --> DAC
+        MB --> PIN
+    end
+
+    subgraph Layer0 [Hardware : 물리 하드웨어 및 액추에이터]
+        DO_LOADS["⚡ 20채널 DO 디지털 부하<br>(솔레노이드 6종, 모터밸브 8종, 히터 4종, 점화 1종, MC_SW)"]
+        AO_DEVICES["🎛️ 11채널 아날로그 출력<br>(에어블로어 3종, 펌프 6종, MFC 2종 0~5V)"]
+        SENSORS["🌡️ 물리 센서군<br>(열전대 31ch, 압력/유량 ADC 16ch, DI 알람 16ch)"]
+    end
+
+    UI <-->|WebSocket ws://localhost:8888| PY
+    PY <-->|이원화 #1: RS-422 Modbus RTU + CRC16| UART2
+    PY <-->|이원화 #2: Ethernet LAN (Modbus TCP 502)| ETH
+    ETH <-->|Modbus TCP Frame| MB
+    PIN --> DO_LOADS
+    DAC --> AO_DEVICES
+    SENSORS --> TC & ADC & RTC & PIN
 ```
 
 ---
 
-## 📂 2. 모듈별 파일 의존성 상세
+## 📂 2. 모듈별 파일 의존성 및 통신 인터페이스 상세
 
-### 🔌 2.1. 메인 스케줄러 및 하드웨어 매핑
-*   **[main.c](file:///d:/Work/H2_Control_Board/02_Firmware/main.c)**: 시스템의 기동 진입점이며, 200ms 주기로 센서 계측 및 제어 루프를 스케줄링하고 워치독(WDT)을 제어합니다.
-*   **[pin_map.h](file:///d:/Work/H2_Control_Board/02_Firmware/pin_map.h)**: dsPIC33CK512MP710 MCU의 물리적 GPIO 핀 정의와 TRIS/LAT 레지스터 매크로를 담고 있어 모든 소스 코드의 하드웨어 종속성을 일원화합니다.
+### 🔌 2.1. 메인 제어 및 하드웨어 매핑 계통
+*   **[main.c](file:///d:/Work/H2_Control_Board/02_Firmware/main.c)**: 
+    *   **의존성**: `pin_map.h`, `ads1115.h`, `dac60516.h`, `thermocouple.h`, `modbus.h`, `rs422.h`, `rs485.h`, `rtc.h`, `ethernet.h`, `flash.h`.
+    *   **역할**: 200ms 주기로 전체 센서 계측 및 Modbus DB 바인딩을 수행하고, 20채널 DO 릴레이 하드웨어 동기화 및 WDT 리셋을 총괄합니다.
+*   **[pin_map.h](file:///d:/Work/H2_Control_Board/02_Firmware/pin_map.h)**:
+    *   **역할**: dsPIC33CK512MP710 MCU의 모든 GPIO/SFR 비트필드 정의 및 `GPIO_Initialize()` 포트 초기화 제공.
 
-### 🌡️ 2.2. 아날로그 및 센서 계측 모듈 (I2C1 / SPI1 버스 공유)
-*   **[thermocouple.c](file:///d:/Work/H2_Control_Board/02_Firmware/thermocouple.c) / [thermocouple.h](file:///d:/Work/H2_Control_Board/02_Firmware/thermocouple.h)**:
-    *   **의존성**: `pin_map.h`, SPI1 버스 API 활용.
-    *   **역할**: ADG706 아날로그 멀티플렉서 6개를 제어(ADDR0~3, EN1~3)하여 40개 채널의 열전대 기전력을 `MAX31856` 변환 IC로 순차 유도하고 섭씨온도로 계측합니다.
-*   **[ads1115.c](file:///d:/Work/H2_Control_Board/02_Firmware/ads1115.c) / [ads1115.h](file:///d:/Work/H2_Control_Board/02_Firmware/ads1115.h)**:
-    *   **의존성**: I2C1 공유 버스 API 활용.
-    *   **역할**: I2C 버스를 공유하는 4개의 ADS1115 컨버터(IC400~IC403)에서 14개 채널의 아날로그 센서 전압(0~5V, 1~5V)을 계측합니다.
-*   **[rtc.c](file:///d:/Work/H2_Control_Board/02_Firmware/rtc.c) / [rtc.h](file:///d:/Work/H2_Control_Board/02_Firmware/rtc.h)**:
-    *   **의존성**: I2C1 공유 버스 API 활용.
-    *   **역할**: DS3231SN+ 고정밀 RTC 칩셋으로부터 현재 시간을 획득하여 Modbus 레지스터에 기록하고 데이터 로그용 절대 시간을 보증합니다.
-
-### ⚡ 2.3. 전원 및 드라이빙 출력 제어 모듈
-*   **[dac60516.c](file:///d:/Work/H2_Control_Board/02_Firmware/dac60516.c) / [dac60516.h](file:///d:/Work/H2_Control_Board/02_Firmware/dac60516.h)**:
-    *   **의존성**: `pin_map.h`, SPI1 버스 API 활용.
-    *   **역할**: 16비트 16채널 DAC인 DAC60516(IC501)을 SPI 통신으로 제어하여 에어블로어, 수순환 펌프 등의 속도를 제어하는 아날로그 전압(0~5V)을 출력합니다.
-
-### 🌐 2.4. 외부 통신 모듈
+### 📡 2.2. 통신 및 프로토콜 제어 계통
 *   **[modbus.c](file:///d:/Work/H2_Control_Board/02_Firmware/modbus.c) / [modbus.h](file:///d:/Work/H2_Control_Board/02_Firmware/modbus.h)**:
-    *   **의존성**: `rs422.h`, `dac60516.h`, `ads1115.h`, `thermocouple.h`.
-    *   **역할**: Modbus RTU Slave 프로토콜을 수행하며, 관제 PC(Master)의 조회 패킷에 대응하여 Input Register(3xxxx)에 계측값을 담아 응답하고 Holding Register(4xxxx) 쓰기 감시를 통해 실제 DAC 및 DO 코일을 스위칭합니다.
-*   **[rs422.c](file:///d:/Work/H2_Control_Board/02_Firmware/rs422.c) / [rs422.h](file:///d:/Work/H2_Control_Board/02_Firmware/rs422.h)**:
-    *   **의존성**: UART2 하드웨어 모듈.
-    *   **역할**: MAX3490을 활용한 Full-Duplex 관제 통신 포트 드라이버입니다.
-*   **[rs485.c](file:///d:/Work/H2_Control_Board/02_Firmware/rs485.c) / [rs485.h](file:///d:/Work/H2_Control_Board/02_Firmware/rs485.h)**:
-    *   **의존성**: UART1 하드웨어 모듈, `pin_map.h` (DO_485_DIR 송수신 방향핀).
-    *   **역할**: MAX3485를 활용한 Half-Duplex 필드 기기(인버터, 개질수 유량계 등) 통신 드라이버입니다.
+    *   **의존성**: `rs422.h`, `dac60516.h`, `ads1115.h`, `thermocouple.h`, `pin_map.h`.
+    *   **지원 펑션 코드**:
+        *   `0x01`: Read Coils (DO 0~19)
+        *   `0x02`: Read Discrete Inputs (DI 0~15)
+        *   `0x03`: Read Holding Registers (DAC 0~11, DO 20~39)
+        *   `0x04`: Read Input Registers (TC 온도 0~30, ADC 32~47, RTC 50~55)
+        *   `0x05`: Write Single Coil (DO 직접 스위칭)
+        *   `0x06`: Write Single Register (DAC 전압 및 DO 릴레이 제어)
+        *   `0x10`: Write Multiple Registers (다중 DAC/DO 일괄 제어)
+    *   **핵심 함수**: `Modbus_SetDO(uint8_t index, bool state)`를 통해 물리 `LAT` 레지스터를 즉시 스위칭.
+*   **[rs422.c](file:///d:/Work/H2_Control_Board/02_Firmware/rs422.c) / [rs422.h](file:///d:/Work/H2_Control_Board/02_Firmware/rs422.h)**: 관제 PC 연동용 Full-Duplex UART2 드라이버.
+*   **[rs485.c](file:///d:/Work/H2_Control_Board/02_Firmware/rs485.c) / [rs485.h](file:///d:/Work/H2_Control_Board/02_Firmware/rs485.h)**: 필드 인버터 및 순시 유량계 연동용 Half-Duplex UART1 드라이버.
+
+### 🌡️ 2.3. 센서 계측 및 드라이빙 출력 계통 (공유 버스)
+*   **[thermocouple.c](file:///d:/Work/H2_Control_Board/02_Firmware/thermocouple.c) & [dac60516.c](file:///d:/Work/H2_Control_Board/02_Firmware/dac60516.c)**:
+    *   **공유 버스**: **`SPI1`** 버스 공유.
+    *   **간섭 방지**: `TC_SPI_CS`와 `DAC_CS` 핀을 상호 배타적으로 제어하여 버스 충돌 방지.
+*   **[ads1115.c](file:///d:/Work/H2_Control_Board/02_Firmware/ads1115.c) & [rtc.c](file:///d:/Work/H2_Control_Board/02_Firmware/rtc.c)**:
+    *   **공유 버스**: **`I2C1`** 버스 공유.
+    *   **주소 맵**: ADS1115 (0x48~0x4B), DS3231 (0x68).
+    *   **신규 API**: `uint16_t ADS1115_ReadChannel(ADS1115_SensorChannel_t channel)` 직접 바인딩 지원.
 *   **[ethernet.c](file:///d:/Work/H2_Control_Board/02_Firmware/ethernet.c) / [ethernet.h](file:///d:/Work/H2_Control_Board/02_Firmware/ethernet.h)**:
-    *   **의존성**: `pin_map.h`, SPI2 버스 API 활용.
-    *   **역할**: SPI2 버스를 공유하는 듀얼 W5500 이더넷 컨트롤러를 기동하고 IP 및 Modbus TCP 게이트웨이 개방 대기를 수행합니다.
-*   **[flash.c](file:///d:/Work/H2_Control_Board/02_Firmware/flash.c) / [flash.h](file:///d:/Work/H2_Control_Board/02_Firmware/flash.h)**:
-    *   **의존성**: `pin_map.h`, SPI3 버스 API 활용.
-    *   **역할**: W25Q256 플래시 메모리와 SPI3 통신을 수행하여 시스템 경보 발생 이력 및 누적 계측 로그를 보존합니다.
+    *   **공유 버스**: **`SPI2`** 버스 기반 듀얼 W5500 하드웨어 TCP/IP 이더넷 컨트롤러 드라이버.
+    *   **역할**: RS-422 시리얼 통신과 함께 **관제 PC(UI/Gateway)와 초고속 LAN 직접 연결을 담당하는 이원화(Redundant) 통신 채널**입니다. Modbus TCP (Port 502) 및 TCP Socket 통신을 통해 펌웨어 내부의 `modbus.c`와 데이터를 양방향 교환합니다.
+*   **[flash.c](file:///d:/Work/H2_Control_Board/02_Firmware/flash.c) / [flash.h](file:///d:/Work/H2_Control_Board/02_Firmware/flash.h)**: **`SPI3`** 버스 기반 W25Q256 256Mbit 외장 플래시 메모리 제어.
 
 ---
 
-## 🖥️ 3. PC 관제 UI 및 시뮬레이션 게이트웨이 연동
+## 🖥️ 3. 관제 UI 및 브릿지 게이트웨이 연동
 
 *   **[index.html](file:///d:/Work/H2_Control_Board/03_Control_UI/index.html)**:
-    *   **역할**: 웹 기반의 1920x1025 FHD 통합 관제 대시보드 화면입니다.
-    *   **구조**: Vanilla HTML/CSS/JS로 설계되었으며, `serial_bridge.py`와 WebSocket 통신을 통해 실시간 수치(온도, ADC, DI/DO 상태)를 업데이트하고 DAC 슬라이더 및 DO 릴레이 토글 수동 제어 패킷을 송출합니다.
+    *   `calculateModbusCRC(bytes)`: 표준 다항식 `0xA001` 기반의 실시간 16비트 검사합 계산기.
+    *   `buildModbusRTUFrame()`: 국번, FC, 번지, 데이터에 CRC-16을 부착한 프레임 빌더.
+    *   `processSerialPacket()`: MCU의 에코백 수신 응답(0x06, 0x05, 0x04, 0x03, 0x01) 파싱 및 `[HW ACK]` 동기화.
 *   **[serial_bridge.py](file:///d:/Work/H2_Control_Board/03_Control_UI/serial_bridge.py)**:
-    *   **역할**: PC의 물리 COM 포트(COM3 등)와 웹 대시보드 브라우저(Port 8888)를 중계하는 비동기 파이썬 브릿지 게이트웨이 서비스입니다.
-    *   **시뮬레이션**: 실제 하드웨어가 미연결 상태일 때는 난수 데이터를 생성하여 주기적인 MOCK 데이터 프레임을 웹 브라우저로 쏴 대시보드가 단독 기동하도록 가상 에뮬레이터를 구동합니다.
+    *   `asyncio` 백그라운드 자동 폴링(Auto-Polling): 400ms 주기로 Input/Holding Regs 요청 송출.
+    *   `RESET_ALL_OUTPUTS`: 메인 전원(`DO_MC_SW`) 보존 상태에서 19개 부하 릴레이 및 11개 DAC(0V) 하드웨어 안전 일괄 리셋.
 
----
-
-## ⚠️ 4. 설계 시 주의점 및 공유 자원 간섭 규칙
-
-1.  **SPI1 공유 버스 간섭**:
-    *   `thermocouple.c`와 `dac60516.c`가 SPI1 채널을 공유합니다.
-    *   제어 루프 동작 시 각각의 Chip Select 핀(`TC_SPI_CS`, `DAC_CS`)을 배타적으로 제어해야 하며, SPI 통신 속도 및 위상/주파수 설정(SPI Mode)이 다를 경우 반드시 통신 직전에 레지스터 설정을 복원(Re-initialize or Lock)해 주는 기법이 강제됩니다.
-2.  **I2C1 공유 버스 간섭**:
-    *   `ads1115.c`와 `rtc.c`가 I2C1 하드웨어 채널을 공유합니다.
-    *   I2C 슬레이브 주소 충돌 방지: ADS1115(ADDR 핀 주소 0x48~0x4B)와 DS3231(주소 0x68)은 중복되지 않아 안전하지만, 버스 데이터 트랜잭션 도중 예기치 않은 인터럽트가 I2C 상태 머신을 깨뜨리지 않도록 보호 처리가 필요합니다.
-3.  **RS-485 방향 전환 타임아웃**:
-    *   Half-Duplex 특성상, `DO_485_DIR` 방향핀을 송신(High)으로 전환하여 데이터를 쏘고 난 직후 반드시 송신 시프트 레지스터 비움(UART1 TRMT) 플래그를 대기 감시한 후 수신(Low)으로 내려주어야 패킷 잘림 및 응답 수신 실패를 막을 수 있습니다.

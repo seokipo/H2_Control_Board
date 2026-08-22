@@ -1,0 +1,40 @@
+{
+  "name": "h2-control-scada",
+  "version": "1.0.0",
+  "description": "Hydrogen Fuel Cell 6kW SCADA / HMI Desktop Controller",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64"
+  },
+  "keywords": [
+    "scada",
+    "hmi",
+    "hydrogen",
+    "fuel-cell",
+    "electron"
+  ],
+  "author": "Kipo",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.h2control.scada",
+    "productName": "H2 Control Board SCADA",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true,
+      "allowElevation": true,
+      "runAfterFinish": true
+    },
+    "files": [
+      "**/*",
+      "!dist/*"
+    ]
+  }
+}

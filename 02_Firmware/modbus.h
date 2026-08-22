@@ -91,4 +91,11 @@ void Modbus_Task(void);
  */
 uint16_t Modbus_CRC16(const uint8_t *buffer, uint16_t length);
 
+/**
+ * @brief 특정 DO 디지털 출력 채널 물리 핀(LAT) 즉각 제어
+ * @param index DO 인덱스 (0 ~ 19)
+ * @param state true(ON), false(OFF)
+ */
+void Modbus_SetDO(uint8_t index, bool state);
+
 #endif /* MODBUS_H */

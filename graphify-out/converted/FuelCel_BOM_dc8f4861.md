@@ -1,4 +1,4 @@
-<!-- converted from FuelCell.xlsx -->
+<!-- converted from FuelCel_BOM.xlsx -->
 
 ## Sheet: FuelCell
 |  |  | 연료전지 컨트롤러 PCB |  |  |  |  |  |  |  |  |
