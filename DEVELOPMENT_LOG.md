@@ -11,7 +11,7 @@
 
 ### 2. [Repository Sync & Backup] GitHub 원격 저장소 백업 및 무결성 관리
 - **`하드웨어, 펌웨어, UI, 의존성 지도 전 영역 동기화`**:
-  - 01_Hardware (Altium 회로도 및 PCB 문서, BOM 분석본)
+  - 01_Hardware (Altium 통합 심볼 라이브러리 `KipoAlt.SchLib`, PCB 풋프린트 라이브러리 `KipoAlt.PcbLib`, 회로도 및 PCB 문서, BOM 분석본)
   - 02_Firmware (dsPIC33CK main.c, ads1115.c/h, modbus.c/h, pin_map.h 16ch ADC 및 20ch DO 제어 스택)
   - 03_Control_UI (웹/데스크톱 관제 대시보드, 시퀀스 매니저, Python 비동기 시리얼 브릿지)
   - 의존성 지도 및 지식 그래프 (`dependency_map.md`, `dependency_map.html`, `graphify-out/`)
