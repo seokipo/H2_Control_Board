@@ -8,19 +8,20 @@
 
 #include "ethernet.h"
 #include "pin_map.h"
-#include <xc.h>
 
-// SPI2 통신용 보조 전송 함수
+// SPI2 통신용 보조 전송 함수 (타임아웃 보호 탑재)
 static uint8_t SPI2_Exchange8bit(uint8_t data_val)
 {
+    uint16_t timeout = 5000;
     // SPI2 송신 버퍼가 비어있을 때까지 대기
-    while (SPI2STATLbits.SPITBF);
+    while (SPI2STATLbits.SPITBF && --timeout);
     
     // 데이터 주입
     SPI2BUFL = data_val;
     
     // 수신 완료될 때까지 대기 (SPIRBF = 1)
-    while (!SPI2STATLbits.SPIRBF);
+    timeout = 5000;
+    while (!SPI2STATLbits.SPIRBF && --timeout);
     
     return SPI2BUFL;
 }
@@ -31,13 +32,13 @@ void ETH_Initialize(void)
     __builtin_write_RPCON(0x0000); // PPS Lock 해제
     
     // SPI2 Data Input (SDI2) 입력 지정: 4번 핀 RE1 (PPS 번호 RP81)
-    _SDI2RXR = 81; 
+    _SDI2R = 81; 
     
     // SPI2 Data Output (SDO2) 출력 지정: 5번 핀 RF0 (PPS 출력 레지스터 RP96R, 기능 코드 8: SDO2)
     _RP96R = 8; 
     
-    // SPI2 Clock (SCK2) 출력 지정: 6번 핀 RC12 (PPS 출력 레지스터 RP108R, 기능 코드 9: SCK2)
-    _RP108R = 9; 
+    // SPI2 Clock (SCK2) 출력 지정: 6번 핀 RC12 (PPS 출력 레지스터 RP60R, 기능 코드 9: SCK2)
+    _RP60R = 9; 
     
     __builtin_write_RPCON(0x0800); // PPS Lock 설정
 
@@ -65,6 +66,24 @@ void ETH_Initialize(void)
     // [3] 이더넷 칩셋 하드웨어 일괄 리셋
     ETH_ResetDevice(ETH_UNIT_1);
     ETH_ResetDevice(ETH_UNIT_2);
+
+    // [4] 기본 공장출하 네트워크 파라미터 (192.168.0.100) 주입
+    ETH_NetInfo_t default_net = {
+        .mac = {0x00, 0x08, 0xDC, 0x55, 0x00, 0x01},
+        .ip  = {192, 168, 0, 100},
+        .sn  = {255, 255, 255, 0},
+        .gw  = {192, 168, 0, 1}
+    };
+    ETH_SetNetworkInfo(ETH_UNIT_1, &default_net);
+
+    // 2호기 (ETH2) 보조 채널은 101번 IP로 기본 할당
+    ETH_NetInfo_t default_net2 = {
+        .mac = {0x00, 0x08, 0xDC, 0x55, 0x00, 0x02},
+        .ip  = {192, 168, 0, 101},
+        .sn  = {255, 255, 255, 0},
+        .gw  = {192, 168, 0, 1}
+    };
+    ETH_SetNetworkInfo(ETH_UNIT_2, &default_net2);
 }
 
 void ETH_ResetDevice(ETH_Unit_t unit)
@@ -138,4 +157,54 @@ uint8_t ETH_ReadReg(ETH_Unit_t unit, uint16_t reg_addr, uint8_t control_phase)
     else if (unit == ETH_UNIT_2) DO_ETH2_CS_LAT = 1;
 
     return rx_data;
+}
+
+void ETH_SetNetworkInfo(ETH_Unit_t unit, const ETH_NetInfo_t* net_info)
+{
+    if (!net_info) return;
+
+    // [1] Gateway IP 주소 설정 (GAR: 0x0001 ~ 0x0004)
+    for (uint8_t i = 0; i < 4; i++) {
+        ETH_WriteReg(unit, 0x0001 + i, 0x00, net_info->gw[i]);
+    }
+
+    // [2] Subnet Mask 설정 (SUBR: 0x0005 ~ 0x0008)
+    for (uint8_t i = 0; i < 4; i++) {
+        ETH_WriteReg(unit, 0x0005 + i, 0x00, net_info->sn[i]);
+    }
+
+    // [3] Source Hardware MAC 주소 설정 (SHAR: 0x0009 ~ 0x000E)
+    for (uint8_t i = 0; i < 6; i++) {
+        ETH_WriteReg(unit, 0x0009 + i, 0x00, net_info->mac[i]);
+    }
+
+    // [4] Source IP 주소 설정 (SIPR: 0x000F ~ 0x0012)
+    for (uint8_t i = 0; i < 4; i++) {
+        ETH_WriteReg(unit, 0x000F + i, 0x00, net_info->ip[i]);
+    }
+}
+
+void ETH_GetNetworkInfo(ETH_Unit_t unit, ETH_NetInfo_t* net_info)
+{
+    if (!net_info) return;
+
+    // [1] Gateway IP 읽기
+    for (uint8_t i = 0; i < 4; i++) {
+        net_info->gw[i] = ETH_ReadReg(unit, 0x0001 + i, 0x00);
+    }
+
+    // [2] Subnet Mask 읽기
+    for (uint8_t i = 0; i < 4; i++) {
+        net_info->sn[i] = ETH_ReadReg(unit, 0x0005 + i, 0x00);
+    }
+
+    // [3] MAC 주소 읽기
+    for (uint8_t i = 0; i < 6; i++) {
+        net_info->mac[i] = ETH_ReadReg(unit, 0x0009 + i, 0x00);
+    }
+
+    // [4] IP 주소 읽기
+    for (uint8_t i = 0; i < 4; i++) {
+        net_info->ip[i] = ETH_ReadReg(unit, 0x000F + i, 0x00);
+    }
 }

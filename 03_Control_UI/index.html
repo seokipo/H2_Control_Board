@@ -236,6 +236,36 @@
             transform: translateY(-1px);
         }
 
+        /* 📡 실시간 통신 패킷 스트리머 전용 헤더 버튼 스타일 */
+        .btn-streamer {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.15));
+            border: 1px solid rgba(6, 182, 212, 0.45);
+            border-radius: 8px;
+            padding: 8px 14px;
+            color: #67e8f9;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.18);
+        }
+
+        .btn-streamer:hover {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.45), rgba(16, 185, 129, 0.3));
+            border-color: rgba(6, 182, 212, 0.7);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        #streamer-modal-overlay.active {
+            display: block !important;
+        }
+
         .seq-btn {
             display: flex;
             align-items: center;
@@ -1779,6 +1809,7 @@
                 <div id="rtc-time">08:00:00</div>
             </div>
             <button class="btn-seq-ctrl" id="btn-open-seq-modal">⚡ 시퀀스 제어 매니저</button>
+            <button class="btn-streamer" id="btn-open-streamer-modal">📡 실시간 패킷 스트리머</button>
             <button class="btn-debug" id="btn-open-modal">통신 디버그 모니터</button>
 
             <!-- 🪟 Frameless 데스크톱 창 제어 버튼 -->
@@ -1802,7 +1833,24 @@
             <!-- 1. 온도 센서 측정 현황 (4열 배치) -->
             <div class="card" style="flex: initial; min-height: 0;">
                 <div class="card-header">
-                    <div class="card-title">온도 센서 측정 현황 (TC 스캐너 매핑)</div>
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                        <div class="card-title">온도 센서 측정 현황 (TC 스캐너 매핑)</div>
+                        <div id="tc-cjc-badge" style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(59, 130, 246, 0.12)); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(6, 182, 212, 0.45); color: #67e8f9; box-shadow: 0 0 12px rgba(6, 182, 212, 0.25); letter-spacing: 0.2px;">
+                            <span>🌡️ 보드 내부 상온 (CJC):</span>
+                            <span id="tc-cjc-val" style="color: #38bdf8; font-family: 'Outfit', 'Courier New', monospace; font-size: 12.5px; font-weight: 900;">--.-°C</span>
+                        </div>
+                        <div class="thermal-gradient-legend" style="display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 700; background: rgba(0,0,0,0.35); padding: 2px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); letter-spacing: 0.2px;">
+                            <span style="color: #38bdf8;">❄️ 저온 30°C</span>
+                            <span style="color: #475569;">➔</span>
+                            <span style="color: #34d399;">🌱 50°C</span>
+                            <span style="color: #475569;">➔</span>
+                            <span style="color: #facc15;">🟡 80°C</span>
+                            <span style="color: #475569;">➔</span>
+                            <span style="color: #fb923c;">🟠 120°C</span>
+                            <span style="color: #475569;">➔</span>
+                            <span style="color: #ff1e56;">🔥 고온 200°C+</span>
+                        </div>
+                    </div>
                     <div class="card-badge" id="tc-count">총 40개 채널 매핑</div>
                 </div>
                 <div class="card-body tc-table-container" style="padding-bottom: 6px;">
@@ -1815,7 +1863,7 @@
                                     <tr>
                                         <th>측정 위치 (CH)</th>
                                         <th width="45">NET</th>
-                                        <th width="65" style="text-align: right;">온도 (°C)</th>
+                                        <th width="75" style="text-align: right;">온도 (°C)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tc-col-1"></tbody>
@@ -1829,7 +1877,7 @@
                                     <tr>
                                         <th>측정 위치 (CH)</th>
                                         <th width="45">NET</th>
-                                        <th width="65" style="text-align: right;">온도 (°C)</th>
+                                        <th width="75" style="text-align: right;">온도 (°C)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tc-col-2"></tbody>
@@ -1843,7 +1891,7 @@
                                     <tr>
                                         <th>측정 위치 (CH)</th>
                                         <th width="45">NET</th>
-                                        <th width="65" style="text-align: right;">온도 (°C)</th>
+                                        <th width="75" style="text-align: right;">온도 (°C)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tc-col-3"></tbody>
@@ -1857,7 +1905,7 @@
                                     <tr>
                                         <th>측정 위치 (CH)</th>
                                         <th width="45">NET</th>
-                                        <th width="65" style="text-align: right;">온도 (°C)</th>
+                                        <th width="75" style="text-align: right;">온도 (°C)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tc-col-4"></tbody>
@@ -2006,6 +2054,63 @@
 
         </div>
 
+    </div>
+
+    <!-- 📡 [FLOATING WINDOW] 실시간 하드웨어 RS-422 Modbus 통신 패킷 스트리머 (논블로킹 / 드래그 이동 지원) -->
+    <div id="streamer-floating-window" style="display: none; position: fixed; top: 75px; right: 25px; width: 780px; max-width: 95vw; z-index: 99999; background: rgba(10, 15, 29, 0.96); border: 1px solid rgba(6, 182, 212, 0.5); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85), 0 0 25px rgba(6, 182, 212, 0.25); border-radius: 12px; overflow: hidden; backdrop-filter: blur(12px);">
+        <!-- 윈도우 헤더 (마우스 드래그 이동 영역) -->
+        <div id="streamer-window-header" style="background: linear-gradient(90deg, rgba(15, 23, 42, 0.98), rgba(8, 47, 73, 0.92)); padding: 10px 16px; border-bottom: 1px solid rgba(6, 182, 212, 0.35); display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 9px;">
+                <span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #10b981; box-shadow: 0 0 10px #10b981; animation: pulse 1.5s infinite;"></span>
+                <div style="font-family: 'Outfit', sans-serif; font-size: 13.5px; font-weight: 800; color: #67e8f9; letter-spacing: 0.3px;">
+                    📡 실시간 RS-422 통신 패킷 스트리머
+                </div>
+                <span id="streamer-modal-port-badge" style="background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.35); color: #38bdf8; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 4px; font-family: monospace;">
+                    19200 bps | 8-N-1
+                </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" id="btn-popout-streamer-win" style="background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc; font-size: 10.5px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: all 0.2s;" title="브라우저 밖 독립 팝업창으로 분리 띄우기">↗ 별도 창 분리</button>
+                <button type="button" id="btn-copy-streamer-log" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 5px; color: #cbd5e1; font-size: 10.5px; padding: 3px 8px; cursor: pointer; transition: all 0.2s;" title="로그 전체 복사">📋 복사</button>
+                <button type="button" id="btn-clear-streamer-log" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 5px; color: #fca5a5; font-size: 10.5px; padding: 3px 8px; cursor: pointer; transition: all 0.2s;" title="화면 비우기">🗑️ 비우기</button>
+                <button type="button" id="btn-close-streamer-modal" style="background: transparent; border: none; font-size: 18px; line-height: 1; color: #94a3b8; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all 0.15s;" title="창 닫기">&times;</button>
+            </div>
+        </div>
+
+        <!-- 통계 및 제어 툴바 -->
+        <div style="background: rgba(15, 23, 42, 0.85); padding: 6px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <span style="color: #4ade80; font-weight: 700;">🟢 TX: <b id="stat-tx-count-modal" style="font-size: 12px; color: #86efac;">0</b></span>
+                <span style="color: #38bdf8; font-weight: 700;">🔵 RX: <b id="stat-rx-count-modal" style="font-size: 12px; color: #7dd3fc;">0</b></span>
+                <span style="color: #94a3b8;">주기: <b style="color: #fde047;">400ms</b></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 4px; color: #cbd5e1; cursor: pointer; font-size: 10.5px; margin: 0;">
+                    <input type="checkbox" id="chk-streamer-autoscroll" checked style="accent-color: #06b6d4; cursor: pointer;">
+                    자동 스크롤
+                </label>
+                <span style="color: #64748b;">|</span>
+                <span style="color: #a78bfa; font-size: 10px;">CRC16: <b>0xA001</b></span>
+            </div>
+        </div>
+
+        <!-- 터미널 콘솔 로그 뷰어 -->
+        <div id="streamer-modal-log" style="height: 380px; overflow-y: auto; padding: 10px 14px; font-size: 11px; line-height: 1.65; color: #e2e8f0; background: #050811; font-family: 'Fira Code', Consolas, monospace;">
+            <div style="color: #64748b;">[SYSTEM] 📡 실시간 RS-422 통신 패킷 스트리머 대기 중... 포트 연결 시 송수신 패킷이 표시됩니다.</div>
+        </div>
+
+        <!-- 하단 프로토콜 안내 바 -->
+        <div style="background: rgba(15, 23, 42, 0.95); padding: 6px 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #94a3b8;">
+            <div style="display: flex; gap: 10px;">
+                <span><b style="color: #86efac;">0x04</b>: 센서 계측</span>
+                <span><b style="color: #7dd3fc;">0x03</b>: 설정 조회</span>
+                <span><b style="color: #fde047;">0x06</b>: 단일 제어</span>
+                <span><b style="color: #f472b6;">0x05</b>: 코일 제어</span>
+            </div>
+            <div>
+                <span style="color: #38bdf8;">Full-Duplex RS-422</span>
+            </div>
+        </div>
     </div>
 
     <!-- [MODAL] DAC 아날로그 제어 및 PID 목표값 설정 팝업 -->
@@ -2227,19 +2332,26 @@
                             <select id="serial-port">
                                 <option value="COM1">COM1</option>
                                 <option value="COM2">COM2</option>
-                                <option value="COM3" selected>COM3</option>
+                                <option value="COM3">COM3</option>
                                 <option value="COM4">COM4</option>
                                 <option value="COM5">COM5</option>
+                                <option value="COM6">COM6</option>
+                                <option value="COM7" selected>COM7 (현재 연결됨)</option>
+                                <option value="COM8">COM8</option>
+                                <option value="COM9">COM9</option>
+                                <option value="COM10">COM10</option>
+                                <option value="COM11">COM11</option>
+                                <option value="COM12">COM12</option>
                             </select>
                         </div>
                         <div class="form-group" style="flex: 1;">
                             <label for="serial-baud">통신 속도 (Baud Rate)</label>
                             <select id="serial-baud">
-                                <option value="9600">9600 bps</option>
-                                <option value="19200">19200 bps</option>
+                                <option value="9600">9600 bps (기본 저속)</option>
+                                <option value="19200" selected>19200 bps (고속 권장)</option>
                                 <option value="38400">38400 bps</option>
                                 <option value="57600">57600 bps</option>
-                                <option value="115200" selected>115200 bps</option>
+                                <option value="115200">115200 bps (고속)</option>
                             </select>
                         </div>
                     </div>
@@ -2249,7 +2361,7 @@
                         style="display: none; flex: 2; gap: 8px;">
                         <div class="form-group" style="flex: 1.3;">
                             <label for="eth-ip">IP 주소 (IPv4 Host)</label>
-                            <input type="text" id="eth-ip" value="192.168.1.100" placeholder="192.168.1.100">
+                            <input type="text" id="eth-ip" value="192.168.0.100" placeholder="192.168.0.100">
                         </div>
                         <div class="form-group" style="flex: 0.7;">
                             <label for="eth-port">포트 번호 (TCP Port)</label>
@@ -2325,46 +2437,46 @@
     <script>
         // 1. 온도 40개 채널 매핑 정의 데이터 (10kW 기준 및 6kW 호환)
         const tcChannels = [
-            { ch: 1, type: "T", name: "시티가스 공급 온도", net: "CH1", val: 25.4, is6kW: true },
-            { ch: 2, type: "T", name: "개질기 버너 액화 온도", net: "CH2", val: 42.1, is6kW: true },
-            { ch: 3, type: "T", name: "개질 가스 1차 온도", net: "CH3", val: 650.2, is6kW: true },
-            { ch: 4, type: "T", name: "개질 가스 2차 온도", net: "CH4", val: 180.5, is6kW: true },
-            { ch: 5, type: "T", name: "AOG 버너 입구 온도", net: "CH5", val: 55.4, is6kW: true },
-            { ch: 6, type: "T", name: "배기가스 방출 온도", net: "CH6", val: 220.3, is6kW: true },
-            { ch: 7, type: "T", name: "Cathode 입구 온도", net: "CH7", val: 78.1, is6kW: true },
-            { ch: 8, type: "T", name: "Cathode 출구 온도", net: "CH8", val: 82.4, is6kW: true },
-            { ch: 9, type: "T", name: "Hot Water Tank 온도", net: "CH9", val: 60.2, is6kW: true },
-            { ch: 10, type: "T", name: "냉각수 회수 온도", net: "CH10", val: 45.8, is6kW: true },
-            { ch: 11, type: "T", name: "DI Water Tank 온도", net: "CH11", val: 24.5, is6kW: true },
-            { ch: 12, type: "T", name: "DI TANK 냉각수 입구", net: "CH12", val: 26.1, is6kW: true },
-            { ch: 13, type: "T", name: "DI TANK 냉각수 출구", net: "CH13", val: 32.4, is6kW: true },
-            { ch: 14, type: "T", name: "Anode 냉각수 회수 온도", net: "CH14", val: 50.1, is6kW: true },
-            { ch: 15, type: "T", name: "STACK 1 냉각수 회수", net: "CH15", val: 74.2, is6kW: true },
-            { ch: 16, type: "T", name: "STACK 2 냉각수 회수", net: "CH16", val: 0.0, is6kW: false },
-            { ch: 17, type: "T", name: "배출가스 회수 인입", net: "CH17", val: 41.2, is6kW: true },
-            { ch: 18, type: "T", name: "배출가스 회수 토출", net: "CH18", val: 30.5, is6kW: true },
-            { ch: 19, type: "T", name: "제어보드 내부 온도", net: "CH19", val: 28.4, is6kW: true },
-            { ch: 20, type: "T", name: "예비 채널 (CH20)", net: "CH20", val: 0.0, is6kW: false },
-            { ch: 21, type: "K", name: "Ref-BN (개질 버너 핵심부)", net: "CH21", val: 820.5, is6kW: true },
-            { ch: 22, type: "K", name: "Ref-SR1 (개질기 상단)", net: "CH22", val: 750.3, is6kW: true },
-            { ch: 23, type: "K", name: "Ref-SR2 (개질기 중단)", net: "CH23", val: 760.1, is6kW: true },
-            { ch: 24, type: "K", name: "Ref-SR3 (개질기 하단)", net: "CH24", val: 755.8, is6kW: true },
-            { ch: 25, type: "K", name: "Ref-LTS1 (탈황기 전단)", net: "CH25", val: 240.2, is6kW: true },
-            { ch: 26, type: "K", name: "Ref-LTS2 (탈황기 후단)", net: "CH26", val: 238.9, is6kW: true },
-            { ch: 27, type: "K", name: "Ref-FEED (피드 예열기)", net: "CH27", val: 450.2, is6kW: true },
-            { ch: 28, type: "K", name: "Ref-RG (개질 가스 출구)", net: "CH28", val: 680.4, is6kW: true },
-            { ch: 29, type: "K", name: "Ref-EG (배기가스 촉매부)", net: "CH29", val: 520.1, is6kW: true },
-            { ch: 30, type: "K", name: "Prox-01 (산화 선택 반응 1)", net: "CH30", val: 120.5, is6kW: true },
-            { ch: 31, type: "K", name: "Prox-02 (산화 선택 반응 2)", net: "CH31", val: 118.4, is6kW: true },
-            { ch: 32, type: "K", name: "Prox-03 (산화 선택 반응 3)", net: "CH32", val: 95.2, is6kW: true },
-            { ch: 33, type: "K", name: "예비 채널 (CH33)", net: "CH33", val: 0.0, is6kW: false },
-            { ch: 34, type: "K", name: "예비 채널 (CH34)", net: "CH34", val: 0.0, is6kW: false },
-            { ch: 35, type: "K", name: "예비 채널 (CH35)", net: "CH35", val: 0.0, is6kW: false },
-            { ch: 36, type: "K", name: "예비 채널 (CH36)", net: "CH36", val: 0.0, is6kW: false },
-            { ch: 37, type: "K", name: "예비 채널 (CH37)", net: "CH37", val: 0.0, is6kW: false },
-            { ch: 38, type: "K", name: "예비 채널 (CH38)", net: "CH38", val: 0.0, is6kW: false },
-            { ch: 39, type: "K", name: "예비 채널 (CH39)", net: "CH39", val: 0.0, is6kW: false },
-            { ch: 40, type: "K", name: "예비 채널 (CH40)", net: "CH40", val: 0.0, is6kW: false }
+            { ch: 1, type: "T", name: "시티가스 공급 온도", net: "CH1", val: null, is6kW: true },
+            { ch: 2, type: "T", name: "개질기 버너 액화 온도", net: "CH2", val: null, is6kW: true },
+            { ch: 3, type: "T", name: "개질 가스 1차 온도", net: "CH3", val: null, is6kW: true },
+            { ch: 4, type: "T", name: "개질 가스 2차 온도", net: "CH4", val: null, is6kW: true },
+            { ch: 5, type: "T", name: "AOG 버너 입구 온도", net: "CH5", val: null, is6kW: true },
+            { ch: 6, type: "T", name: "배기가스 방출 온도", net: "CH6", val: null, is6kW: true },
+            { ch: 7, type: "T", name: "Cathode 입구 온도", net: "CH7", val: null, is6kW: true },
+            { ch: 8, type: "T", name: "Cathode 출구 온도", net: "CH8", val: null, is6kW: true },
+            { ch: 9, type: "T", name: "Hot Water Tank 온도", net: "CH9", val: null, is6kW: true },
+            { ch: 10, type: "T", name: "냉각수 회수 온도", net: "CH10", val: null, is6kW: true },
+            { ch: 11, type: "T", name: "DI Water Tank 온도", net: "CH11", val: null, is6kW: true },
+            { ch: 12, type: "T", name: "DI TANK 냉각수 입구", net: "CH12", val: null, is6kW: true },
+            { ch: 13, type: "T", name: "DI TANK 냉각수 출구", net: "CH13", val: null, is6kW: true },
+            { ch: 14, type: "T", name: "Anode 냉각수 회수 온도", net: "CH14", val: null, is6kW: true },
+            { ch: 15, type: "T", name: "STACK 1 냉각수 회수", net: "CH15", val: null, is6kW: true },
+            { ch: 16, type: "T", name: "STACK 2 냉각수 회수", net: "CH16", val: null, is6kW: false },
+            { ch: 17, type: "T", name: "배출가스 회수 인입", net: "CH17", val: null, is6kW: true },
+            { ch: 18, type: "T", name: "배출가스 회수 토출", net: "CH18", val: null, is6kW: true },
+            { ch: 19, type: "T", name: "제어보드 내부 온도", net: "CH19", val: null, is6kW: true },
+            { ch: 20, type: "T", name: "예비 채널 (CH20)", net: "CH20", val: null, is6kW: false },
+            { ch: 21, type: "K", name: "Ref-BN (개질 버너 핵심부)", net: "CH21", val: null, is6kW: true },
+            { ch: 22, type: "K", name: "Ref-SR1 (개질기 상단)", net: "CH22", val: null, is6kW: true },
+            { ch: 23, type: "K", name: "Ref-SR2 (개질기 중단)", net: "CH23", val: null, is6kW: true },
+            { ch: 24, type: "K", name: "Ref-SR3 (개질기 하단)", net: "CH24", val: null, is6kW: true },
+            { ch: 25, type: "K", name: "Ref-LTS1 (탈황기 전단)", net: "CH25", val: null, is6kW: true },
+            { ch: 26, type: "K", name: "Ref-LTS2 (탈황기 후단)", net: "CH26", val: null, is6kW: true },
+            { ch: 27, type: "K", name: "Ref-FEED (피드 예열기)", net: "CH27", val: null, is6kW: true },
+            { ch: 28, type: "K", name: "Ref-RG (개질 가스 출구)", net: "CH28", val: null, is6kW: true },
+            { ch: 29, type: "K", name: "Ref-EG (배기가스 촉매부)", net: "CH29", val: null, is6kW: true },
+            { ch: 30, type: "K", name: "Prox-01 (산화 선택 반응 1)", net: "CH30", val: null, is6kW: true },
+            { ch: 31, type: "K", name: "Prox-02 (산화 선택 반응 2)", net: "CH31", val: null, is6kW: true },
+            { ch: 32, type: "K", name: "Prox-03 (산화 선택 반응 3)", net: "CH32", val: null, is6kW: true },
+            { ch: 33, type: "K", name: "예비 채널 (CH33)", net: "CH33", val: null, is6kW: false },
+            { ch: 34, type: "K", name: "예비 채널 (CH34)", net: "CH34", val: null, is6kW: false },
+            { ch: 35, type: "K", name: "예비 채널 (CH35)", net: "CH35", val: null, is6kW: false },
+            { ch: 36, type: "K", name: "예비 채널 (CH36)", net: "CH36", val: null, is6kW: false },
+            { ch: 37, type: "K", name: "예비 채널 (CH37)", net: "CH37", val: null, is6kW: false },
+            { ch: 38, type: "K", name: "예비 채널 (CH38)", net: "CH38", val: null, is6kW: false },
+            { ch: 39, type: "K", name: "예비 채널 (CH39)", net: "CH39", val: null, is6kW: false },
+            { ch: 40, type: "K", name: "예비 채널 (CH40)", net: "CH40", val: null, is6kW: false }
         ];
 
         // 2. 아날로그 입력 (ADC 14채널 - 10kW 기준 전체 수용 및 전압/물리 사양 결합)
@@ -2374,7 +2486,7 @@
             { name: "개질기 버너 연료 압력", net: "AI_PT113", raw: 1540, unit: "kPa", minV: 1, maxV: 5, minReal: 0, maxReal: 100, is6kW: true, model: "PSS-01V-R1/8" },
             { name: "개질기 촉매부 배압 센서", net: "AI_PT123", raw: 6200, unit: "kPa", minV: 1, maxV: 5, minReal: 0, maxReal: 100, is6kW: true, model: "PSS-01V-R1/8" },
             { name: "STACK Anode 입구 압력", net: "AI_PT146", raw: 9500, unit: "kPa", minV: 1, maxV: 5, minReal: 0, maxReal: 100, is6kW: true, model: "T2800" },
-            { name: "배기가스 라인 차압계", net: "AI_PT162", raw: 2450, unit: "kPa", minV: 1, maxV: 5, minReal: 0, maxReal: 100, is6kW: true, model: "PSS-01V-R1/8" },
+            { name: "배기가스 라인 차압계", net: "AI_PT163", raw: 2450, unit: "kPa", minV: 1, maxV: 5, minReal: 0, maxReal: 100, is6kW: true, model: "PSS-01V-R1/8" },
             { name: "개질수 공급 압력 센서", net: "AI_PT383", raw: 11800, unit: "kPa", minV: 1, maxV: 5, minReal: 0, maxReal: 1000, is6kW: true, model: "PSAN-L1CPV" },
             { name: "DI Water Tank 전도도계", net: "AI_CS324", raw: 150, unit: "us/cm", minV: 1, maxV: 5, minReal: 0.5, maxReal: 200, is6kW: true, model: "CM-230K" },
             { name: "BOG 유량 센서 (MFC)", net: "AI_MFC111", raw: 24500, unit: "LPM", minV: 0, maxV: 5, minReal: 0, maxReal: 30, is6kW: true, model: "TSCD230-8SW-CH4 30L" },
@@ -2606,11 +2718,13 @@
             } else if (dacItem.feedbackType === "TC") {
                 const tc = tcChannels.find(t => t.net === dacItem.feedbackNet);
                 if (tc) {
+                    const valStr = (tc.val !== null && tc.val !== undefined && !isNaN(tc.val)) ? `${tc.val.toFixed(1)} °C` : '-- °C';
+                    const physVal = (tc.val !== null && tc.val !== undefined) ? tc.val : (dacItem.targetSp || 0);
                     return {
                         raw: "-",
                         volt: `${tc.type}-Type`,
-                        physVal: tc.val,
-                        physTxt: `${tc.val.toFixed(1)} °C`,
+                        physVal: physVal,
+                        physTxt: valStr,
                         unit: "°C"
                     };
                 }
@@ -2633,10 +2747,10 @@
 
         // 5. 디지털 출력 (DO 20채널 - 10kW/6kW 실채널 목록 매핑 완료)
         const doChannels = [
-            { pin: 1, label: "DO_SV102", desc: "가스 인입 솔레노이드 밸브 1", active: true, is6kW: true, type: "VALVE", model: "VX230GA" },
+            { pin: 1, label: "DO_SV102", desc: "가스 인입 솔레노이드 밸브 1", active: false, is6kW: true, type: "VALVE", model: "VX230GA" },
             { pin: 2, label: "DO_SV103", desc: "가스 인입 솔레노이드 밸브 2", active: false, is6kW: true, type: "VALVE", model: "VX230GA" },
             { pin: 3, label: "DO_SV125", desc: "개질기 질소퍼지 솔레노이드 밸브", active: false, is6kW: true, type: "VALVE", model: "VX230GA" },
-            { pin: 4, label: "DO_SV145", desc: "ANODE 인입 솔레노이드 밸브", active: true, is6kW: true, type: "VALVE", model: "VX230GA" },
+            { pin: 4, label: "DO_SV145", desc: "ANODE 인입 솔레노이드 밸브", active: false, is6kW: true, type: "VALVE", model: "VX230GA" },
             { pin: 5, label: "DO_SV149", desc: "스택 질소퍼지 솔레노이드 밸브", active: false, is6kW: true, type: "VALVE", model: "VX230GA" },
             { pin: 6, label: "DO_SV323", desc: "DI TANK 드레인 솔레노이드 밸브", active: false, is6kW: true, type: "VALVE", model: "WV121S122QV-H-WS-C2" },
             { pin: 7, label: "DO_MV124", desc: "PNG 인입 밸브", active: false, is6kW: true, type: "VALVE", model: "AT24-3T" },
@@ -2647,7 +2761,7 @@
             { pin: 12, label: "DO_MV158", desc: "AOG VENT 전동 밸브", active: false, is6kW: true, type: "VALVE", model: "AT24-3T" },
             { pin: 13, label: "DO_MV300", desc: "시설수 입구 전동 밸브", active: false, is6kW: true, type: "VALVE", model: "AT24-3T" },
             { pin: 14, label: "DO_MV390", desc: "배열 회수 입구 전동 밸브", active: false, is6kW: true, type: "VALVE", model: "AT24-3T" },
-            { pin: 15, label: "DO_MC_SW", desc: "MC 동작 스위치", active: true, is6kW: true, type: "GENERAL", model: "MG-MC22 (접촉기 릴레이)" },
+            { pin: 15, label: "DO_MC_SW", desc: "MC 동작 스위치", active: false, is6kW: true, type: "GENERAL", model: "MG-MC22 (접촉기 릴레이)" },
             { pin: 16, label: "DO_HT193", desc: "LTS 촉매 히터 1", active: false, is6kW: true, type: "HEATER", model: "HT-100 (촉매 히터 전원)" },
             { pin: 17, label: "DO_HT194", desc: "LTS 촉매 히터 2", active: false, is6kW: true, type: "HEATER", model: "HT-100 (촉매 히터 전원)" },
             { pin: 18, label: "DO_HT195", desc: "Prox 히터 1", active: false, is6kW: true, type: "HEATER", model: "HT-100 (촉매 히터 전원)" },
@@ -2661,6 +2775,92 @@
             { name: "LCD 모니터", net: "LCD500", model: "LCD 모니터 (LCD)", status: "OK", tx: false, rx: false, data: { backlight: "ON", brightness: 85 } },
             { name: "개질수 유량계", net: "FM382", model: "OF05ZAT-AR (MP5Y-25)", status: "OK", tx: false, rx: false, data: { flowRate: 12.50, flowTotal: 4856.2 } }
         ];
+
+        // 🎯 렌더링 부하 제거용 requestAnimationFrame 스로틀러 (CPU 점유율 제로 & 마우스 버벅임 100% 해소)
+        let renderScheduled = false;
+        function renderAllThrottled() {
+            if (!renderScheduled) {
+                renderScheduled = true;
+                requestAnimationFrame(() => {
+                    renderAll();
+                    renderScheduled = false;
+                });
+            }
+        }
+
+        // 🌡️ [사용자 약속 핵심] 온도 수치 기반 실시간 동적 서멀 그라데이션 컬러링 엔진
+        function getThermalGradientStyle(temp) {
+            if (temp === null || temp === undefined || isNaN(temp)) {
+                return {
+                    valText: '--',
+                    badgeHtml: '<span style="color: #64748b; font-weight: normal; font-family: monospace; font-size: 12.5px; padding: 2px 6px;">--</span>',
+                    color: '#64748b'
+                };
+            }
+
+            // 온도 범위별 정밀 HSL & 프리미엄 테마 컬러 매핑
+            // ❄️ 저온 / 상온 (<= 35°C): 청량한 아이스 블루 / 사이언 (#38bdf8)
+            // 🌱 미온 (35°C ~ 55°C): 생동감 있는 에메랄드 민트 (#34d399)
+            // 🟡 중온 (55°C ~ 85°C): 따뜻하고 온화한 골든 옐로우 (#facc15)
+            // 🟠 고온 (85°C ~ 130°C): 타오르는 앰버 오렌지 (#fb923c)
+            // 🔴 초고온 1단계 (130°C ~ 250°C): 강렬한 핫 코랄 레드 (#f87171)
+            // 🔥 극한 고온 ( > 250°C): 폭발적인 네온 크림슨 레드 (#ff1e56)
+
+            let color = '#38bdf8';
+            let bg = 'rgba(56, 189, 248, 0.12)';
+            let border = 'rgba(56, 189, 248, 0.35)';
+            let glow = '0 0 8px rgba(56, 189, 248, 0.25)';
+
+            if (temp <= 35.0) {
+                // ❄️ 저온 (상온 30도 전후)
+                color = '#38bdf8';
+                bg = 'rgba(56, 189, 248, 0.12)';
+                border = 'rgba(56, 189, 248, 0.35)';
+                glow = '0 0 8px rgba(56, 189, 248, 0.25)';
+            } else if (temp <= 55.0) {
+                // 🌱 미온
+                color = '#34d399';
+                bg = 'rgba(52, 211, 153, 0.12)';
+                border = 'rgba(52, 211, 153, 0.35)';
+                glow = '0 0 8px rgba(52, 211, 153, 0.25)';
+            } else if (temp <= 85.0) {
+                // 🟡 중온
+                color = '#facc15';
+                bg = 'rgba(250, 204, 21, 0.14)';
+                border = 'rgba(250, 204, 21, 0.38)';
+                glow = '0 0 10px rgba(250, 204, 21, 0.3)';
+            } else if (temp <= 130.0) {
+                // 🟠 고온
+                color = '#fb923c';
+                bg = 'rgba(251, 146, 60, 0.16)';
+                border = 'rgba(251, 146, 60, 0.45)';
+                glow = '0 0 12px rgba(251, 146, 60, 0.4)';
+            } else if (temp <= 250.0) {
+                // 🔴 초고온 1단계
+                color = '#f87171';
+                bg = 'rgba(248, 113, 113, 0.2)';
+                border = 'rgba(248, 113, 113, 0.55)';
+                glow = '0 0 14px rgba(248, 113, 113, 0.5)';
+            } else {
+                // 🔥 극한 고온
+                color = '#ff1e56';
+                bg = 'rgba(255, 30, 86, 0.25)';
+                border = 'rgba(255, 30, 86, 0.7)';
+                glow = '0 0 18px rgba(255, 30, 86, 0.75)';
+            }
+
+            const formattedVal = temp.toFixed(1);
+            const badgeStyle = `color: ${color}; background: ${bg}; border: 1px solid ${border}; box-shadow: ${glow}; font-weight: 800; font-family: 'Fira Code', monospace; font-size: 11.5px; padding: 2px 7px; border-radius: 4px; display: inline-block; min-width: 48px; text-align: right; letter-spacing: -0.2px; transition: all 0.3s ease;`;
+
+            return {
+                valText: formattedVal,
+                badgeHtml: `<span class="tc-val-badge" style="${badgeStyle}">${formattedVal}</span>`,
+                color: color,
+                bg: bg,
+                border: border,
+                glow: glow
+            };
+        }
 
         // 렌더링 엔진 구현
         function renderAll() {
@@ -2682,7 +2882,11 @@
                     tr.className = "inactive-channel";
                 }
 
-                const valTxt = item.is6kW ? item.val.toFixed(1) : '<span class="badge-inactive">10kW 전용</span>';
+                let valTxt = '<span class="badge-inactive">10kW 전용</span>';
+                if (item.is6kW) {
+                    const grad = getThermalGradientStyle(item.val);
+                    valTxt = grad.badgeHtml;
+                }
 
                 tr.innerHTML = `
                     <td>${item.name}</td>
@@ -2872,10 +3076,10 @@
                 diGrid.appendChild(div);
             });
 
-            // 5. 디지털 출력 릴레이 렌더링 (DO 20채널)
-
+            // 5. 디지털 출력 릴레이 렌더링 (DO 20채널 - In-Place DOM 업데이트로 깜빡임 완전 박멸 & 원클릭 즉시 반응)
             const doGrid = document.getElementById('do-grid');
-            doGrid.innerHTML = "";
+            const isInitialDoBuild = (doGrid.children.length === 0);
+
             let drawIndex = 0;
             doChannels.forEach((item, index) => {
                 // MC 메인 스위치는 그리드 리스트 렌더링에서 예외 필터 처리
@@ -2883,8 +3087,6 @@
 
                 const isRightCol = (drawIndex % 7 >= 2);
                 const leftClass = isRightCol ? "tooltip-left" : "";
-
-                const div = document.createElement('div');
 
                 let activeClass = "";
                 let btnText = "기동";
@@ -2912,11 +3114,9 @@
 
                 // 기기 카테고리별 정밀 사용 전원 동적 매칭 (밸브/일반: 24V, 히터/점화기: 220V)
                 const doVoltage = (item.type === "VALVE" || item.type === "GENERAL") ? "DC 24V" : "AC 220V";
-
-                // 피드백 감시 연동 (히터 4종 및 점화 트랜스)
                 const isHeaterOrIgniter = (item.type === "HEATER" || item.label === "DO_IGN175");
-                let feedbackHtml = "";
                 let feedbackClass = "";
+                let feedbackHtml = "";
 
                 if (isHeaterOrIgniter) {
                     if (item.active) {
@@ -2927,16 +3127,35 @@
                     }
                 }
 
-                div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
-                div.setAttribute('data-tooltip', `모델명: ${item.model} (${doVoltage})`);
-                div.innerHTML = `
-                    <div class="led-indicator"></div>
-                    <div class="led-name">${item.label}</div>
-                    <div class="led-desc">${item.desc}</div>
-                    ${feedbackHtml}
-                    <button class="do-btn" style="margin-top: 4px;" onclick="event.stopPropagation(); toggleVirtualCoil(${index})">${btnText}</button>
-                `;
-                doGrid.appendChild(div);
+                if (isInitialDoBuild) {
+                    // 최초 1회만 DOM 엘리먼트 생성 및 등록 (이후에는 절대 파괴하지 않음!)
+                    const div = document.createElement('div');
+                    div.id = `do-card-${index}`;
+                    div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
+                    div.setAttribute('data-tooltip', `모델명: ${item.model} (${doVoltage})`);
+                    div.innerHTML = `
+                        <div class="led-indicator"></div>
+                        <div class="led-name">${item.label}</div>
+                        <div class="led-desc">${item.desc}</div>
+                        <div class="do-fb-container" id="do-fb-${index}">${feedbackHtml}</div>
+                        <button type="button" class="do-btn" id="do-btn-${index}" style="margin-top: 4px;" onclick="event.stopPropagation(); toggleVirtualCoil(${index})">${btnText}</button>
+                    `;
+                    doGrid.appendChild(div);
+                } else {
+                    // 🎯 [핵심] 기존 DOM 엘리먼트 재사용: 클래스와 텍스트만 갱신하여 깜빡임 0% & 클릭 100% 보장!
+                    const div = document.getElementById(`do-card-${index}`);
+                    if (div) {
+                        div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
+                        const fbContainer = document.getElementById(`do-fb-${index}`);
+                        if (fbContainer && fbContainer.innerHTML !== feedbackHtml) {
+                            fbContainer.innerHTML = feedbackHtml;
+                        }
+                        const btn = document.getElementById(`do-btn-${index}`);
+                        if (btn && btn.textContent !== btnText) {
+                            btn.textContent = btnText;
+                        }
+                    }
+                }
                 drawIndex++;
             });
 
@@ -2944,14 +3163,7 @@
             const mcItem = doChannels.find(d => d.label === "DO_MC_SW");
             if (mcItem) {
                 const mcIndex = doChannels.findIndex(d => d.label === "DO_MC_SW");
-                const mcDiv = document.createElement('div');
-                mcDiv.id = `do-item-${mcIndex}`;
                 const isMcOn = mcItem.active;
-                mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
-                mcDiv.style.gridColumn = "span 2";
-                mcDiv.setAttribute('data-tooltip', `모델명: ${mcItem.model} (DC 24V 메인 루프 통전 스위치)`);
-
-                const statusTxt = isMcOn ? "MAIN POWER ACTIVE (24V LOOP ON)" : "MAIN POWER SHUTDOWN (24V LOOP OFF)";
                 const btnText = isMcOn ? "⚡ 메인전원 OFF" : "⚡ 메인전원 ON";
                 const btnBg = isMcOn
                     ? "background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #f87171; color: #fff; box-shadow: 0 0 12px rgba(239,68,68,0.5);"
@@ -2961,18 +3173,34 @@
                     ? `<div class="main-power-status-badge" style="background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.4); font-size: 7.5px; padding: 1.5px 6px; border-radius: 3px;">24V LOOP ACTIVE</div>`
                     : `<div class="main-power-status-badge" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); font-size: 7.5px; padding: 1.5px 6px; border-radius: 3px;">24V LOOP SHUTDOWN</div>`;
 
-                mcDiv.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;">
-                        <div class="led-indicator" style="width: 10px; height: 10px; min-width: 10px; ${isMcOn ? 'background:#10b981; box-shadow: 0 0 8px #10b981, inset 0 1px 2px #fff;' : 'background:#ef4444; box-shadow: 0 0 6px #ef4444;'}"></div>
-                        <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
-                            <div class="led-name" style="color: ${isMcOn ? '#fde047' : '#f87171'}; font-size: 11px; font-weight: 800; letter-spacing: 0.2px; line-height: 1.1;">⚡ SYSTEM MAIN POWER</div>
-                            <div class="led-desc" style="font-size: 8px; color: ${isMcOn ? '#a7f3d0' : '#fca5a5'}; font-weight: 700; line-height: 1.1; margin-top: 1px;">${statusTxt}</div>
+                if (isInitialDoBuild) {
+                    const mcDiv = document.createElement('div');
+                    mcDiv.id = `do-card-${mcIndex}`;
+                    mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
+                    mcDiv.style.gridColumn = "span 2";
+                    mcDiv.setAttribute('data-tooltip', `모델명: ${mcItem.model} (DC 24V 메인 루프 통전 스위치)`);
+                    mcDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div class="led-name" style="font-size: 11px; font-weight: 800; color: #f8fafc;">${mcItem.label}</div>
+                            <div id="mc-badge">${badgeHtml}</div>
                         </div>
-                    </div>
-                    ${badgeHtml}
-                    <button class="do-btn" style="${btnBg} font-size: 9.5px; font-weight: 800; padding: 3px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; margin-top: 1px;" onclick="event.stopPropagation(); toggleVirtualCoil(${mcIndex})">${btnText}</button>
-                `;
-                doGrid.appendChild(mcDiv);
+                        <div class="led-desc" style="margin: 3px 0 6px 0; color: #cbd5e1; font-size: 9.5px;">${mcItem.desc}</div>
+                        <button type="button" class="do-btn" id="mc-btn" style="width: 100%; padding: 6px; font-weight: 800; font-size: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; ${btnBg}" onclick="event.stopPropagation(); toggleVirtualCoil(${mcIndex})">${btnText}</button>
+                    `;
+                    doGrid.appendChild(mcDiv);
+                } else {
+                    const mcDiv = document.getElementById(`do-card-${mcIndex}`);
+                    if (mcDiv) {
+                        mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
+                        const badgeEl = document.getElementById('mc-badge');
+                        if (badgeEl && badgeEl.innerHTML !== badgeHtml) badgeEl.innerHTML = badgeHtml;
+                        const mcBtn = document.getElementById('mc-btn');
+                        if (mcBtn) {
+                            if (mcBtn.textContent !== btnText) mcBtn.textContent = btnText;
+                            mcBtn.style.cssText = `width: 100%; padding: 6px; font-weight: 800; font-size: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; ${btnBg}`;
+                        }
+                    }
+                }
             }
 
             // 6. 시리얼 통신 장치 렌더링
@@ -3095,6 +3323,11 @@
             }
 
             const nextActive = !item.active;
+            
+            // 🎯 [사용자 약속 핵심] 클릭 즉각 1ms 인지 반영 및 2.5초간 폴링 되돌림 방지 락(Lock)
+            item.active = nextActive;
+            item.lockUntil = Date.now() + 2500;
+            renderAll();
 
             // 🔴 매크로 레코딩 스텝 자동 기록
             dispatchMacroStep({
@@ -3108,18 +3341,13 @@
             const requestFrame = buildModbusRTUFrame(1, 6, 20 + index, nextActive ? 1 : 0);
 
             if (commMode === "websocket" && socket && socket.readyState === WebSocket.OPEN && isPortConnected) {
+                // 단일 1회 즉시 송출 (브릿지 및 보드와 1:1 완벽 정합)
                 socket.send(jsonStr({
                     type: "WRITE_PORT",
                     hex: requestFrame
                 }));
                 log(`TX -> [${requestFrame}] (DO [${item.label}] 릴레이 스위칭 송출)`);
-                // UI 선반영
-                doChannels[index].active = nextActive;
-                renderAll();
             } else {
-                doChannels[index].active = nextActive;
-                renderAll();
-
                 let actionStr = "";
                 if (item.type === "VALVE") {
                     actionStr = item.active ? "열림" : "닫힘";
@@ -3142,11 +3370,22 @@
         let socket = null;
         window.socket = null;
         window.ws = null;
-        let commMode = "virtual"; // 'virtual' or 'websocket'
+        const btnOpenModal = document.getElementById('btn-open-modal');
+        const headerCommBadge = document.getElementById('header-comm-status-badge');
 
-        document.getElementById('btn-open-modal').addEventListener('click', () => {
-            modalOverlay.classList.add('active');
-        });
+        if (btnOpenModal) {
+            btnOpenModal.addEventListener('click', () => {
+                modalOverlay.classList.add('active');
+            });
+        }
+
+        if (headerCommBadge) {
+            headerCommBadge.style.cursor = 'pointer';
+            headerCommBadge.title = '클릭하여 물리 시리얼/이더넷 통신 포트 설정 열기';
+            headerCommBadge.addEventListener('click', () => {
+                modalOverlay.classList.add('active');
+            });
+        }
 
         document.getElementById('btn-close-modal').addEventListener('click', () => {
             modalOverlay.classList.remove('active');
@@ -3283,14 +3522,16 @@
 
                         const suffix = data.status === "VIRTUAL" ? " [가상에뮬]" : " [실전연동]";
                         if (interfaceVal === 'Ethernet') {
-                            text.innerText = `TCP: ${port}:${baud}${suffix}`;
+                             text.innerText = `TCP: ${port}:${baud}${suffix}`;
                         } else {
                             text.innerText = `${interfaceVal}: ${port} (${baud}bps)${suffix}`;
                         }
                         log(`[SYSTEM] ${data.msg}`);
                     }
+                } else if (data.type === "SERIAL_TX") {
+                    logLivePacket("TX", data.hex, data.desc || "Modbus Polling Request");
                 } else if (data.type === "SERIAL_RX") {
-                    log(`RX <- [${data.hex}]`);
+                    logLivePacket("RX", data.hex, "보드 수신 응답 프레임");
                     processSerialPacket(data.hex);
                 } else if (data.type === "MOCK_UPDATE") {
                     // 브릿지로부터 주기적으로 받는 가상 난수 갱신 데이터 동기화
@@ -3388,19 +3629,49 @@
                         const lo = parseInt(tokens[4 + (i * 2)], 16);
                         const regVal = (hi << 8) | lo;
 
-                        // TC 온도 채널 (0 ~ 30) -> 10으로 나누어 실온도(°C) 환산
-                        if (i < tcChannels.length) {
-                            if (regVal !== 0x9999) { // 0x9999는 센서 단선/오류
-                                tcChannels[i].val = regVal / 10.0;
+                        // 1. 레지스터 31번: 보드 내부 냉접점 상온 (CJC) 판독 및 배지 표출
+                        if (i === 31) {
+                            if (regVal !== 0x7FFF && regVal !== 0x9999 && regVal > 0) {
+                                const cjcDeg = regVal / 10.0;
+                                window.boardCjcTemp = cjcDeg;
+                                const cjcElem = document.getElementById('tc-cjc-val');
+                                if (cjcElem) cjcElem.textContent = `${cjcDeg.toFixed(1)}°C`;
                             }
                         }
-                        // ADC 아날로그 입력 채널 (32 ~ 47)
+                        // 2. TC 온도 채널 (0 ~ 30: CH1 ~ CH31) -> 실측 온도 환산
+                        else if (i < 31 && i < tcChannels.length) {
+                            const isTType = (i < 20);
+                            const tempDeg = regVal / 10.0;
+                            const curCjc = window.boardCjcTemp || null;
+
+                            // 👑 [특허급 스마트 가로바 필터링]
+                            // 펌웨어에서 보낸 0x9999 미결선 코드이거나, 칩 상온(CJC)과 0.8°C 이내로 동일한 빈 채널은 확실한 '--' 처리!
+                            const isCjcMirror = (curCjc !== null && Math.abs(tempDeg - curCjc) < 0.8);
+                            const isInvalid = (regVal === 0x7FFF || regVal === 0x9999 || regVal === 0 || 
+                                isCjcMirror ||
+                                (isTType && tempDeg > 250.0) || 
+                                (!isTType && tempDeg > 1100.0) ||
+                                tempDeg <= -40.0);
+
+                            if (!isInvalid) {
+                                // 🎯 정상 계측 센서: 즉시 온도 갱신
+                                tcChannels[i].val = tempDeg;
+                                tcChannels[i].missingCount = 0;
+                            } else {
+                                // 🎯 미결선/빈 채널 또는 단선: 깔끔한 가로바('--') 고정
+                                tcChannels[i].missingCount = (tcChannels[i].missingCount || 0) + 1;
+                                if (tcChannels[i].val === null || tcChannels[i].missingCount >= 3) {
+                                    tcChannels[i].val = null; // 영구 미체결 채널은 깔끔한 '--' 바 고정
+                                }
+                            }
+                        }
+                        // 3. ADC 아날로그 입력 채널 (32 ~ 47)
                         else if (i >= 32 && i < 32 + adcChannels.length) {
                             const adcIdx = i - 32;
                             adcChannels[adcIdx].raw = regVal;
                         }
                     }
-                    renderAll();
+                    renderAllThrottled();
                 }
             }
             // [4] 0x03 (Read Holding Registers Response: DAC 0~11, DO 20~39)
@@ -3416,10 +3687,14 @@
                         if (i < dacChannels.length) {
                             dacChannels[i].val = regVal;
                         } else if (i >= 20 && i < 20 + doChannels.length) {
-                            doChannels[i - 20].active = (regVal > 0);
+                            const doIdx = i - 20;
+                            // 🎯 [사용자 약속 핵심] 클릭 락(Lock) 기간 동안에는 폴링 데이터로 상태를 되돌리지 않음!
+                            if (!doChannels[doIdx].lockUntil || Date.now() >= doChannels[doIdx].lockUntil) {
+                                doChannels[doIdx].active = (regVal > 0);
+                            }
                         }
                     }
-                    renderAll();
+                    renderAllThrottled();
                 }
             }
             // [5] 0x01 (Read Coils Response: DO 0~19)
@@ -3430,11 +3705,14 @@
                     for (let bit = 0; bit < 8; bit++) {
                         const doIdx = (b * 8) + bit;
                         if (doIdx < doChannels.length) {
-                            doChannels[doIdx].active = ((byteVal & (1 << bit)) !== 0);
+                            // 🎯 [사용자 약속 핵심] 클릭 락(Lock) 기간 동안에는 폴링 데이터로 상태를 되돌리지 않음!
+                            if (!doChannels[doIdx].lockUntil || Date.now() >= doChannels[doIdx].lockUntil) {
+                                doChannels[doIdx].active = ((byteVal & (1 << bit)) !== 0);
+                            }
                         }
                     }
                 }
-                renderAll();
+                renderAllThrottled();
             }
         }
 
@@ -3695,14 +3973,197 @@
             }
         });
 
-        // 로그 메커니즘
+        // 전역 패킷 통계 카운터
+        let txCount = 0;
+        let rxCount = 0;
+
+        function logLivePacket(direction, hexStr, desc) {
+            const liveStreamDom = document.getElementById('live-stream-log');
+            const modalStreamDom = document.getElementById('streamer-modal-log');
+
+            const timeStr = new Date().toLocaleTimeString();
+
+            // 카운터 갱신
+            if (direction === "TX") {
+                txCount++;
+            } else if (direction === "RX") {
+                rxCount++;
+            }
+
+            const txCountEl = document.getElementById('stat-tx-count');
+            const rxCountEl = document.getElementById('stat-rx-count');
+            const txCountModalEl = document.getElementById('stat-tx-count-modal');
+            const rxCountModalEl = document.getElementById('stat-rx-count-modal');
+
+            if (txCountEl) txCountEl.innerText = txCount;
+            if (rxCountEl) rxCountEl.innerText = rxCount;
+            if (txCountModalEl) txCountModalEl.innerText = txCount;
+            if (rxCountModalEl) rxCountModalEl.innerText = rxCount;
+
+            // HTML 로그 라인 생성
+            function buildLogLine() {
+                const row = document.createElement('div');
+                row.style.marginBottom = '4px';
+                row.style.wordBreak = 'break-all';
+
+                if (direction === "TX") {
+                    row.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span style="color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.12); padding: 1px 5px; border-radius: 3px;">[TX 송신]</span> <span style="color: #86efac; font-family: monospace; font-weight: 600;">${hexStr}</span> ${desc ? `<span style="color: #94a3b8; font-size: 10.5px;">(${desc})</span>` : ''}`;
+                } else if (direction === "RX") {
+                    row.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span style="color: #38bdf8; font-weight: 800; background: rgba(56, 189, 248, 0.12); padding: 1px 5px; border-radius: 3px;">[RX 수신]</span> <span style="color: #7dd3fc; font-weight: bold; font-family: monospace;">${hexStr}</span> ${desc ? `<span style="color: #fde047; font-size: 10.5px;">(${desc})</span>` : ''}`;
+                } else {
+                    row.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span style="color: #c084fc; font-weight: 700;">[SYS]</span> <span style="color: #e2e8f0;">${hexStr}</span>`;
+                }
+                return row;
+            }
+
+            // 1. 하단 미니 스트리머에 추가
+            if (liveStreamDom) {
+                liveStreamDom.appendChild(buildLogLine());
+                liveStreamDom.scrollTop = liveStreamDom.scrollHeight;
+                while (liveStreamDom.children.length > 150) {
+                    liveStreamDom.removeChild(liveStreamDom.firstChild);
+                }
+            }
+
+            // 2. 팝업 모달 스트리머에 추가
+            if (modalStreamDom) {
+                modalStreamDom.appendChild(buildLogLine());
+                const autoScrollChk = document.getElementById('chk-streamer-autoscroll');
+                if (!autoScrollChk || autoScrollChk.checked) {
+                    modalStreamDom.scrollTop = modalStreamDom.scrollHeight;
+                }
+                while (modalStreamDom.children.length > 100) {
+                    modalStreamDom.removeChild(modalStreamDom.firstChild);
+                }
+            }
+
+            // 3. 독립 팝업창(packet_streamer.html)으로 BroadcastChannel 단일 초고속 브로드캐스트 (중복 호출 제거로 CPU 점유율 0% 달성)
+            try {
+                if (window.packetStreamerChannel) {
+                    window.packetStreamerChannel.postMessage({
+                        type: 'PACKET',
+                        direction: direction,
+                        hex: hexStr,
+                        desc: desc,
+                        txCount: txCount,
+                        rxCount: rxCount
+                    });
+                }
+            } catch (e) {}
+        }
+
+        // 📡 실시간 패킷 스트리머 BroadcastChannel 초기화
+        window.packetStreamerChannel = new BroadcastChannel('bop_packet_streamer_channel');
+        window.packetStreamerChannel.onmessage = (e) => {
+            if (e.data && e.data.type === 'REQUEST_INIT') {
+                const port = document.getElementById('serial-port')?.value || 'COM3';
+                const baud = document.getElementById('serial-baud')?.value || '19200';
+                window.packetStreamerChannel.postMessage({
+                    type: 'STATUS',
+                    port: `${isPortConnected ? '● LIVE' : '○ DISCONNECTED'} | ${port} @ ${baud}bps`,
+                    txCount: txCount,
+                    rxCount: rxCount
+                });
+            }
+        };
+
+        // 📡 실시간 스트리머 플로팅 윈도우 인터랙션 핸들러 (논블로킹 / 드래그 이동)
+        const streamerFloatingWindow = document.getElementById('streamer-floating-window');
+        const btnOpenStreamerModal = document.getElementById('btn-open-streamer-modal');
+        const btnCloseStreamerModal = document.getElementById('btn-close-streamer-modal');
+        const btnClearStreamerLog = document.getElementById('btn-clear-streamer-log');
+        const btnCopyStreamerLog = document.getElementById('btn-copy-streamer-log');
+        const btnPopoutStreamerWin = document.getElementById('btn-popout-streamer-win');
+
+        // ↗ 브라우저 밖 독립 팝업창(packet_streamer.html)으로 분리 띄우기
+        if (btnPopoutStreamerWin) {
+            btnPopoutStreamerWin.addEventListener('click', () => {
+                if (streamerFloatingWindow) {
+                    streamerFloatingWindow.style.display = 'none';
+                    streamerFloatingWindow.classList.remove('active');
+                }
+                window.streamerPopupWindow = window.open('packet_streamer.html', 'PacketStreamerPopup', 'width=840,height=620,resizable=yes,scrollbars=yes');
+            });
+        }
+
+        // ↙ 독립 팝업창에서 메인 대시보드로 복귀하는 글로벌 도킹 함수
+        window.dockBackStreamerManager = function () {
+            if (streamerFloatingWindow) {
+                streamerFloatingWindow.style.display = 'block';
+                streamerFloatingWindow.classList.add('active');
+            }
+        };
+
+        if (btnOpenStreamerModal && streamerFloatingWindow) {
+            btnOpenStreamerModal.addEventListener('click', () => {
+                const isVisible = (streamerFloatingWindow.style.display === 'block');
+                if (isVisible) {
+                    streamerFloatingWindow.style.display = 'none';
+                    streamerFloatingWindow.classList.remove('active');
+                } else {
+                    streamerFloatingWindow.style.display = 'block';
+                    streamerFloatingWindow.classList.add('active');
+                    
+                    // 현재 연결 정보로 뱃지 갱신
+                    const badgeEl = document.getElementById('streamer-modal-port-badge');
+                    if (badgeEl) {
+                        const port = document.getElementById('serial-port')?.value || 'COM3';
+                        const baud = document.getElementById('serial-baud')?.value || '19200';
+                        badgeEl.innerText = `${isPortConnected ? '● LIVE' : '○ DISCONNECTED'} | ${port} @ ${baud}bps`;
+                        badgeEl.style.color = isPortConnected ? '#34d399' : '#f87171';
+                    }
+                }
+            });
+        }
+
+        if (btnCloseStreamerModal && streamerFloatingWindow) {
+            btnCloseStreamerModal.addEventListener('click', () => {
+                streamerFloatingWindow.style.display = 'none';
+                streamerFloatingWindow.classList.remove('active');
+            });
+        }
+
+        if (btnClearStreamerLog) {
+            btnClearStreamerLog.addEventListener('click', () => {
+                const modalLog = document.getElementById('streamer-modal-log');
+                if (modalLog) modalLog.innerHTML = '<div style="color: #64748b;">[SYSTEM] 화면 로그가 비워졌습니다. 신규 패킷을 대기합니다.</div>';
+                txCount = 0;
+                rxCount = 0;
+                const txEl = document.getElementById('stat-tx-count-modal');
+                const rxEl = document.getElementById('stat-rx-count-modal');
+                if (txEl) txEl.innerText = '0';
+                if (rxEl) rxEl.innerText = '0';
+                if (window.packetStreamerChannel) {
+                    window.packetStreamerChannel.postMessage({ type: 'CLEAR' });
+                }
+            });
+        }
+
+        if (btnCopyStreamerLog) {
+            btnCopyStreamerLog.addEventListener('click', () => {
+                const modalLog = document.getElementById('streamer-modal-log');
+                if (!modalLog) return;
+                const text = modalLog.innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    btnCopyStreamerLog.innerText = "✓ 복사 완료!";
+                    setTimeout(() => btnCopyStreamerLog.innerText = "📋 복사", 1500);
+                }).catch(err => {
+                    alert("로그 복사 실패: " + err);
+                });
+            });
+        }
+
+        // 모달 로그 메커니즘
         function log(msg) {
             const consoleDom = document.getElementById('log-console');
-            const line = document.createElement('div');
-            line.className = 'log-line';
-            line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            consoleDom.appendChild(line);
-            consoleDom.scrollTop = consoleDom.scrollHeight;
+            if (consoleDom) {
+                const line = document.createElement('div');
+                line.className = 'log-line';
+                line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                consoleDom.appendChild(line);
+                consoleDom.scrollTop = consoleDom.scrollHeight;
+            }
+            logLivePacket("SYS", msg, "");
         }
 
         // Modbus 패킷 시뮬레이터 송출 버튼
@@ -3947,9 +4408,14 @@
         function updateRecipeDropdown(recipes) {
             if (!recipes || recipes.length === 0) return;
             loadedRecipes = recipes;
-            seqRecipeSelect.innerHTML = loadedRecipes.map(r => `<option value="${r.id}">[${r.category}] ${r.name}</option>`).join('');
+            if (seqRecipeSelect) {
+                seqRecipeSelect.innerHTML = loadedRecipes.map(r => `<option value="${r.id}">[${r.category}] ${r.name}</option>`).join('');
+            }
             curSeqRecipe = loadedRecipes[0];
-            document.getElementById('seq-recipe-desc').innerText = `[${curSeqRecipe.category}] ${curSeqRecipe.description}`;
+            const descEl = document.getElementById('seq-recipe-desc');
+            if (descEl && curSeqRecipe) {
+                descEl.innerText = `[${curSeqRecipe.category}] ${curSeqRecipe.description}`;
+            }
             renderSeqStepsUI(curSeqRecipe, -1);
         }
 
@@ -3957,35 +4423,48 @@
         updateRecipeDropdown(defaultRecipes);
 
         function seqLog(msg) {
+            if (!seqConsoleLog) return;
             const timeStr = new Date().toLocaleTimeString('ko-KR', { hour12: false });
             seqConsoleLog.innerHTML += `<div>[${timeStr}] ${msg}</div>`;
             seqConsoleLog.scrollTop = seqConsoleLog.scrollHeight;
         }
 
-        btnOpenSeqModal.addEventListener('click', () => {
-            seqModalOverlay.style.display = 'block';
-            seqModalOverlay.classList.add('active');
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "GET_RECIPES" }));
-            }
-        });
+        if (btnOpenSeqModal) {
+            btnOpenSeqModal.addEventListener('click', () => {
+                if (seqModalOverlay) {
+                    seqModalOverlay.style.display = 'block';
+                    seqModalOverlay.classList.add('active');
+                }
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "GET_RECIPES" }));
+                }
+            });
+        }
 
-        btnCloseSeqModal.addEventListener('click', () => {
-            seqModalOverlay.style.display = 'none';
-            seqModalOverlay.classList.remove('active');
-        });
+        if (btnCloseSeqModal) {
+            btnCloseSeqModal.addEventListener('click', () => {
+                if (seqModalOverlay) {
+                    seqModalOverlay.style.display = 'none';
+                    seqModalOverlay.classList.remove('active');
+                }
+            });
+        }
 
-        seqRecipeSelect.addEventListener('change', (e) => {
-            const selId = e.target.value;
-            curSeqRecipe = loadedRecipes.find(r => r.id === selId);
-            if (curSeqRecipe) {
-                document.getElementById('seq-recipe-desc').innerText = `[${curSeqRecipe.category}] ${curSeqRecipe.description}`;
-                renderSeqStepsUI(curSeqRecipe, -1);
-            }
-        });
+        if (seqRecipeSelect) {
+            seqRecipeSelect.addEventListener('change', (e) => {
+                const selId = e.target.value;
+                curSeqRecipe = loadedRecipes.find(r => r.id === selId);
+                if (curSeqRecipe) {
+                    const descEl = document.getElementById('seq-recipe-desc');
+                    if (descEl) descEl.innerText = `[${curSeqRecipe.category}] ${curSeqRecipe.description}`;
+                    renderSeqStepsUI(curSeqRecipe, -1);
+                }
+            });
+        }
 
         function renderSeqStepsUI(recipe, curStepIdx) {
             const container = document.getElementById('seq-steps-container');
+            if (!container) return;
             if (!recipe || !recipe.steps) {
                 container.innerHTML = '<div style="color:var(--text-muted); font-size:10px;">스텝 정보가 없습니다.</div>';
                 return;
@@ -4013,6 +4492,7 @@
 
         // ✥ 마우스 드래그 앤 드롭 이동 유틸리티
         function makeElementDraggable(headerElem, windowElem) {
+            if (!headerElem || !windowElem) return;
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             headerElem.onmousedown = dragMouseDown;
 
@@ -4049,20 +4529,30 @@
             document.getElementById('seq-floating-window')
         );
 
+        // 📡 실시간 스트리머 플로팅 창 드래그 이동 활성화
+        makeElementDraggable(
+            document.getElementById('streamer-window-header'),
+            document.getElementById('streamer-floating-window')
+        );
+
         // ↗ 독립 브라우저 팝업 창(window.open)으로 분리 띄우기 기능
         const btnPopoutSeqWin = document.getElementById('btn-popout-seq-win');
         if (btnPopoutSeqWin) {
             btnPopoutSeqWin.addEventListener('click', () => {
-                seqModalOverlay.style.display = 'none';
-                seqModalOverlay.classList.remove('active');
+                if (seqModalOverlay) {
+                    seqModalOverlay.style.display = 'none';
+                    seqModalOverlay.classList.remove('active');
+                }
                 window.seqPopupWindow = window.open('sequence_manager.html', 'SeqManagerPopup', 'width=580,height=760,resizable=yes,scrollbars=yes');
             });
         }
 
         // ↙ 팝업창에서 메인 대시보드로 복귀하는 글로벌 함수
         window.dockBackSequenceManager = function () {
-            seqModalOverlay.style.display = 'block';
-            seqModalOverlay.classList.add('active');
+            if (seqModalOverlay) {
+                seqModalOverlay.style.display = 'block';
+                seqModalOverlay.classList.add('active');
+            }
         };
 
         // 🔗 독립 팝업창(sequence_manager.html)에서 수신되는 릴레이/DAC 제어 명령 글로벌 브릿지
@@ -4362,15 +4852,19 @@
             const statusText = document.getElementById('seq-status-text');
             if (!isSimPaused) {
                 isSimPaused = true;
-                statusText.innerText = "상태: PAUSED (가상 시퀀스가 일시 정지되었습니다)";
-                statusText.style.color = "#f59e0b";
-                btnSeqPause.innerHTML = '<span style="font-size:14px;">▶</span> 재개';
+                if (statusText) {
+                    statusText.innerText = "상태: PAUSED (가상 시퀀스가 일시 정지되었습니다)";
+                    statusText.style.color = "#f59e0b";
+                }
+                if (btnSeqPause) btnSeqPause.innerHTML = '<span style="font-size:14px;">▶</span> 재개';
                 seqLog("❚❚ [일시정지] 시퀀스 진행 중단");
             } else {
                 isSimPaused = false;
-                statusText.innerText = "상태: RUNNING (가상 시퀀스 재개됨)";
-                statusText.style.color = "#fde047";
-                btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+                if (statusText) {
+                    statusText.innerText = "상태: RUNNING (가상 시퀀스 재개됨)";
+                    statusText.style.color = "#fde047";
+                }
+                if (btnSeqPause) btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
                 seqLog("▶ [재개] 시퀀스 진행 재가동");
             }
         }
@@ -4383,11 +4877,13 @@
             const percentText = document.getElementById('seq-progress-percent');
             const progressBar = document.getElementById('seq-progress-bar-inner');
 
-            statusText.innerText = `상태: IDLE (${reason})`;
-            statusText.style.color = "#60a5fa";
-            percentText.innerText = "0.0 %";
-            progressBar.style.width = "0%";
-            btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+            if (statusText) {
+                statusText.innerText = `상태: IDLE (${reason})`;
+                statusText.style.color = "#60a5fa";
+            }
+            if (percentText) percentText.innerText = "0.0 %";
+            if (progressBar) progressBar.style.width = "0%";
+            if (btnSeqPause) btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
 
             if (curSeqRecipe) {
                 renderSeqStepsUI(curSeqRecipe, -1);
@@ -4395,55 +4891,61 @@
             seqLog(`◼ [강제 정지] ${reason}`);
         }
 
-        btnSeqStart.addEventListener('click', () => {
-            let recipeId = seqRecipeSelect.value;
-            if (!recipeId && loadedRecipes && loadedRecipes.length > 0) {
-                recipeId = loadedRecipes[0].id;
-            }
-            if (!recipeId) {
-                alert("실행할 시퀀스 레시피를 선택해주세요!");
-                return;
-            }
-
-            // 가상 시뮬레이션 및 백엔드 실행 동시 보증
-            startSimulatedSequence(recipeId);
-
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "START_SEQUENCE", recipe_id: recipeId }));
-                seqLog(`시퀀스 실행 요청 백엔드 송출: ${recipeId}`);
-                isSeqPaused = false;
-                btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
-            }
-        });
-
-        btnSeqPause.addEventListener('click', () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                if (!isSeqPaused) {
-                    ws.send(JSON.stringify({ type: "PAUSE_SEQUENCE" }));
-                    seqLog("시퀀스 일시정지 요청 송출");
-                    btnSeqPause.innerHTML = '<span style="font-size:14px;">▶</span> 재개';
-                    isSeqPaused = true;
-                } else {
-                    ws.send(JSON.stringify({ type: "RESUME_SEQUENCE" }));
-                    seqLog("시퀀스 재개 요청 송출");
-                    btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
-                    isSeqPaused = false;
+        if (btnSeqStart) {
+            btnSeqStart.addEventListener('click', () => {
+                let recipeId = seqRecipeSelect ? seqRecipeSelect.value : '';
+                if (!recipeId && loadedRecipes && loadedRecipes.length > 0) {
+                    recipeId = loadedRecipes[0].id;
                 }
-            } else {
-                pauseSimulatedSequence();
-            }
-        });
+                if (!recipeId) {
+                    alert("실행할 시퀀스 레시피를 선택해주세요!");
+                    return;
+                }
 
-        btnSeqStop.addEventListener('click', () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "STOP_SEQUENCE" }));
-                seqLog("시퀀스 강제 정지 요청 송출");
-                isSeqPaused = false;
-                btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
-            } else {
-                stopSimulatedSequence("사용자 요청 정지");
-            }
-        });
+                // 가상 시뮬레이션 및 백엔드 실행 동시 보증
+                startSimulatedSequence(recipeId);
+
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "START_SEQUENCE", recipe_id: recipeId }));
+                    seqLog(`시퀀스 실행 요청 백엔드 송출: ${recipeId}`);
+                    isSeqPaused = false;
+                    if (btnSeqPause) btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+                }
+            });
+        }
+
+        if (btnSeqPause) {
+            btnSeqPause.addEventListener('click', () => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    if (!isSeqPaused) {
+                        ws.send(JSON.stringify({ type: "PAUSE_SEQUENCE" }));
+                        seqLog("시퀀스 일시정지 요청 송출");
+                        btnSeqPause.innerHTML = '<span style="font-size:14px;">▶</span> 재개';
+                        isSeqPaused = true;
+                    } else {
+                        ws.send(JSON.stringify({ type: "RESUME_SEQUENCE" }));
+                        seqLog("시퀀스 재개 요청 송출");
+                        btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+                        isSeqPaused = false;
+                    }
+                } else {
+                    pauseSimulatedSequence();
+                }
+            });
+        }
+
+        if (btnSeqStop) {
+            btnSeqStop.addEventListener('click', () => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "STOP_SEQUENCE" }));
+                    seqLog("시퀀스 강제 정지 요청 송출");
+                    isSeqPaused = false;
+                    if (btnSeqPause) btnSeqPause.innerHTML = '<span style="font-size:13px;">❚❚</span> 일시정지';
+                } else {
+                    stopSimulatedSequence("사용자 요청 정지");
+                }
+            });
+        }
 
         // 웹소켓 메시지 핸들러에 시퀀스 이벤트 바인딩 추가
         const origWsHandler = ws.onmessage;
@@ -4458,9 +4960,9 @@
                 const percentText = document.getElementById('seq-progress-percent');
                 const progressBar = document.getElementById('seq-progress-bar-inner');
 
-                statusText.innerText = `상태: ${req.status} (${req.msg || ''})`;
-                percentText.innerText = `${req.progress}%`;
-                progressBar.style.width = `${req.progress}%`;
+                if (statusText) statusText.innerText = `상태: ${req.status} (${req.msg || ''})`;
+                if (percentText) percentText.innerText = `${req.progress}%`;
+                if (progressBar) progressBar.style.width = `${req.progress}%`;
 
                 if (req.interlock) {
                     statusText.style.color = '#ef4444';

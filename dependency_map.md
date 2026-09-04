@@ -27,7 +27,7 @@ graph TD
         MAIN["⚡ main.c<br>(메인 루프 & 200ms 스케줄러)"]
         PIN["📍 pin_map.h<br>(GPIO & SFR 매핑/초기화)"]
         
-        UART2["🔌 rs422.c/.h<br>(UART2 Full-Duplex 115200bps)"]
+        UART2["🔌 rs422.c/.h<br>(UART2 Full-Duplex 9600bps)"]
         UART1["🔌 rs485.c/.h<br>(UART1 Half-Duplex 필드 센서)"]
         
         TC["🌡️ thermocouple.c/.h<br>(MAX31856 + ADG706 6개 MUX)"]

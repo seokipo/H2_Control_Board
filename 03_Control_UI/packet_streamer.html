@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📡 실시간 RS-422 통신 패킷 스트리머 (독립 창)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Outfit:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #070b16;
+            --bg-card: rgba(13, 20, 38, 0.95);
+            --border: rgba(6, 182, 212, 0.4);
+            --primary: #06b6d4;
+            --accent: #10b981;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text);
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 최상단 헤더 타이틀바 */
+        .streamer-header {
+            background: linear-gradient(90deg, #091124, #082f49);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .streamer-title-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 12px #10b981;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        .streamer-title {
+            font-size: 14.5px;
+            font-weight: 800;
+            color: #67e8f9;
+            letter-spacing: 0.3px;
+        }
+
+        .port-badge {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.35);
+            color: #38bdf8;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-tool {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 5px;
+            color: #cbd5e1;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-tool:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .btn-dock {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: rgba(56, 189, 248, 0.4);
+            color: #7dd3fc;
+        }
+
+        .btn-dock:hover {
+            background: rgba(56, 189, 248, 0.35);
+        }
+
+        .btn-clear {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+        }
+
+        .btn-clear:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        /* 툴바 (통계 & 제어) */
+        .toolbar {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+        }
+
+        .stats-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+        }
+
+        .stat-tx { color: #4ade80; }
+        .stat-rx { color: #38bdf8; }
+        .stat-val { font-size: 13px; font-family: 'Fira Code', monospace; }
+
+        .options-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 콘솔 로그 뷰어 */
+        .console-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            font-size: 11.5px;
+            line-height: 1.7;
+            background: #040711;
+            font-family: 'Fira Code', Consolas, monospace;
+            user-select: text;
+        }
+
+        .log-entry {
+            margin-bottom: 3px;
+            word-break: break-all;
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .log-time {
+            color: #64748b;
+            font-size: 10px;
+            min-width: 68px;
+        }
+
+        .log-tag-tx {
+            color: #4ade80;
+            font-weight: 700;
+            background: rgba(74, 222, 128, 0.1);
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid rgba(74, 222, 128, 0.25);
+        }
+
+        .log-tag-rx {
+            color: #38bdf8;
+            font-weight: 700;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .log-tag-sys {
+            color: #e879f9;
+            font-weight: 700;
+            background: rgba(232, 121, 249, 0.1);
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid rgba(232, 121, 249, 0.25);
+        }
+
+        .log-hex {
+            color: #f8fafc;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .log-desc {
+            color: #94a3b8;
+            font-size: 10.5px;
+        }
+
+        /* 하단 안내 바 */
+        .footer-bar {
+            background: rgba(15, 23, 42, 0.98);
+            padding: 6px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10.5px;
+            color: #94a3b8;
+        }
+
+        .fc-badges {
+            display: flex;
+            gap: 12px;
+        }
+
+        .fc-badges span b {
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 상단 헤더 -->
+    <div class="streamer-header">
+        <div class="streamer-title-box">
+            <span class="status-dot"></span>
+            <div class="streamer-title">📡 실시간 RS-422 통신 패킷 스트리머 (독립 창)</div>
+            <span class="port-badge" id="port-status-badge">19200 bps | 8-N-1</span>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn-tool btn-dock" id="btn-dock-back" title="메인 대시보드 창 내부로 다시 도킹">↙ 메인창 복귀</button>
+            <button type="button" class="btn-tool" id="btn-copy-log" title="로그 전체 복사">📋 복사</button>
+            <button type="button" class="btn-tool btn-clear" id="btn-clear-log" title="화면 비우기">🗑️ 비우기</button>
+        </div>
+    </div>
+
+    <!-- 툴바 (통계 및 설정) -->
+    <div class="toolbar">
+        <div class="stats-group">
+            <div class="stat-item stat-tx">
+                <span>🟢 TX:</span>
+                <span class="stat-val" id="tx-count">0</span>
+            </div>
+            <div class="stat-item stat-rx">
+                <span>🔵 RX:</span>
+                <span class="stat-val" id="rx-count">0</span>
+            </div>
+            <div class="stat-item" style="color: #94a3b8;">
+                <span>주기:</span>
+                <b style="color: #fde047;">400ms</b>
+            </div>
+        </div>
+        <div class="options-group">
+            <label style="display: flex; align-items: center; gap: 5px; color: #cbd5e1; cursor: pointer;">
+                <input type="checkbox" id="chk-autoscroll" checked style="accent-color: #06b6d4; cursor: pointer;">
+                자동 스크롤
+            </label>
+            <span style="color: #475569;">|</span>
+            <span style="color: #a78bfa; font-size: 10.5px;">CRC16: <b>0xA001</b></span>
+        </div>
+    </div>
+
+    <!-- 터미널 콘솔 로그 -->
+    <div class="console-container" id="console-log">
+        <div style="color: #64748b;">[SYSTEM] 📡 독립 창 실시간 스트리머 기동 완료. 메인 대시보드와 패킷 동기화 중...</div>
+    </div>
+
+    <!-- 하단 상태 바 -->
+    <div class="footer-bar">
+        <div class="fc-badges">
+            <span><b style="color: #86efac;">0x04</b>: 센서 계측</span>
+            <span><b style="color: #7dd3fc;">0x03</b>: 설정 조회</span>
+            <span><b style="color: #fde047;">0x06</b>: 단일 제어</span>
+            <span><b style="color: #f472b6;">0x05</b>: 코일 제어</span>
+        </div>
+        <div>
+            <span style="color: #38bdf8;">Full-Duplex RS-422 | Standalone Popup</span>
+        </div>
+    </div>
+
+    <script>
+        const consoleEl = document.getElementById('console-log');
+        const txCountEl = document.getElementById('tx-count');
+        const rxCountEl = document.getElementById('rx-count');
+        const portBadgeEl = document.getElementById('port-status-badge');
+        const chkAutoScroll = document.getElementById('chk-autoscroll');
+
+        let txCount = 0;
+        let rxCount = 0;
+        let scrollPending = false;
+
+        function appendLog(type, hex, desc) {
+            const now = new Date();
+            const timeStr = `[${now.toLocaleTimeString()}]`;
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+
+            let tagClass = 'log-tag-sys';
+            let tagText = `[${type}]`;
+            if (type === 'TX') tagClass = 'log-tag-tx';
+            else if (type === 'RX') tagClass = 'log-tag-rx';
+
+            entry.innerHTML = `
+                <span class="log-time">${timeStr}</span>
+                <span class="${tagClass}">${tagText}</span>
+                <span class="log-hex">${hex}</span>
+                <span class="log-desc">(${desc || ''})</span>
+            `;
+
+            consoleEl.appendChild(entry);
+
+            // 🎯 [핵심 최적화] 최대 100줄 링버퍼 유지 (DOM 과부하 및 메모리 누수 원천 차단)
+            while (consoleEl.children.length > 100) {
+                consoleEl.removeChild(consoleEl.firstChild);
+            }
+
+            // 🎯 [핵심 최적화] requestAnimationFrame으로 비동기 스크롤 처리 (마우스 이벤트 스레드 차단 방지)
+            if (chkAutoScroll.checked && !scrollPending) {
+                scrollPending = true;
+                requestAnimationFrame(() => {
+                    consoleEl.scrollTop = consoleEl.scrollHeight;
+                    scrollPending = false;
+                });
+            }
+        }
+
+        // 1. BroadcastChannel을 통한 단일 고속 패킷 동기화 파이프라인
+        const channel = new BroadcastChannel('bop_packet_streamer_channel');
+        channel.onmessage = (event) => {
+            const data = event.data;
+            if (!data) return;
+
+            if (data.type === 'PACKET') {
+                if (data.direction === 'TX') {
+                    txCount++;
+                    txCountEl.innerText = txCount;
+                } else if (data.direction === 'RX') {
+                    rxCount++;
+                    rxCountEl.innerText = rxCount;
+                }
+                appendLog(data.direction, data.hex, data.desc);
+            } else if (data.type === 'STATUS') {
+                if (data.port) portBadgeEl.innerText = data.port;
+                if (data.txCount !== undefined) {
+                    txCount = data.txCount;
+                    txCountEl.innerText = txCount;
+                }
+                if (data.rxCount !== undefined) {
+                    rxCount = data.rxCount;
+                    rxCountEl.innerText = rxCount;
+                }
+            } else if (data.type === 'CLEAR') {
+                consoleEl.innerHTML = '';
+                txCount = 0;
+                rxCount = 0;
+                txCountEl.innerText = '0';
+                rxCountEl.innerText = '0';
+            }
+        };
+
+        // 3. 버튼 이벤트
+        document.getElementById('btn-clear-log').addEventListener('click', () => {
+            consoleEl.innerHTML = '';
+        });
+
+        document.getElementById('btn-copy-log').addEventListener('click', () => {
+            const text = consoleEl.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('패킷 스트리머 로그가 클립보드에 복사되었습니다.');
+            }).catch(() => {});
+        });
+
+        document.getElementById('btn-dock-back').addEventListener('click', () => {
+            if (window.opener && typeof window.opener.dockBackStreamerManager === 'function') {
+                window.opener.dockBackStreamerManager();
+            }
+            window.close();
+        });
+
+        // 팝업 열릴 때 부모 창에 초기 상태 요청
+        channel.postMessage({ type: 'REQUEST_INIT' });
+    </script>
+</body>
+</html>

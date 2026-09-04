@@ -11,11 +11,27 @@
 #ifndef RS422_H
 #define RS422_H
 
+#if defined(__XC16__) || defined(__XC)
+    #include <xc.h>
+#else
+    #include <stdint.h>
+    #include <stdbool.h>
+    // 💡 에디터(VS Code / Antigravity IDE) 구문 검사기 빨간 밑줄 방지용 가상 레지스터
+    typedef struct {
+        unsigned UARTEN:1; unsigned UTXEN:1; unsigned URXEN:1;
+        unsigned UTXBF:1; unsigned URXDA:1;
+    } __UART_BITS;
+    extern volatile uint16_t U2MODE, U2MODEH, U2STA, U2STAH, U2BRG, U2TXREG, U2RXREG;
+    extern volatile __UART_BITS U2MODEbits, U2STAHbits, U2STAbits;
+    extern volatile uint16_t _U2RXR, _RP93R;
+    #define __builtin_write_RPCON(x) ((void)0)
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 
-// RS-422 기본 보레이트 설정
-#define RS422_BAUDRATE  9600
+// RS-422 기본 보레이트 설정 (19200 bps 2배 고속화)
+#define RS422_BAUDRATE  19200
 
 /* ==========================================================================
  * 1. 드라이버 API 함수 원형

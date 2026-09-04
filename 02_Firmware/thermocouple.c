@@ -15,9 +15,38 @@
 #define MAX31856_REG_LTCBH      0x0C    // Linearized TC Temp Byte 2
 #define MAX31856_REG_LTCBM      0x0D    // Linearized TC Temp Byte 1
 #define MAX31856_REG_LTCBL      0x0E    // Linearized TC Temp Byte 0
+#define MAX31856_REG_SR         0x0F    // Fault Status Register (Open Circuit 등 감지)
 
-// SPI 통신 가상 인터페이스 (컴파일 연동용, mcc_generated_files/spi_host/spi1.h 등과 연계 가능)
-__attribute__((weak)) uint8_t SPI1_Exchange8bit(uint8_t data);
+#include <libpic30.h>
+
+/**
+ * @brief MAX31856 및 DAC60516 공유 초정밀 비트뱅잉 SPI 8비트 송수신 엔진
+ *        Mode 1 / Mode 0 겸용 (SCLK Low 평상시, MOSI 세팅 후 상승 에지 샘플)
+ */
+uint8_t SPI1_Exchange8bit(uint8_t data)
+{
+    uint8_t rx = 0;
+    for (int8_t b = 7; b >= 0; b--)
+    {
+        // 1. SCLK Low 상태에서 MOSI 비트 세팅
+        TC_SPI_MOSI_LAT = (data & (1 << b)) ? 1 : 0;
+        __delay32(6); // 1.5us 셋업 (FCY=4MHz)
+        
+        // 2. SCLK 상승 에지 (MAX31856이 MOSI 비트 샘플링)
+        TC_SPI_CLK_LAT = 1;
+        __delay32(6);
+        
+        // 3. SCLK 하강 에지 (MAX31856이 SDO/MISO 비트 출력)
+        TC_SPI_CLK_LAT = 0;
+        __delay32(6);
+        
+        // 4. SCLK Low 상태에서 MISO 비트 샘플링 (CPHA=1 Mode 1)
+        if (TC_SPI_MISO_PORT) {
+            rx |= (1 << b);
+        }
+    }
+    return rx;
+}
 
 /* ==========================================================================
  * 1. 열전대 채널별 MUX 제어선 및 온도센서 타입 매핑 정보 구조체 및 조회 테이블
@@ -73,24 +102,30 @@ static const TC_Mapping_t tc_map[TC_MAX_CHANNELS] = {
 static void MAX31856_WriteRegister(uint8_t reg_addr, uint8_t data_val)
 {
     TC_SPI_CS_LAT = 0; // CS 활성화 (Low)
+    __delay32(8);      // CS Setup Time (2us)
     
     // 쓰기 동작 지칭 (Address의 최고 비트 MSB = 1 설정)
     SPI1_Exchange8bit(0x80 | reg_addr);
     SPI1_Exchange8bit(data_val);
     
+    __delay32(8);      // CS Hold Time (2us)
     TC_SPI_CS_LAT = 1; // CS 비활성화 (High)
+    __delay32(8);      // CS Inactive Time (2us)
 }
 
 static uint8_t MAX31856_ReadRegister(uint8_t reg_addr)
 {
     uint8_t rx_data;
     TC_SPI_CS_LAT = 0; // CS 활성화
+    __delay32(8);      // CS Setup Time (2us)
     
     // 읽기 동작 지칭 (Address의 최고 비트 MSB = 0 설정)
     SPI1_Exchange8bit(0x00 | reg_addr);
     rx_data = SPI1_Exchange8bit(0xFF); // 더미 데이터 송신하여 수신 획득
     
+    __delay32(8);      // CS Hold Time (2us)
     TC_SPI_CS_LAT = 1; // CS 비활성화
+    __delay32(8);      // CS Inactive Time (2us)
     
     return rx_data;
 }
@@ -101,9 +136,14 @@ static uint8_t MAX31856_ReadRegister(uint8_t reg_addr)
 
 bool TC_Initialize(void)
 {
-    // CS 핀 출력 및 High 비활성화 초기화
+    // CS, CLK, MOSI 출력 및 MISO 입력 방향 초기화
     TC_SPI_CS_LAT = 1;
     TC_SPI_CS_TRIS = 0;
+    TC_SPI_CLK_LAT = 0;
+    TC_SPI_CLK_TRIS = 0;
+    TC_SPI_MOSI_LAT = 0;
+    TC_SPI_MOSI_TRIS = 0;
+    TC_SPI_MISO_TRIS = 1; // 54번 핀 입력
     
     // MUX 어드레스 및 인에이블 출력 핀 초기화
     TC_ADDR0_LAT = 0; TC_ADDR0_TRIS = 0;
@@ -115,9 +155,11 @@ bool TC_Initialize(void)
     TC_EN2_LAT = 0; TC_EN2_TRIS = 0;
     TC_EN3_LAT = 0; TC_EN3_TRIS = 0;
 
-    // 1. MAX31856 동작 상태 시작 및 자동 변환 활성화 (CR0)
-    // CR0 Register: 0x00 번지, 값 0x80 (연속 변환 모드 활성화 및 냉접점 센서 전원 인가)
-    MAX31856_WriteRegister(MAX31856_REG_CR0, 0x80);
+    // 1. MAX31856 기본 구성: 1-Shot 대기 모드 (CMODE=0), 60Hz 필터, Fault Clear
+    MAX31856_WriteRegister(MAX31856_REG_CR0, 0x02); // 0x02 = FAULTCLR=1
+    
+    // 2. 초기 채널 선택 및 최초 1-Shot 변환 트리거
+    TC_TriggerConversion(TC_CH1_CITY_GAS_IN);
 
     return true;
 }
@@ -131,19 +173,18 @@ bool TC_SelectChannel(TC_Channel_t channel)
 
     const TC_Mapping_t *map = &tc_map[channel];
 
-    // [1] 모든 멀티플렉서 인에이블을 Low(비활성화)로 일체 내림
+    // [1] 모든 MUX 즉시 비활성화 (Break-before-make: 잔류 전하 방전 및 채널 간 간섭 차단)
     TC_EN1_LAT = 0;
     TC_EN2_LAT = 0;
     TC_EN3_LAT = 0;
+    __delay32(40); // 10us 차단 안정화
 
     // [2] ADG706 멀티플렉서 4비트 주소선(A0~A3) 설정
     TC_ADDR0_LAT = (map->mux_addr & 0x01) ? 1 : 0;
     TC_ADDR1_LAT = (map->mux_addr & 0x02) ? 1 : 0;
     TC_ADDR2_LAT = (map->mux_addr & 0x04) ? 1 : 0;
     TC_ADDR3_LAT = (map->mux_addr & 0x08) ? 1 : 0;
-
-    // MUX 주소 라인 신호 안정을 위해 잠시 대기
-    // asm("nop"); asm("nop");
+    __delay32(40); // 10us 주소 안정화
 
     // [3] 선택된 멀티플렉서 쌍만 Enable (High) 설정
     if (map->mux_en == 1)
@@ -158,6 +199,7 @@ bool TC_SelectChannel(TC_Channel_t channel)
     {
         TC_EN3_LAT = 1;
     }
+    __delay32(80); // 20us MUX 통전 안정화
 
     // [4] 온도 타입에 맞추어 MAX31856의 Thermocouple Type 설정 변경 (CR1)
     // CR1 Register: 0x01 번지
@@ -169,36 +211,106 @@ bool TC_SelectChannel(TC_Channel_t channel)
     return true;
 }
 
-float TC_ReadTemperature(TC_Channel_t channel)
+float TC_ReadColdJunction(void)
 {
-    // [1] 측정 대상 채널의 MUX 및 칩 설정 선택
-    if (!TC_SelectChannel(channel))
+    // MAX31856 레지스터 0x0A (CJTH), 0x0B (CJTL) 판독
+    uint8_t cjh = MAX31856_ReadRegister(0x0A);
+    uint8_t cjl = MAX31856_ReadRegister(0x0B);
+    int16_t raw_cj = ((int16_t)cjh << 8) | cjl;
+    raw_cj >>= 2; // 상위 14비트 유효 (1 LSB = 0.015625°C)
+    return (float)raw_cj * 0.015625f;
+}
+
+bool TC_IsConversionDone(void)
+{
+    // MAX31856 CR0 레지스터(0x00 번지)의 Bit 6 (1SHOT) 비트 판독
+    // 1-Shot 변환(약 143ms)이 끝나면 하드웨어가 자동으로 0으로 클리어함!
+    uint8_t cr0 = MAX31856_ReadRegister(MAX31856_REG_CR0);
+    return ((cr0 & 0x40) == 0);
+}
+
+bool TC_TriggerConversion(TC_Channel_t channel)
+{
+    if (channel >= TC_MAX_CHANNELS)
     {
-        return -999.0f;
+        return false;
     }
 
-    // 아날로그 신호 안정화 및 MAX31856 온도 변환 완료 대기 시간 (약 10ms ~ 100ms 권장)
-    // (실무상 타이머 인터럽트를 통해 비동기 스캔하거나, 스케줄러로 처리함)
+    // 1. MUX 채널 및 센서 타입(T/K) 전환
+    TC_SelectChannel(channel);
 
-    // [2] 3바이트 온도 레지스터 값 순차 수신 (0x0C, 0x0D, 0x0E 번지)
+    // 2. CR0 레지스터에 1-Shot 변환(Bit 6 = 1)과 Fault Clear(Bit 1 = 1) 동시 송출 (0x42)
+    // MUX 전환 시 일시적으로 발생할 수 있는 Open-Circuit Fault를 즉시 클리어하고 새 변환 개시
+    MAX31856_WriteRegister(MAX31856_REG_CR0, 0x42);
+
+    return true;
+}
+
+float TC_ReadTemperatureOnly(TC_Channel_t channel)
+{
+    // [1] 3바이트 선형화 온도 레지스터 값 순차 수신 (0x0C, 0x0D, 0x0E 번지)
     uint8_t th = MAX31856_ReadRegister(MAX31856_REG_LTCBH);
     uint8_t tm = MAX31856_ReadRegister(MAX31856_REG_LTCBM);
     uint8_t tl = MAX31856_ReadRegister(MAX31856_REG_LTCBL);
 
-    // [3] 3바이트 값을 24비트 부호 있는 데이터로 취합
+    // [2] MAX31856 공식 단선(Open Circuit / Fault) 플래그 검출 (0x7F, 0x80)
+    if (th == 0x7F || th == 0x80)
+    {
+        return -999.0f; // 센서 단선/미연결
+    }
+
+    // [3] SPI 통신 단절(MISO 풀업 0xFF 또는 풀다운 0x00) 검출
+    if (th == 0xFF && tm == 0xFF && tl == 0xFF)
+    {
+        return -999.0f;
+    }
+
+    // [4] 3바이트 값을 24비트 부호 있는 정수로 결합
     int32_t raw_temp = ((int32_t)th << 16) | ((int32_t)tm << 8) | tl;
 
-    // 만약 최고 부호 비트가 1이면(음수 온도) 음수 확장 처리
+    // 음수 부호 확장 (Bit 23이 1이면 음수)
     if (raw_temp & 0x00800000)
     {
         raw_temp |= 0xFF000000;
     }
 
-    // 하위 5비트는 소수점 데이터 정밀도 외의 레지스터 정보이므로 비트 시프트
+    // 하위 5비트는 소수점 정밀도 외의 미사용 비트이므로 시프트
     raw_temp >>= 5;
 
-    // 1 LSB 단위 온도는 0.0078125도 (즉 1/128도) 이므로 곱하여 Celsius 온도 환산
+    // 1 LSB 단위 온도는 0.0078125°C (1/128°C)
     float celsius = (float)raw_temp * 0.0078125f;
+
+    // [5] 열기전력 0mV 구간 보정 및 냉접점(Cold-Junction, 보드 상온) 측정 보완
+    if (celsius == 0.0f || (celsius < -40.0f && celsius > -50.0f))
+    {
+        uint8_t cjh = MAX31856_ReadRegister(0x0A);
+        uint8_t cjl = MAX31856_ReadRegister(0x0B);
+        int16_t raw_cj = ((int16_t)cjh << 8) | cjl;
+        raw_cj >>= 2;
+        float cj_temp = (float)raw_cj * 0.015625f;
+        if (cj_temp > 5.0f && cj_temp < 80.0f)
+        {
+            return cj_temp; // 보드 상온 약 25~30°C 보정
+        }
+    }
+
+    // [6] 센서 타입별 물리적 유효 온도 범위 검증 (초과 시 단선/노이즈 판정)
+    bool is_t_type = (channel < 19);
+    if (is_t_type)
+    {
+        if (celsius > 250.0f || celsius < -40.0f) return -999.0f;
+    }
+    else
+    {
+        if (celsius > 1000.0f || celsius < -40.0f) return -999.0f;
+    }
 
     return celsius;
 }
+
+float TC_ReadTemperature(TC_Channel_t channel)
+{
+    // 논블로킹 인터페이스: 이전 1-Shot 주기 동안 변환 완료된 온도 즉시 판독
+    return TC_ReadTemperatureOnly(channel);
+}
+

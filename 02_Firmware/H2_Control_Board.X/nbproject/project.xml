@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://www.netbeans.org/ns/project/1">
-    <type>com.microchip.mplab.nbide.project.logical</type>
+    <type>com.microchip.mplab.nbide.embedded.makeproject</type>
     <configuration>
-        <data xmlns="http://www.microchip.mplab.nbide.project.data/1">
+        <data xmlns="http://www.microchip.mplab.nbide.embedded.makeproject/1">
             <name>H2_Control_Board</name>
-            <creation-uuid>{9df35b44-8cb3-4c9f-8547-063fcdfb3f07}</creation-uuid>
-            <make-project-target>false</make-project-target>
+            <creation-uuid>9df35b44-8cb3-4c9f-8547-063fcdfb3f07</creation-uuid>
+            <make-project-target>all</make-project-target>
+        </data>
+        <data xmlns="http://www.netbeans.org/ns/make-project/1">
+            <sourceEncoding>UTF-8</sourceEncoding>
+            <make-dep-projects/>
+            <sourceRootList>
+                <sourceRootElem>..</sourceRootElem>
+            </sourceRootList>
+            <confList>
+                <confElem>
+                    <name>default</name>
+                    <type>2</type>
+                </confElem>
+            </confList>
+            <formatting>
+                <project-formatting-style>false</project-formatting-style>
+            </formatting>
         </data>
     </configuration>
 </project>

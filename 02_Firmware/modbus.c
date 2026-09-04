@@ -62,8 +62,32 @@ void Modbus_SetDO(uint8_t index, bool state)
     // 물리 GPIO LAT 핀 즉각 스위칭
     switch (index)
     {
-        case 0:  DO_SV102_LAT = state ? 1 : 0; break; // 가스 인입 SV1
-        case 1:  DO_SV103_LAT = state ? 1 : 0; break; // 가스 인입 SV2
+        case 0:
+            DO_SV102_TRIS = 0;
+            TRISAbits.TRISA0 = 0;
+            ANSELAbits.ANSELA0 = 0;
+            if (state) {
+                DO_SV102_LAT = 1;
+                LATAbits.LATA0 = 1;
+            } else {
+                DO_SV102_LAT = 0;
+                LATAbits.LATA0 = 0;
+            }
+            break; // 가스 인입 SV1 (Pin 18, RA0)
+
+        case 1:
+            DO_SV103_TRIS = 0;
+            TRISEbits.TRISE2 = 0;
+            ANSELEbits.ANSELE2 = 0;
+            if (state) {
+                DO_SV103_LAT = 1;
+                LATEbits.LATE2 = 1;
+            } else {
+                DO_SV103_LAT = 0;
+                LATEbits.LATE2 = 0;
+            }
+            break; // 가스 인입 SV2 (Pin 19, RE2)
+
         case 2:  DO_SV125_LAT = state ? 1 : 0; break; // 개질기 N2 퍼지 SV
         case 3:  DO_SV145_LAT = state ? 1 : 0; break; // ANODE 인입 SV
         case 4:  DO_SV149_LAT = state ? 1 : 0; break; // 스택 N2 퍼지 SV
@@ -132,12 +156,38 @@ void Modbus_ProcessRxByte(uint8_t rx_byte)
         return; // 현재 프레임 분석 처리 중에는 추가 수신 생략
     }
 
+    // 👑 [슬레이브 주소 0x01 선두 엄격 필터링]
+    // 노이즈나 잔류 바이트로 인해 선두에 쓰레기 바이트가 끼어 패킷 싱크가 깨지는 현상 원천 차단!
+    if (rx_index == 0 && rx_byte != MODBUS_SLAVE_ADDR)
+    {
+        return; // 첫 바이트가 0x01(내 국번)이 아니면 즉시 폐기!
+    }
+
     if (rx_index < MODBUS_BUFFER_SIZE)
     {
         rx_buffer[rx_index++] = rx_byte;
     }
+
+    // ⭐ 표준 8바이트 Modbus 요청 패킷 (FC 01, 02, 03, 04, 05, 06) 조기 감지 & 0.1ms 초고속 즉시 응답
+    if (rx_index == 8 && rx_buffer[0] == MODBUS_SLAVE_ADDR)
+    {
+        uint8_t fc = rx_buffer[1];
+        if (fc >= 1 && fc <= 6)
+        {
+            uint16_t rx_crc = (uint16_t)rx_buffer[6] | ((uint16_t)rx_buffer[7] << 8);
+            if (rx_crc == Modbus_CRC16(rx_buffer, 6))
+            {
+                rx_frame_completed = true;
+            }
+            else
+            {
+                // CRC가 틀렸으면 깨진 패킷이므로 버퍼 즉시 리셋하여 다음 패킷 준비
+                rx_index = 0;
+            }
+        }
+    }
     
-    // 수신 시마다 문자 간 타임아웃 카운터 초기화 (3.5T 무전송 시간 감시 목적)
+    // 수신 시마다 문자 간 타임아웃 카운터 초기화
     rx_timeout_counter = 0; 
 }
 
@@ -410,17 +460,18 @@ void Modbus_Task(void)
         Modbus_ProcessRxByte(rx_data);
     }
 
-    // [2] 3.5T 캐릭터 무전송 타임아웃 판정 (보레이트 9600/115200 bps 기준 프레임 경계 감시)
+    // [2] 3.5T 캐릭터 무전송 타임아웃 판정 (19200 bps 기준 약 8~10ms 안전 임계치)
+    // dsPIC33CK 고속 루프에서 바이트 간 조기 프레임 단절(조각남) 방지
     if (rx_index > 0 && !rx_frame_completed)
     {
         rx_timeout_counter++;
-        if (rx_timeout_counter > 50000UL) // 메인 루프 대기 카운트 임계치
+        if (rx_timeout_counter > 2000UL) 
         {
             rx_frame_completed = true;
         }
     }
 
-    // [3] 수신 완료된 프레임이 있으면 분석 연산 처리하고 버퍼 리셋
+    // [3] 수신 완료된 프레임이 있으면 표준 Modbus RTU 분석 연산 처리하고 버퍼 리셋
     if (rx_frame_completed)
     {
         Modbus_ProcessFrame();

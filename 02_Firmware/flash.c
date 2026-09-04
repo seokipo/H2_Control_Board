@@ -10,12 +10,14 @@
 #include "pin_map.h"
 #include <xc.h>
 
-// SPI3 통신용 1바이트 교환 헬퍼 함수
+// SPI3 통신용 1바이트 교환 헬퍼 함수 (타임아웃 보호 탑재)
 static uint8_t SPI3_Exchange8bit(uint8_t data_val)
 {
-    while (SPI3STATLbits.SPITBF);
+    uint16_t timeout = 5000;
+    while (SPI3STATLbits.SPITBF && --timeout);
     SPI3BUFL = data_val;
-    while (!SPI3STATLbits.SPIRBF);
+    timeout = 5000;
+    while (!SPI3STATLbits.SPIRBF && --timeout);
     return SPI3BUFL;
 }
 
@@ -25,13 +27,13 @@ void FLASH_Initialize(void)
     __builtin_write_RPCON(0x0000); // PPS Lock 해제
     
     // SPI3 Data Input (SDI3) 입력: 11번 핀 RD15 (PPS 번호 RP79)
-    _SDI3RXR = 79; 
+    _SDI3R = 79; 
     
-    // SPI3 Data Output (SDO3) 출력: 9번 핀 RC15 (PPS 출력 레지스터 RP63R, 기능 코드 13: SDO3)
-    _RP63R = 13; 
+    // SPI3 Data Output (SDO3) 출력: 9번 핀 RC15 (PPS 출력 레지스터 RP63R, 기능 코드 11: SDO3)
+    _RP63R = 11; 
     
-    // SPI3 Clock (SCK3) 출력: 8번 핀 RC14 (PPS 출력 레지스터 RP62R, 기능 코드 14: SCK3)
-    _RP62R = 14; 
+    // SPI3 Clock (SCK3) 출력: 8번 핀 RC14 (PPS 출력 레지스터 RP62R, 기능 코드 12: SCK3)
+    _RP62R = 12; 
     
     __builtin_write_RPCON(0x0800); // PPS Lock 설정
 

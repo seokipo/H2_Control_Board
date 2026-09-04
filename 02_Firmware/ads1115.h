@@ -60,7 +60,7 @@
 typedef enum {
     /* --- IC400 (Address: 0x48) 계통 --- */
     AI_PT383_REFORMER_WATER_PRESS = 0, // 개질수 공급 압력 측정 (AIN0 - AI_PT383)
-    AI_PT162_EXHAUST_PRESS,            // 배기가스 압력 측정 (AIN1 - AI_PT162)
+    AI_PT163_EXHAUST_PRESS,            // 배기가스 압력 측정 (AIN1 - AI_PT163)
     AI_PT105_UTILITY_PRESS,            // 유틸리티 압력 확인용 (AIN2 - AI_PT105)
     AI_PT146_ANODE_PRESS,              // STACK Anode 입구 압력 측정 (AIN3 - AI_PT146)
 

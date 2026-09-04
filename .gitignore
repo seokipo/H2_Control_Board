@@ -48,6 +48,7 @@ nbproject/private/
 *.cof
 *.sym
 *.map
+*.gch
 
 # Large Docs / PDF
 *.pdf

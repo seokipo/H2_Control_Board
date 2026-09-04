@@ -5,7 +5,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --x64"
+    "dist": "electron-builder --win portable --x64"
   },
   "keywords": [
     "scada",
@@ -24,8 +24,13 @@
     "appId": "com.h2control.scada",
     "productName": "H2 Control Board SCADA",
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false
     },
+    "forceCodeSigning": false,
     "nsis": {
       "oneClick": true,
       "perMachine": true,

@@ -18,12 +18,20 @@ typedef enum {
     ETH_UNIT_2 = 2  // W5500 2호기 (ETH2)
 } ETH_Unit_t;
 
+// W5500 네트워크 파라미터 구조체
+typedef struct {
+    uint8_t mac[6];      // MAC 주소 (예: 00:08:DC:11:22:33)
+    uint8_t ip[4];       // 로컬 IP 주소 (예: 192.168.0.100)
+    uint8_t sn[4];       // 서브넷 마스크 (예: 255.255.255.0)
+    uint8_t gw[4];       // 게이트웨이 주소 (예: 192.168.0.1)
+} ETH_NetInfo_t;
+
 /* ==========================================================================
  * 1. 드라이버 API 함수 원형
  * ========================================================================== */
 
 /**
- * @brief 듀얼 W5500 공유 SPI2 주변기기 및 포트 PPS 설정 초기화
+ * @brief 듀얼 W5500 공유 SPI2 주변기기 및 포트 PPS 설정 초기화 및 기본 IP 주입
  */
 void ETH_Initialize(void);
 
@@ -32,6 +40,20 @@ void ETH_Initialize(void);
  * @param unit 리셋할 대상 유닛 (ETH_UNIT_1 또는 ETH_UNIT_2)
  */
 void ETH_ResetDevice(ETH_Unit_t unit);
+
+/**
+ * @brief W5500 내부 레지스터에 IP/서브넷/게이트웨이/MAC 정보 주입
+ * @param unit 대상 유닛
+ * @param net_info 주입할 네트워크 정보 구조체 포인터
+ */
+void ETH_SetNetworkInfo(ETH_Unit_t unit, const ETH_NetInfo_t* net_info);
+
+/**
+ * @brief W5500 내부 레지스터로부터 현재 활성화된 네트워크 정보 읽기
+ * @param unit 대상 유닛
+ * @param net_info 읽어올 네트워크 정보 구조체 포인터
+ */
+void ETH_GetNetworkInfo(ETH_Unit_t unit, ETH_NetInfo_t* net_info);
 
 /**
  * @brief W5500 내부 레지스터 1바이트 쓰기

@@ -72,10 +72,36 @@ bool TC_Initialize(void);
 bool TC_SelectChannel(TC_Channel_t channel);
 
 /**
- * @brief 특정 채널의 실제 계측 온도(Celsius)를 취득
+ * @brief 특정 열전대 채널을 MUX로 선택하고 MAX31856 1-Shot 변환을 트리거함 (Fault Auto-Clear 포함)
+ * @param channel 변환을 개시할 온도 채널
+ * @return true 성공, false 실패
+ */
+bool TC_TriggerConversion(TC_Channel_t channel);
+
+/**
+ * @brief 1-Shot 변환이 완료된 후 MAX31856 레지스터에서 최신 온도를 판독
+ * @param channel 판독할 온도 채널
+ * @return float Celsius 단위 실수형 온도 값, 단선/오류 시 -999.0f
+ */
+float TC_ReadTemperatureOnly(TC_Channel_t channel);
+
+/**
+ * @brief MUX 전환과 1-Shot 판독을 동기식으로 일괄 처리 (호환성 유지용)
  * @param channel 측정할 온도 채널 인덱스
  * @return float Celsius 단위 실수형 온도 값, 오류 시 -999.0f
  */
 float TC_ReadTemperature(TC_Channel_t channel);
+
+/**
+ * @brief MAX31856 칩셋 내부의 냉접점(Cold-Junction, 보드 상온) 온도 판독
+ * @return float Celsius 단위 실수형 상온 값
+ */
+float TC_ReadColdJunction(void);
+
+/**
+ * @brief MAX31856 1-Shot 변환 완료 여부 검사 (CR0 1SHOT 비트 자동 클리어 감지)
+ * @return true 변환 완료 (데이터 유효), false 변환 진행 중
+ */
+bool TC_IsConversionDone(void);
 
 #endif /* THERMOCOUPLE_H */

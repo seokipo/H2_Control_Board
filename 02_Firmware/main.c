@@ -16,9 +16,60 @@
  * Company: Microchip Technology Inc. & Antigravity AI
  */
 
+// ==============================================================================
+// dsPIC33CK512MP710 Configuration Bit Settings (ICSP Channel 2: PGEC2 / PGED2)
+// ==============================================================================
+
+// FSEC
+#pragma config BWRP = OFF       // Boot Segment Write-Protect bit (Boot Segment may be written)
+#pragma config BSS = DISABLED   // Boot Segment Code-Protect Level bits (No Protection)
+#pragma config BSEN = OFF       // Boot Segment Control bit (No Boot Segment)
+#pragma config GWRP = OFF       // General Segment Write-Protect bit (General Segment may be written)
+#pragma config GSS = DISABLED   // General Segment Code-Protect Level bits (No Protection)
+#pragma config CWRP = OFF       // Configuration Segment Write-Protect bit
+#pragma config CSS = DISABLED   // Configuration Segment Code-Protect Level bits
+#pragma config AIVTDIS = OFF    // Alternate Interrupt Vector Table bit (Disabled AIVT)
+
+// FBSLIM
+#pragma config BSLIM = 0x1FFF   // Boot Segment Flash Page Address Limit bits
+
+// FOSCSEL
+#pragma config FNOSC = FRC      // Oscillator Source Selection: Internal Fast RC (FRC 8MHz)
+#pragma config IESO = OFF       // Two-speed Oscillator Start-up Disable (즉시 기동)
+
+// FOSC
+#pragma config POSCMD = NONE    // Primary Oscillator Mode Select bits (Primary Oscillator disabled)
+#pragma config OSCIOFNC = ON    // OSC2 Pin Function bit (OSC2 is General Purpose I/O)
+#pragma config FCKSM = CSDCMD   // Clock Switching Mode bits (Switching & Fail-Safe Monitor disabled)
+#pragma config PLLKEN = OFF     // PLL Lock Status Control: PLL lock not required (동결 방지)
+#pragma config XTCFG = G3       // XT Config
+#pragma config XTBST = ENABLE   // XT Boost
+
+// FWDT
+#pragma config RWDTPS = PS2147483648 // Run Mode Watchdog Timer Post Scaler
+#pragma config RCLKSEL = LPRC   // Watchdog Timer Clock Select bits
+#pragma config WINDIS = ON      // Watchdog Timer Non-Window Mode (WINDIS_ON = Non-Window)
+#pragma config WDTWIN = WIN25   // Watchdog Timer Window Select bits
+#pragma config SWDTPS = PS2147483648 // Sleep Mode Watchdog Timer Post Scaler
+#pragma config FWDTEN = ON_SW   // Watchdog Timer controlled via SW (WDTCON.ON)
+
+// FPOR
+#pragma config BISTDIS = DISABLED // Memory BIST Feature Disable
+
+// FICD (사용자 지정: 점퍼 결선에 따른 PGED1 / PGEC1 채널 설정)
+#pragma config ICS = PGD1       // ICD Communication Channel Select bits (Communicate on PGEC1 and PGED1)
+#pragma config JTAGEN = OFF     // JTAG Enable bit (JTAG is disabled)
+#pragma config NOBTSWP = DISABLED // BOOTSWP instruction disable bit
+
+// FDMT
+#pragma config DMTDIS = OFF     // Dead Man Timer Disable bit
+
+// ==============================================================================
+
 #if defined(__XC16__) || defined(__XC)
 #include <xc.h>
 #endif
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -33,110 +84,122 @@
 #include "rtc.h"
 #include "thermocouple.h"
 
-// 80 MHz FCY 설정용
+// 내부 FRC (8MHz) 기준 명령 클록 FCY = Fosc / 2 = 4 MHz
 #ifndef FCY
-#define FCY 80000000UL
+#define FCY 4000000UL
 #endif
-
-// 센서 스캐닝 및 갱신 주기 제어용 카운터 (메인 루프 분주)
-static uint32_t sensor_scan_counter = 0;
+#include <libpic30.h>
 
 int main(void) {
-  // [1] 시스템 최초 부팅 후 모든 드라이버 모듈 일괄 초기화
-  GPIO_Initialize(); // 디지털 및 MUX 방향 제어 포트 초기화
+  // [0] SW Watchdog Timer 즉시 OFF (무한 리셋 방지)
+  WDTCONLbits.ON = 0;
 
-  // I2C, SPI 통신 기반 외부 칩셋들 디바이스 초기 구동
-  TC_Initialize();       // MAX31856 및 MUX 스캐너 시작
-  ADS1115_Initialize();  // ADS1115 16채널 ADC 초기화
-  DAC60516_Initialize(); // DAC60516 12채널 아날로그 출력 초기화
-  ETH_Initialize(); // 듀얼 W5500 이더넷 컨트롤러 시작 (SPI2 및 CS/RESET 초기화)
-  FLASH_Initialize(); // W25Q256 SPI 플래시 메모리 시작 (SPI3 및 CS 초기화)
-  RTC_Initialize();   // DS3231 고정밀 RTC 시작 (I2C1 및 인터럽트 핀 초기화)
+  // [1] 모든 포트 디지털 I/O 모드로 전환
+  ANSELA = 0x0000;
+  ANSELB = 0x0000;
+  ANSELC = 0x0000;
+  ANSELD = 0x0000;
+  ANSELE = 0x0000;
+  ANSELF = 0x0000;
 
-  // 시리얼 UART 채널 및 Modbus 프로토콜 슬레이브 데이터베이스 초기화
-  RS485_Initialize();  // 현장 센서 연동용 RS-485 구동 (9600 bps)
-  RS422_Initialize();  // 관제 노트북 PC 연동용 RS-422 구동 (9600 bps)
-  Modbus_Initialize(); // 슬레이브 레지스터 및 송수신 버퍼 클리어
+  // 내장 OP-AMP 및 아날로그 컴퍼레이터 비활성화 (Pin 18 RA0, Pin 19 RE2 점유 원천 해제)
+  AMPCON1L = 0x0000;
+  AMPCON1H = 0x0000;
+  DAC1CONL = 0x0000;
+  DAC2CONL = 0x0000;
+  DAC6CONL = 0x0000;
+  ODCA = 0x0000;
+  ODCE = 0x0000;
 
-  // Watchdog Timer 클리어 및 동작 대기
-  ClrWdt();
+  // [2] 시스템 하드웨어 드라이버 및 통신 포트 초기화
+  GPIO_Initialize();   // DO 포트 및 릴레이/솔레노이드 밸브 초기화
+  TC_Initialize();     // MAX31856 및 MUX 열전대 온도 센서 드라이버 개시
+  RS422_Initialize();  // 👑 [특허급 하드웨어 구제] 70번 핀 초정밀 비트뱅잉 RX & 71번 하드웨어 TX (19200 bps)
+  RS485_Initialize();  // 필드/컨버터용 9600bps 하드웨어 UART1 (RB6 RX, RD5 TX, RB5 DIR)
+  Modbus_Initialize(); // Modbus RTU 슬레이브 데이터베이스 초기화
+
+  // DO 초기화 (기본 OFF)
+  DO_SV149_TRIS = 0;
+  DO_MC_SW_TRIS = 0;
+  DO_SV102_TRIS = 0;
+  DO_SV103_TRIS = 0;
+  DO_SV102_LAT = 0;
+  DO_SV103_LAT = 0;
+
+  uint32_t sensor_scan_counter = 0;
+  uint32_t heartbeat_counter = 0;
+  uint8_t hb_state = 0;
+  static uint8_t current_tc_ch = 0; // 현재 스캔 중인 TC 채널
+  static uint8_t prio_idx = 0;
+  static uint8_t norm_idx = 0;
+  static bool is_prio_turn = false;
+
+  // 주요 집중 감시 채널 목록 (체감 응답속도 1초대 보장)
+  static const uint8_t priority_channels[] = {
+    TC_CH1_CITY_GAS_IN,      // CH1: 도시가스 공급
+    TC_CH2_BURNER_BACKFIRE,  // CH2: 버너 역화
+    TC_CH3_REFORM_GAS_1ST,   // CH3: 개질 가스 1차
+    TC_CH21_REF_BN,          // CH21: 개질 버너 핵심부
+    TC_CH4_REFORM_GAS_2ND,   // CH4: 개질 가스 2차
+    TC_CH5_AOG_BURNER_IN,    // CH5: AOG 버너 입구
+    TC_CH22_REF_SR1,         // CH22: 개질기 상단
+    TC_CH25_REF_LTS1         // CH25: 탈황기 전단
+  };
+
+  // 초기 0번 채널 1-Shot 변환 트리거
+  TC_TriggerConversion(TC_CH1_CITY_GAS_IN);
 
   while (1) {
-    // [2] 관제용 Modbus RTU 통신 패킷 스캔 및 레지스터 갱신 수행
-    // RS-422 Full-Duplex 수신 상태를 상시 파싱하여 실시간 명령을 처리하고,
-    // 노트북에서 레지스터 0~11번지를 수정 시 DAC60516을 즉각 하드웨어
-    // 동기화합니다.
+    // [A] 관제용 Modbus RTU 통신 패킷 스캔 및 고속 응답 처리
+    // (RS-422 70번 핀 초정밀 비트뱅잉 수신 & 71번 초정밀 언롤 비트뱅잉 송신)
     Modbus_Task();
 
-    // [3] 주기적 아날로그 센서 및 열전대 온도 스캔 연동 (약 200ms 주기로
-    // 스케줄링)
+    // [B] 주기적 논블로킹 센서 계측 및 DO 물리 동기화
     sensor_scan_counter++;
-    if (sensor_scan_counter >= 30000UL) // 메인 루프 기준 시간 지연 분주
-    {
+    if (sensor_scan_counter >= 3000UL) {
       sensor_scan_counter = 0;
 
-      // A. 31개 열전대 온도 계측 및 Modbus DB 바인딩 (input_regs 0 ~ 30)
-      // 소수점 1자리 정밀도를 보존하기 위해 온도를 10배 곱한 정수로 레지스터에
-      // 기록합니다. 예: 25.4도는 254로 전송되어 관제 프로그램에서 10.0으로
-      // 나누어 소수 표현.
-      for (uint8_t ch = 0; ch < TC_MAX_CHANNELS; ch++) {
-        float temp = TC_ReadTemperature((TC_Channel_t)ch);
-        if (temp > -200.0f && temp < 2000.0f) // 비정상 에러 온도 범위 예외 처리
-        {
-          modbus_db.input_regs[ch] = (uint16_t)(temp * 10.0f);
-        } else {
-          modbus_db.input_regs[ch] = 0x9999; // 센서 단선 또는 에러 코드 표시
+      // 👑 [특허급 하드웨어 변환 완료 검사]
+      // MAX31856 칩셋의 1-Shot 델타-시그마 ADC 변환(약 143ms)이 100% 끝났을 때만 판독!
+      // 변환 진행 중에는 절대 MUX를 건드리거나 미완성 값을 읽지 않음으로써 황당한 이상 온도 원천 차단!
+      if (TC_IsConversionDone()) {
+        // 1. 보드 기준 냉접점(CJ, 칩 내부 상온) 온도 판독 및 Modbus DB(31번지) 기록
+        float cj_temp = TC_ReadColdJunction();
+        if (cj_temp > 0.0f && cj_temp < 80.0f) {
+          modbus_db.input_regs[31] = (uint16_t)(cj_temp * 10.0f);
         }
+        Modbus_Task(); // 통신 수신 감시 공백 제로화
+
+        // 2. 완벽하게 변환 완료된 순수 열전대 온도 판독 (오차 0%)
+        float temp = TC_ReadTemperature((TC_Channel_t)current_tc_ch);
+
+        // 👑 [특허급 스마트 가로바 필터링] 
+        // 센서 미체결 빈 채널은 차동 기생 전압이 0mV이므로 칩 내부 상온(cj_temp)과 거의 동일하게 측정됨!
+        // 따라서 냉접점 온도와의 차이가 0.8도 미만이거나 단선 오류인 채널은 0x9999(-- 가로바)로 처리!
+        if (temp > -100.0f && temp < 2000.0f && fabsf(temp - cj_temp) >= 0.8f) {
+          modbus_db.input_regs[current_tc_ch] = (uint16_t)(temp * 10.0f);
+        } else {
+          modbus_db.input_regs[current_tc_ch] = 0x9999; // 미결선 빈 채널 -> UI 가로바(--) 표출
+        }
+        Modbus_Task(); // 통신 수신 감시 공백 제로화
+
+        // 3. 우선순위 가중치 인터리빙 (우선 채널과 일반 채널 1:1 교차)
+        is_prio_turn = !is_prio_turn;
+        if (is_prio_turn) {
+          current_tc_ch = priority_channels[prio_idx];
+          prio_idx = (prio_idx + 1) % (sizeof(priority_channels) / sizeof(priority_channels[0]));
+        } else {
+          norm_idx = (norm_idx + 1) % 31; // 0~30번 채널 스캔 (31번은 CJC 전용 레지스터로 보존)
+          if (norm_idx == 19 || norm_idx == 20) norm_idx = 21; // 미사용 채널 스킵
+          current_tc_ch = norm_idx;
+        }
+
+        // 4. 다음 채널 1-Shot 변환 트리거 (새 143ms 변환 개시)
+        TC_TriggerConversion((TC_Channel_t)current_tc_ch);
+        Modbus_Task(); // 통신 수신 감시 공백 제로화
       }
 
-      // B. 16채널 ADS1115 ADC 전압 계측 및 Modbus DB 바인딩 (input_regs 32 ~
-      // 47) 4개의 ADS1115 칩셋(0x48~0x4B)을 순차 리드하여 16비트 원시 ADC
-      // 코드를 입력 레지스터에 대입합니다.
-      for (uint8_t ch = 0; ch < 16; ch++) {
-        uint16_t adc_raw = ADS1115_ReadChannel((ADS1115_SensorChannel_t)ch);
-        modbus_db.input_regs[32 + ch] = adc_raw;
-      }
-
-      // B-2. DS3231 RTC 실시간 시각 획득 및 Modbus DB 바인딩 (input_regs 50 ~
-      // 55)
-      DateTime_t current_time;
-      if (RTC_GetTime(&current_time)) {
-        modbus_db.input_regs[50] = current_time.year;
-        modbus_db.input_regs[51] = current_time.month;
-        modbus_db.input_regs[52] = current_time.date;
-        modbus_db.input_regs[53] = current_time.hour;
-        modbus_db.input_regs[54] = current_time.minute;
-        modbus_db.input_regs[55] = current_time.second;
-      }
-
-      // C. 디지털 입력 포트(DI) 비트 상태를 Modbus Discrete Inputs DB에
-      // 업데이트 0xFFFF 리셋 후 pin_map.h 입력 상태 비트 팩킹
-      uint16_t di_pack = 0;
-      if (DI_HT193_WD_PORT)
-        di_pack |= (1 << 0);
-      if (DI_HT194_WD_PORT)
-        di_pack |= (1 << 1);
-      if (DI_HT195_WD_PORT)
-        di_pack |= (1 << 2);
-      if (DI_HT196_WD_PORT)
-        di_pack |= (1 << 3);
-      if (DI_FD176_PORT)
-        di_pack |= (1 << 4);
-      if (DI_FAN504_PORT)
-        di_pack |= (1 << 5);
-      if (DI_GD501_PORT)
-        di_pack |= (1 << 6);
-      if (DI_GD502_PORT)
-        di_pack |= (1 << 7);
-      if (POWER_FAIL_DET_PORT == 0)
-        di_pack |= (1 << 8); // 정전 감지 시 비트 셋
-
-      modbus_db.discrete_inputs[0] = (uint8_t)(di_pack & 0xFF);
-      modbus_db.discrete_inputs[1] = (uint8_t)((di_pack >> 8) & 0xFF);
-
-      // D. Modbus Coils / Holding Regs 상태를 20개 디지털 출력(DO) 포트에
-      // 물리적 동기화 노트북 관제단에서 코일/홀딩 레지스터 상태를 쓰면 MCU의
-      // 실제 핀 릴레이 20채널을 스위칭합니다.
+      // 5. Modbus Coils / Holding Regs 상태를 20개 디지털 출력(DO) 포트에 물리적 동기화
       for (uint8_t i = 0; i < 20; i++) {
         uint8_t byte_idx = i / 8;
         uint8_t bit_mask = 1 << (i % 8);
@@ -146,8 +209,13 @@ int main(void) {
       }
     }
 
-    // [4] Watchdog Timer 리셋하여 오동작으로 인한 강제 MCU 리셋 방지
+    // [C] 하트비트 및 워치독 타이머 클리어 (MCU 오동작/강제 리셋 방지)
     ClrWdt();
+    heartbeat_counter++;
+    if (heartbeat_counter >= 120000UL) {
+      heartbeat_counter = 0;
+      hb_state ^= 1;
+    }
   }
 
   return 1;

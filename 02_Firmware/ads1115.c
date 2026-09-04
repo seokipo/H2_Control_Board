@@ -7,6 +7,9 @@
  */
 
 #include "ads1115.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 // MCC Melody I2C1 드라이버 헤더 가상 인클루드 (컴파일 연동용)
 // #include "mcc_generated_files/i2c_host/i2c1.h"
@@ -17,16 +20,16 @@
  * ========================================================================== */
 
 // 가상 I2C 드라이버 API 매핑 (MCC Melody I2C1 라이브러리 사용 가정)
-__attribute__((weak)) bool I2C1_Write(uint16_t address, uint8_t *data, size_t length)
+__attribute__((weak)) bool I2C1_Write(uint8_t dev_addr, const uint8_t *data, uint16_t length)
 {
     // 사용자 하드웨어 I2C1 Write 함수 매핑 공간
     return true; 
 }
 
-__attribute__((weak)) bool I2C1_Read(uint16_t address, uint8_t *data, size_t length)
+__attribute__((weak)) bool I2C1_Read(uint8_t dev_addr, uint8_t *data, uint16_t length)
 {
     // 사용자 하드웨어 I2C1 Read 함수 매핑 공간
-    return true;
+    return true; 
 }
 
 /**
