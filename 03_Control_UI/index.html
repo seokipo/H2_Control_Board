@@ -3724,6 +3724,8 @@
                 } else if (data.type === "SERIAL_RX") {
                     logLivePacket("RX", data.hex, "보드 수신 응답 프레임");
                     processSerialPacket(data.hex);
+                } else if (data.type === "SERIAL_TIMEOUT") {
+                    logLivePacket("TIMEOUT", "--", data.desc || "보드 응답 시간 초과 (420ms)");
                 } else if (data.type === "MOCK_UPDATE") {
                     // 브릿지로부터 주기적으로 받는 가상 난수 갱신 데이터 동기화
                     tcChannels.forEach(item => {
@@ -4212,6 +4214,8 @@
                                     row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.12); padding: 1px 5px; border-radius: 3px;">[TX 송신]</span> <span style="color: #86efac; font-family: monospace; font-weight: 600;">${pkt.hexStr}</span> ${pkt.desc ? `<span style="color: #94a3b8; font-size: 10px;">(${pkt.desc})</span>` : ''}`;
                                 } else if (pkt.direction === "RX") {
                                     row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #38bdf8; font-weight: 800; background: rgba(56, 189, 248, 0.12); padding: 1px 5px; border-radius: 3px;">[RX 수신]</span> <span style="color: #7dd3fc; font-weight: bold; font-family: monospace;">${pkt.hexStr}</span> ${pkt.desc ? `<span style="color: #fde047; font-size: 10px;">(${pkt.desc})</span>` : ''}`;
+                                } else if (pkt.direction === "TIMEOUT") {
+                                    row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #f87171; font-weight: 800; background: rgba(239, 68, 68, 0.15); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(239, 68, 68, 0.35);">[TIMEOUT]</span> <span style="color: #fca5a5; font-size: 10.5px;">${pkt.desc || '보드 응답 시간 초과'}</span>`;
                                 } else {
                                     row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #c084fc; font-weight: 700;">[SYS]</span> <span style="color: #e2e8f0;">${pkt.hexStr}</span>`;
                                 }

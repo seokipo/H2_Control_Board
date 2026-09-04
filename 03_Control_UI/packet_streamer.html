@@ -219,6 +219,15 @@
             border: 1px solid rgba(232, 121, 249, 0.25);
         }
 
+        .log-tag-timeout {
+            color: #f87171;
+            font-weight: 700;
+            background: rgba(239, 68, 68, 0.15);
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
         .log-hex {
             color: #f8fafc;
             font-weight: 700;
@@ -343,6 +352,10 @@
                             let tagText = `[${p.type}]`;
                             if (p.type === 'TX') tagClass = 'log-tag-tx';
                             else if (p.type === 'RX') tagClass = 'log-tag-rx';
+                            else if (p.type === 'TIMEOUT') {
+                                tagClass = 'log-tag-timeout';
+                                tagText = '[TIMEOUT]';
+                            }
 
                             entry.innerHTML = `
                                 <span class="log-time">${p.timeStr}</span>

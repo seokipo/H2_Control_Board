@@ -63,30 +63,49 @@ async def broadcast(payload: dict):
     for ws in dead:
         CONNECTED_CLIENTS.discard(ws)
 
-async def read_serial_response(sp: serial.Serial, timeout_ms: int = 180) -> bytes:
-    """보드의 Modbus RTU 응답을 1:1로 완전하게 수신 대기 (3.5T 프레임 수집)"""
-    elapsed = 0
-    step = 10 # 10ms
-    # 1. 첫 바이트 수신 대기
-    while elapsed < timeout_ms:
-        if sp.in_waiting > 0:
-            break
-        await asyncio.sleep(step / 1000.0)
-        elapsed += step
-
-    if sp.in_waiting == 0:
-        return b"" # 타임아웃
-
-    # 2. 바이트 수신 시작 시 후속 패킷 집결 대기 (3.5T, 약 20ms)
+async def read_serial_response(sp: serial.Serial, timeout_ms: int = 420, expected_len: int = 0) -> bytes:
+    """
+    👑 [길이 인지형 초정밀 1:1 수신 엔진]
+    - Modbus RTU 헤더(국번, FC, 바이트 수)를 실시간 감지하여 기대 전체 패킷 길이를 동적 산출.
+    - 패킷이 온전히 도착(len >= expected_len)하는 순간 0.1ms 만에 즉시 반환하여 응답 속도 극대화.
+    - 패킷이 도착할 때까지 최대 timeout_ms(기본 420ms) 동안 여유 있게 대기하여 조기 포기 및 연속 TX 누락 원천 차단.
+    """
+    start_time = time.time()
+    deadline = start_time + (timeout_ms / 1000.0)
     rx_bytes = b""
-    quiet_count = 0
-    while quiet_count < 3: # 연속 30ms 동안 추가 데이터 없으면 프레임 완료
+    quiet_deadline = None
+
+    while time.time() < deadline:
         if sp.in_waiting > 0:
             rx_bytes += sp.read(sp.in_waiting)
-            quiet_count = 0
+            
+            # 헤더를 분석하여 기대 전체 패킷 길이(expected_len) 동적 결정
+            if expected_len == 0 and len(rx_bytes) >= 3:
+                slave_id = rx_bytes[0]
+                fc = rx_bytes[1]
+                
+                # [1] 예외 응답 (Error Exception: MSB 1): 국번(1) + FC(1) + 에러코드(1) + CRC(2) = 5바이트
+                if fc & 0x80:
+                    expected_len = 5
+                # [2] 0x01, 0x02, 0x03, 0x04 읽기 응답: 국번(1) + FC(1) + 바이트수(1) + 데이터(N) + CRC(2) = 5 + N
+                elif fc in (0x01, 0x02, 0x03, 0x04):
+                    byte_count = rx_bytes[2]
+                    expected_len = 5 + byte_count
+                # [3] 0x05, 0x06, 0x10 쓰기 에코백 응답: 항상 8바이트
+                elif fc in (0x05, 0x06, 0x10):
+                    expected_len = 8
+
+            # 기대 길이에 완전히 도달했으면 즉각 수신 완료!
+            if expected_len > 0 and len(rx_bytes) >= expected_len:
+                return rx_bytes
+
+            # 아직 길이를 확정하지 못했거나 가변 패킷인 경우, 30ms 묵음 대기
+            quiet_deadline = time.time() + 0.03
         else:
-            quiet_count += 1
-        await asyncio.sleep(0.01)
+            if quiet_deadline and time.time() >= quiet_deadline and len(rx_bytes) > 0:
+                # 더 이상 바이트가 안 들어오고 묵음 시간 경과 시 프레임 완결로 판정
+                return rx_bytes
+            await asyncio.sleep(0.005)
 
     return rx_bytes
 
@@ -119,9 +138,11 @@ async def global_serial_worker():
                         if poll_step == 0:
                             req = build_modbus_frame(1, 4, 0, 56) # 0x04 Read Input Regs (센서 56개)
                             desc = "0x04 Read Input Regs (센서 계측)"
+                            expected_len = 117 # 5 + 112
                         else:
                             req = build_modbus_frame(1, 3, 0, 40) # 0x03 Read Holding Regs (출력 40개)
                             desc = "0x03 Read Holding Regs (출력 상태)"
+                            expected_len = 85 # 5 + 80
                         
                         poll_step = (poll_step + 1) % 2
 
@@ -135,8 +156,8 @@ async def global_serial_worker():
                             "desc": desc
                         })
 
-                        # 👑 보드의 응답 완독 대기 (1:1 Ping-Pong)
-                        rx_data = await read_serial_response(serial_port, timeout_ms=180)
+                        # 👑 보드의 응답 완독 대기 (1:1 Ping-Pong, 최대 420ms)
+                        rx_data = await read_serial_response(serial_port, timeout_ms=420, expected_len=expected_len)
                         if rx_data:
                             rx_hex = rx_data.hex().upper()
                             rx_formatted = " ".join([rx_hex[i:i+2] for i in range(0, len(rx_hex), 2)])
@@ -144,12 +165,19 @@ async def global_serial_worker():
                                 "type": "SERIAL_RX",
                                 "hex": rx_formatted
                             })
+                        else:
+                            # ⚠️ 타임아웃 발생 시 화면에 침묵하지 않고 명확하게 통지하여 1:1 시각적 싱크 보존
+                            await broadcast({
+                                "type": "SERIAL_TIMEOUT",
+                                "desc": f"{desc} 보드 응답 시간 초과 (420ms)"
+                            })
+                            print(f"[POLL TIMEOUT] {desc} - 보드 응답 없음 (420ms 경과)")
 
                     except Exception as poll_err:
                         print(f"[POLL ERROR] {poll_err}")
 
-                # 다음 폴링까지 150ms 안정화 대기 (초당 약 3~4회 완벽한 1:1 왕복)
-                await asyncio.sleep(0.15)
+                # 다음 폴링까지 100ms 안전 턴어라운드 유휴 대기 (초당 약 3회의 완벽한 1:1 왕복 리듬)
+                await asyncio.sleep(0.10)
 
             elif mock_active:
                 await asyncio.sleep(2.0)
@@ -262,14 +290,14 @@ async def handler(websocket, path=None):
                             })
                             print(f"[WS -> SERIAL] Written: {tx_formatted}")
 
-                            # 👑 보드로부터의 응답 ACK 완독 대기 (1:1 수신 동기화)
-                            ack_data = await read_serial_response(serial_port, timeout_ms=120)
+                            # 👑 보드로부터의 응답 ACK 완독 대기 (1:1 수신 동기화, 최대 350ms, 8바이트)
+                            ack_data = await read_serial_response(serial_port, timeout_ms=350, expected_len=8)
                             
                             # 만약 순간 글리치로 ACK 미도착 시 1회 스마트 자동 재시도
                             if not ack_data:
-                                await asyncio.sleep(0.01)
+                                await asyncio.sleep(0.02)
                                 serial_port.write(byte_data)
-                                ack_data = await read_serial_response(serial_port, timeout_ms=120)
+                                ack_data = await read_serial_response(serial_port, timeout_ms=350, expected_len=8)
 
                             if ack_data:
                                 ack_hex = ack_data.hex().upper()
