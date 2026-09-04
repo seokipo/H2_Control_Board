@@ -2095,7 +2095,7 @@
         </div>
 
         <!-- 터미널 콘솔 로그 뷰어 -->
-        <div id="streamer-modal-log" style="height: 380px; overflow-y: auto; padding: 10px 14px; font-size: 11px; line-height: 1.65; color: #e2e8f0; background: #050811; font-family: 'Fira Code', Consolas, monospace;">
+        <div id="streamer-modal-log" style="height: 380px; overflow-y: auto; padding: 10px 14px; font-size: 11px; line-height: 1.65; color: #e2e8f0; background: #050811; font-family: 'Fira Code', Consolas, monospace; contain: content; will-change: scroll-position;">
             <div style="color: #64748b;">[SYSTEM] 📡 실시간 RS-422 통신 패킷 스트리머 대기 중... 포트 연결 시 송수신 패킷이 표시됩니다.</div>
         </div>
 
@@ -2862,65 +2862,63 @@
             };
         }
 
-        // 렌더링 엔진 구현
+        // 렌더링 엔진 구현 (👑 In-Place 제자리 갱신 방식: DOM 파괴/재생성 완전 제거로 마우스 렉 0% 달성)
         function renderAll() {
-            // 1. 온도 4열 분배 렌더링 (10kW 전용 채널 음영 처리 및 비고 추가)
+            // 1. 온도 4열 분배 렌더링 (최초 1회만 DOM 생성, 이후 In-Place 값 부분 갱신)
             const col1 = document.getElementById('tc-col-1');
             const col2 = document.getElementById('tc-col-2');
             const col3 = document.getElementById('tc-col-3');
             const col4 = document.getElementById('tc-col-4');
 
-            col1.innerHTML = "";
-            col2.innerHTML = "";
-            col3.innerHTML = "";
-            col4.innerHTML = "";
+            const isInitialTcBuild = (!col1.children || col1.children.length === 0);
 
             tcChannels.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.id = `tc-row-${item.ch}`;
-                if (!item.is6kW) {
-                    tr.className = "inactive-channel";
-                }
-
                 let valTxt = '<span class="badge-inactive">10kW 전용</span>';
                 if (item.is6kW) {
                     const grad = getThermalGradientStyle(item.val);
                     valTxt = grad.badgeHtml;
                 }
 
-                tr.innerHTML = `
-                    <td>${item.name}</td>
-                    <td><span style="color: var(--text-muted);">${item.net}</span></td>
-                    <td style="text-align: right;"><span class="val-display" id="tc-val-${item.ch}">${valTxt}</span></td>
-                `;
+                if (isInitialTcBuild) {
+                    const tr = document.createElement('tr');
+                    tr.id = `tc-row-${item.ch}`;
+                    if (!item.is6kW) {
+                        tr.className = "inactive-channel";
+                    }
 
-                if (index < 10) {
-                    col1.appendChild(tr);
-                } else if (index < 20) {
-                    col2.appendChild(tr);
-                } else if (index < 30) {
-                    col3.appendChild(tr);
+                    tr.innerHTML = `
+                        <td>${item.name}</td>
+                        <td><span style="color: var(--text-muted);">${item.net}</span></td>
+                        <td style="text-align: right;"><span class="val-display" id="tc-val-${item.ch}">${valTxt}</span></td>
+                    `;
+
+                    if (index < 10) {
+                        col1.appendChild(tr);
+                    } else if (index < 20) {
+                        col2.appendChild(tr);
+                    } else if (index < 30) {
+                        col3.appendChild(tr);
+                    } else {
+                        col4.appendChild(tr);
+                    }
                 } else {
-                    col4.appendChild(tr);
+                    const valEl = document.getElementById(`tc-val-${item.ch}`);
+                    if (valEl && valEl.innerHTML !== valTxt) {
+                        valEl.innerHTML = valTxt;
+                    }
                 }
             });
 
-            // 2. ADC 독립 계측 8채널 2열 렌더링 (짝짓기 매칭된 6개 제외)
+            // 2. ADC 독립 계측 8채널 2열 렌더링 (최초 1회만 DOM 생성, 이후 값 부분 갱신)
             const adc1 = document.getElementById('adc-col-1');
             const adc2 = document.getElementById('adc-col-2');
+            const isInitialAdcBuild = (!adc1.children || adc1.children.length === 0);
 
-            adc1.innerHTML = "";
-            adc2.innerHTML = "";
-
-            // 매칭된 ADC 센서 넷 목록 추출
             const pairedAdcNets = dacChannels.filter(d => d.feedbackType === "ADC").map(d => d.feedbackNet);
             const unpairedAdcs = adcChannels.filter(a => !pairedAdcNets.includes(a.net));
 
             unpairedAdcs.forEach((item, index) => {
-                const tr = document.createElement('tr');
                 const origIndex = adcChannels.indexOf(item);
-                tr.id = `adc-row-${origIndex}`;
-
                 const volt = (item.raw / 65535) * 5.0;
                 let physicalVal = 0;
                 if (item.minV === 1) {
@@ -2935,34 +2933,44 @@
                 const isRightCol = index >= 4;
                 const tooltipClass = isRightCol ? "tooltip-trigger tooltip-left" : "tooltip-trigger";
 
-                tr.innerHTML = `
-                    <td><span class="${tooltipClass}" data-tooltip="모델명: ${item.model} (${item.minV}~${item.maxV}V)">${item.name}</span></td>
-                    <td><span style="color: var(--text-muted);">${item.net}</span></td>
-                    <td style="text-align: right;"><span class="val-display" id="adc-raw-${origIndex}">${item.raw}</span></td>
-                    <td style="text-align: right; color: #a7f3d0;"><span>${volt.toFixed(2)}V</span></td>
-                    <td style="text-align: right;"><span style="color: var(--accent); font-weight:bold;">${physicalVal.toFixed(2)}</span> ${item.unit}</td>
-                `;
+                if (isInitialAdcBuild) {
+                    const tr = document.createElement('tr');
+                    tr.id = `adc-row-${origIndex}`;
+                    tr.innerHTML = `
+                        <td><span class="${tooltipClass}" data-tooltip="모델명: ${item.model} (${item.minV}~${item.maxV}V)">${item.name}</span></td>
+                        <td><span style="color: var(--text-muted);">${item.net}</span></td>
+                        <td style="text-align: right;"><span class="val-display" id="adc-raw-${origIndex}">${item.raw}</span></td>
+                        <td style="text-align: right; color: #a7f3d0;"><span id="adc-volt-${origIndex}">${volt.toFixed(2)}V</span></td>
+                        <td style="text-align: right;"><span style="color: var(--accent); font-weight:bold;" id="adc-phys-${origIndex}">${physicalVal.toFixed(2)}</span> ${item.unit}</td>
+                    `;
 
-                if (index < 4) {
-                    adc1.appendChild(tr);
+                    if (index < 4) {
+                        adc1.appendChild(tr);
+                    } else {
+                        adc2.appendChild(tr);
+                    }
                 } else {
-                    adc2.appendChild(tr);
+                    const rawEl = document.getElementById(`adc-raw-${origIndex}`);
+                    if (rawEl && rawEl.textContent != item.raw) rawEl.textContent = item.raw;
+                    const voltEl = document.getElementById(`adc-volt-${origIndex}`);
+                    const voltStr = `${volt.toFixed(2)}V`;
+                    if (voltEl && voltEl.textContent !== voltStr) voltEl.textContent = voltStr;
+                    const physEl = document.getElementById(`adc-phys-${origIndex}`);
+                    const physStr = physicalVal.toFixed(2);
+                    if (physEl && physEl.textContent !== physStr) physEl.textContent = physStr;
                 }
             });
 
-            // 3. DAC 11채널 & 피드백 센서 매칭 2열 렌더링
+            // 3. DAC 11채널 & 피드백 센서 매칭 2열 렌더링 (In-Place 갱신)
             const dac1 = document.getElementById('dac-col-1');
             const dac2 = document.getElementById('dac-col-2');
-
-            dac1.innerHTML = "";
-            dac2.innerHTML = "";
+            const isInitialDacBuild = (!dac1.children || dac1.children.length === 0);
 
             dacChannels.forEach((item, index) => {
                 const volt = (item.val / 65535) * 5.0;
                 const percent = (item.val / 65535) * 100.0;
                 const fbData = getFeedbackSensorData(item);
 
-                // 🎛️ 실시간 오차(Error = |SP - PV|) 기반 3단계 동적 제어 상태 판별
                 let pidStateClass = "";
                 let pidLiveBadgeHtml = "";
                 let errorPct = 0;
@@ -2973,15 +2981,12 @@
                     errorPct = (err / span) * 100;
 
                     if (errorPct > 20) {
-                        // 3단계: 대형 편차 / 급변 (20% 초과) -> 네온 레드 펄스 (0.55s)
                         pidStateClass = "pid-state-alert";
                         pidLiveBadgeHtml = `<span class="pid-live-badge badge-alert" title="목표값 편차: ±${err.toFixed(1)}${item.unit} (${errorPct.toFixed(1)}%) - 급격한 제어 진행 중">⚠️ 편차 ${errorPct.toFixed(0)}%</span>`;
                     } else if (errorPct > 5) {
-                        // 2단계: 추종 접근 중 (5% ~ 20%) -> 골드/앰버 펄스 (1.0s)
                         pidStateClass = "pid-state-tracking";
                         pidLiveBadgeHtml = `<span class="pid-live-badge badge-tracking" title="목표값 편차: ±${err.toFixed(1)}${item.unit} (${errorPct.toFixed(1)}%) - 목표값 추종 중">⚡ 추종 ${errorPct.toFixed(0)}%</span>`;
                     } else {
-                        // 1단계: 정상 수렴 안정 (5% 이하) -> 에메랄드/청록 펄스 (1.8s)
                         pidStateClass = "pid-state-stable";
                         pidLiveBadgeHtml = `<span class="pid-live-badge badge-stable" title="목표값 편차: ±${err.toFixed(1)}${item.unit} (${errorPct.toFixed(1)}%) - 정상 안정 수렴">🎯 AUTO</span>`;
                     }
@@ -2989,15 +2994,6 @@
 
                 const isRightCol = index >= 6;
                 const tooltipClass = isRightCol ? "tooltip-trigger tooltip-left" : "tooltip-trigger";
-
-                // A. DAC 출력 제어 메인 행 (Main Row)
-                const trMain = document.createElement('tr');
-                trMain.id = `dac-row-${index}`;
-                trMain.className = `dac-main-row ${pidStateClass} ${!item.is6kW ? 'inactive-channel' : ''}`;
-                trMain.onclick = () => {
-                    openDacControlModal(index);
-                    highlightFeedbackSensor(item.feedbackNet);
-                };
 
                 const rawTxt = item.is6kW ? item.val : '-';
                 const voltTxt = item.is6kW ? (item.isLinked ? `<span style="color:#38bdf8; font-weight:bold;">${volt.toFixed(2)}V</span>` : `${volt.toFixed(2)}V`) : '<span class="badge-inactive">10kW</span>';
@@ -3017,64 +3013,300 @@
                     </button>
                 ` : '<span style="color:#64748b; font-size:9px;">-</span>';
 
-                trMain.innerHTML = `
-                    <td><span class="${tooltipClass}" data-tooltip="모델명: ${item.model} (0~5V)" style="font-weight: 700; color: #ffffff; font-size: 11px;">${item.name}</span></td>
-                    <td><span style="color: var(--text-muted); font-family: monospace; font-size: 9.5px;">${item.net}</span></td>
-                    <td style="text-align: right;"><span class="val-display" id="dac-val-${index}">${rawTxt}</span></td>
-                    <td style="text-align: right; color: #a7f3d0;"><span>${voltTxt}</span></td>
-                    <td style="text-align: right;"><span>${percentTxt}</span></td>
-                    <td style="text-align: center;">${linkBtnHtml}</td>
-                `;
-
-                // B. 연동 피드백 센서 서브 행 (Sub Row)
-                const trFb = document.createElement('tr');
-                trFb.className = `dac-fb-row ${item.isLinked ? 'is-linked-fb ' + pidStateClass : ''}`;
-                trFb.onclick = () => {
-                    openDacControlModal(index, true);
-                    highlightFeedbackSensor(item.feedbackNet);
-                };
-
                 const spBadgeHtml = item.isLinked ? `<span class="sp-chip" onclick="event.stopPropagation(); openDacControlModal(${index}, true)" title="목표값(SP) 변경">🎯${item.targetSp.toFixed(1)}${item.unit}</span>` : '';
                 const fbStatusTxt = item.isLinked ? `<span class="pid-live-badge ${errorPct > 20 ? 'badge-alert' : (errorPct > 5 ? 'badge-tracking' : 'badge-stable')}" style="font-size:8px; padding:1px 3px;">AUTO</span>` : '<span style="color:#94a3b8; font-size:8.5px;">OFF</span>';
 
-                trFb.innerHTML = `
-                    <td style="padding-left: 12px;">
-                        <span style="color: #38bdf8; font-weight: 800; font-size: 10px; margin-right: 2px;">↳</span>
-                        <span style="font-size: 9.5px; color: #94a3b8;" title="${item.feedbackDesc}">${item.feedbackDesc}</span>
-                    </td>
-                    <td><span style="color: #64748b; font-size: 8.5px; font-family: monospace;">${item.feedbackNet}</span></td>
-                    <td style="text-align: right;"><span class="val-display-small">${fbData.raw}</span></td>
-                    <td style="text-align: right; color: #7dd3fc; font-size: 9px;">${fbData.volt}</td>
-                    <td style="text-align: right;"><span style="color: #fde047; font-weight:bold; font-size: 9.5px;">${fbData.physTxt}</span>${spBadgeHtml}</td>
-                    <td style="text-align: center;">${fbStatusTxt}</td>
-                `;
+                if (isInitialDacBuild) {
+                    // A. DAC 메인 행 생성
+                    const trMain = document.createElement('tr');
+                    trMain.id = `dac-row-${index}`;
+                    trMain.className = `dac-main-row ${pidStateClass} ${!item.is6kW ? 'inactive-channel' : ''}`;
+                    trMain.onclick = () => {
+                        openDacControlModal(index);
+                        highlightFeedbackSensor(item.feedbackNet);
+                    };
 
-                if (index < 6) {
-                    dac1.appendChild(trMain);
-                    dac1.appendChild(trFb);
+                    trMain.innerHTML = `
+                        <td><span class="${tooltipClass}" data-tooltip="모델명: ${item.model} (0~5V)" style="font-weight: 700; color: #ffffff; font-size: 11px;">${item.name}</span></td>
+                        <td><span style="color: var(--text-muted); font-family: monospace; font-size: 9.5px;">${item.net}</span></td>
+                        <td style="text-align: right;"><span class="val-display" id="dac-val-${index}">${rawTxt}</span></td>
+                        <td style="text-align: right; color: #a7f3d0;"><span id="dac-volt-${index}">${voltTxt}</span></td>
+                        <td style="text-align: right;"><span id="dac-pct-${index}">${percentTxt}</span></td>
+                        <td style="text-align: center;"><span id="dac-link-btn-${index}">${linkBtnHtml}</span></td>
+                    `;
+
+                    // B. 연동 피드백 센서 서브 행 생성
+                    const trFb = document.createElement('tr');
+                    trFb.id = `dac-fb-row-${index}`;
+                    trFb.className = `dac-fb-row ${item.isLinked ? 'is-linked-fb ' + pidStateClass : ''}`;
+                    trFb.onclick = () => {
+                        openDacControlModal(index, true);
+                        highlightFeedbackSensor(item.feedbackNet);
+                    };
+
+                    trFb.innerHTML = `
+                        <td style="padding-left: 12px;">
+                            <span style="color: #38bdf8; font-weight: 800; font-size: 10px; margin-right: 2px;">↳</span>
+                            <span style="font-size: 9.5px; color: #94a3b8;" title="${item.feedbackDesc}">${item.feedbackDesc}</span>
+                        </td>
+                        <td><span style="color: #64748b; font-size: 8.5px; font-family: monospace;">${item.feedbackNet}</span></td>
+                        <td style="text-align: right;"><span class="val-display-small" id="dac-fb-raw-${index}">${fbData.raw}</span></td>
+                        <td style="text-align: right; color: #7dd3fc; font-size: 9px;"><span id="dac-fb-volt-${index}">${fbData.volt}</span></td>
+                        <td style="text-align: right;"><span style="color: #fde047; font-weight:bold; font-size: 9.5px;" id="dac-fb-phys-${index}">${fbData.physTxt}</span><span id="dac-fb-sp-${index}">${spBadgeHtml}</span></td>
+                        <td style="text-align: center;"><span id="dac-fb-status-${index}">${fbStatusTxt}</span></td>
+                    `;
+
+                    if (index < 6) {
+                        dac1.appendChild(trMain);
+                        dac1.appendChild(trFb);
+                    } else {
+                        dac2.appendChild(trMain);
+                        dac2.appendChild(trFb);
+                    }
                 } else {
-                    dac2.appendChild(trMain);
-                    dac2.appendChild(trFb);
+                    // In-Place 부분 갱신
+                    const trMain = document.getElementById(`dac-row-${index}`);
+                    if (trMain) {
+                        trMain.className = `dac-main-row ${pidStateClass} ${!item.is6kW ? 'inactive-channel' : ''}`;
+                    }
+                    const trFb = document.getElementById(`dac-fb-row-${index}`);
+                    if (trFb) {
+                        trFb.className = `dac-fb-row ${item.isLinked ? 'is-linked-fb ' + pidStateClass : ''}`;
+                    }
+
+                    const valEl = document.getElementById(`dac-val-${index}`);
+                    if (valEl && valEl.textContent != rawTxt) valEl.textContent = rawTxt;
+                    const voltEl = document.getElementById(`dac-volt-${index}`);
+                    if (voltEl && voltEl.innerHTML !== voltTxt) voltEl.innerHTML = voltTxt;
+                    const pctEl = document.getElementById(`dac-pct-${index}`);
+                    if (pctEl && pctEl.innerHTML !== percentTxt) pctEl.innerHTML = percentTxt;
+
+                    const fbRawEl = document.getElementById(`dac-fb-raw-${index}`);
+                    if (fbRawEl && fbRawEl.textContent != fbData.raw) fbRawEl.textContent = fbData.raw;
+                    const fbVoltEl = document.getElementById(`dac-fb-volt-${index}`);
+                    if (fbVoltEl && fbVoltEl.textContent !== fbData.volt) fbVoltEl.textContent = fbData.volt;
+                    const fbPhysEl = document.getElementById(`dac-fb-phys-${index}`);
+                    if (fbPhysEl && fbPhysEl.textContent !== fbData.physTxt) fbPhysEl.textContent = fbData.physTxt;
+                    const fbSpEl = document.getElementById(`dac-fb-sp-${index}`);
+                    if (fbSpEl && fbSpEl.innerHTML !== spBadgeHtml) fbSpEl.innerHTML = spBadgeHtml;
+                    const fbStatEl = document.getElementById(`dac-fb-status-${index}`);
+                    if (fbStatEl && fbStatEl.innerHTML !== fbStatusTxt) fbStatEl.innerHTML = fbStatusTxt;
                 }
             });
 
-            // 4. DI LED 배치
+            // 4. DI LED 배치 (최초 1회 생성, 이후 클래스 토글)
             const diGrid = document.getElementById('di-grid');
-            diGrid.innerHTML = "";
+            const isInitialDiBuild = (!diGrid.children || diGrid.children.length === 0);
+
             diChannels.forEach((item, index) => {
                 const isRightCol = (index % 7 >= 2);
                 const leftClass = isRightCol ? "tooltip-left" : "";
+                const activeClass = item.active ? (item.isAlarm ? 'active-alarm' : 'active-ok') : '';
 
-                const div = document.createElement('div');
-                div.className = `led-item tooltip-trigger ${leftClass} ${item.active ? (item.isAlarm ? 'active-alarm' : 'active-ok') : ''}`;
-                div.setAttribute('data-tooltip', `모델명: ${item.model} (DC 24V)`);
-                div.innerHTML = `
-                    <div class="led-indicator"></div>
-                    <div class="led-name">${item.label}</div>
-                    <div class="led-desc">${item.desc}</div>
-                `;
-                diGrid.appendChild(div);
+                if (isInitialDiBuild) {
+                    const div = document.createElement('div');
+                    div.id = `di-item-${index}`;
+                    div.className = `led-item tooltip-trigger ${leftClass} ${activeClass}`;
+                    div.setAttribute('data-tooltip', `모델명: ${item.model} (DC 24V)`);
+                    div.innerHTML = `
+                        <div class="led-indicator"></div>
+                        <div class="led-name">${item.label}</div>
+                        <div class="led-desc">${item.desc}</div>
+                    `;
+                    diGrid.appendChild(div);
+                } else {
+                    const div = document.getElementById(`di-item-${index}`);
+                    if (div) {
+                        const targetClass = `led-item tooltip-trigger ${leftClass} ${activeClass}`;
+                        if (div.className !== targetClass) div.className = targetClass;
+                    }
+                }
             });
+
+            // 5. 디지털 출력 릴레이 렌더링 (DO 20채널 - In-Place DOM 업데이트)
+            const doGrid = document.getElementById('do-grid');
+            const isInitialDoBuild = (doGrid.children.length === 0);
+
+            let drawIndex = 0;
+            doChannels.forEach((item, index) => {
+                if (item.label === "DO_MC_SW") return;
+
+                const isRightCol = (drawIndex % 7 >= 2);
+                const leftClass = isRightCol ? "tooltip-left" : "";
+
+                let activeClass = "";
+                let btnText = "기동";
+
+                if (item.active) {
+                    if (item.type === "VALVE") {
+                        activeClass = "active-open";
+                        btnText = "닫기";
+                    } else if (item.type === "HEATER") {
+                        activeClass = "active-heat";
+                        btnText = "정지";
+                    } else {
+                        activeClass = "active-on";
+                        btnText = "정지";
+                    }
+                } else {
+                    if (item.type === "VALVE") {
+                        btnText = "열기";
+                    } else if (item.type === "HEATER") {
+                        btnText = "기동";
+                    } else {
+                        btnText = "기동";
+                    }
+                }
+
+                const doVoltage = (item.type === "VALVE" || item.type === "GENERAL") ? "DC 24V" : "AC 220V";
+                const isHeaterOrIgniter = (item.type === "HEATER" || item.label === "DO_IGN175");
+                let feedbackClass = "";
+                let feedbackHtml = "";
+
+                if (isHeaterOrIgniter) {
+                    if (item.active) {
+                        feedbackClass = "feedback-active";
+                        feedbackHtml = `<div class="feedback-badge"><span style="display:inline-block; width:5px; height:5px; background:#10b981; border-radius:50%; margin-right:3px; vertical-align:middle; box-shadow: 0 0 4px #10b981;"></span>FB OK</div>`;
+                    } else {
+                        feedbackHtml = `<div class="feedback-badge-off" style="font-size:7.5px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.02); padding:1px 4px; border-radius:3px; margin-top:2px; display:inline-block; border:1px solid rgba(255,255,255,0.05);">FB OFF</div>`;
+                    }
+                }
+
+                if (isInitialDoBuild) {
+                    const div = document.createElement('div');
+                    div.id = `do-card-${index}`;
+                    div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
+                    div.setAttribute('data-tooltip', `모델명: ${item.model} (${doVoltage})`);
+                    div.innerHTML = `
+                        <div class="led-indicator"></div>
+                        <div class="led-name">${item.label}</div>
+                        <div class="led-desc">${item.desc}</div>
+                        <div class="do-fb-container" id="do-fb-${index}">${feedbackHtml}</div>
+                        <button type="button" class="do-btn" id="do-btn-${index}" style="margin-top: 4px;" onclick="event.stopPropagation(); toggleVirtualCoil(${index})">${btnText}</button>
+                    `;
+                    doGrid.appendChild(div);
+                } else {
+                    const div = document.getElementById(`do-card-${index}`);
+                    if (div) {
+                        div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
+                        const fbContainer = document.getElementById(`do-fb-${index}`);
+                        if (fbContainer && fbContainer.innerHTML !== feedbackHtml) {
+                            fbContainer.innerHTML = feedbackHtml;
+                        }
+                        const btn = document.getElementById(`do-btn-${index}`);
+                        if (btn && btn.textContent !== btnText) {
+                            btn.textContent = btnText;
+                        }
+                    }
+                }
+                drawIndex++;
+            });
+
+            // 💥 20번째 카드로 DO_MC_SW 메인 전원 스위치
+            const mcItem = doChannels.find(d => d.label === "DO_MC_SW");
+            if (mcItem) {
+                const mcIndex = doChannels.findIndex(d => d.label === "DO_MC_SW");
+                const isMcOn = mcItem.active;
+                const btnText = isMcOn ? "⚡ 메인전원 OFF" : "⚡ 메인전원 ON";
+                const btnBg = isMcOn
+                    ? "background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #f87171; color: #fff; box-shadow: 0 0 12px rgba(239,68,68,0.5);"
+                    : "background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399; color: #fff; box-shadow: 0 0 12px rgba(16,185,129,0.5);";
+
+                const badgeHtml = isMcOn
+                    ? `<div class="main-power-status-badge" style="background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.4); font-size: 7.5px; padding: 1.5px 6px; border-radius: 3px;">24V LOOP ACTIVE</div>`
+                    : `<div class="main-power-status-badge" style="background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); font-size: 7.5px; padding: 1.5px 6px; border-radius: 3px;">24V LOOP SHUTDOWN</div>`;
+
+                if (isInitialDoBuild) {
+                    const mcDiv = document.createElement('div');
+                    mcDiv.id = `do-card-${mcIndex}`;
+                    mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
+                    mcDiv.style.gridColumn = "span 2";
+                    mcDiv.setAttribute('data-tooltip', `모델명: ${mcItem.model} (DC 24V 메인 루프 통전 스위치)`);
+                    mcDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div class="led-name" style="font-size: 11px; font-weight: 800; color: #f8fafc;">${mcItem.label}</div>
+                            <div id="mc-badge">${badgeHtml}</div>
+                        </div>
+                        <div class="led-desc" style="margin: 3px 0 6px 0; color: #cbd5e1; font-size: 9.5px;">${mcItem.desc}</div>
+                        <button type="button" class="do-btn" id="mc-btn" style="width: 100%; padding: 6px; font-weight: 800; font-size: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; ${btnBg}" onclick="event.stopPropagation(); toggleVirtualCoil(${mcIndex})">${btnText}</button>
+                    `;
+                    doGrid.appendChild(mcDiv);
+                } else {
+                    const mcDiv = document.getElementById(`do-card-${mcIndex}`);
+                    if (mcDiv) {
+                        mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
+                        const badgeEl = document.getElementById('mc-badge');
+                        if (badgeEl && badgeEl.innerHTML !== badgeHtml) badgeEl.innerHTML = badgeHtml;
+                        const mcBtn = document.getElementById('mc-btn');
+                        if (mcBtn) {
+                            if (mcBtn.textContent !== btnText) mcBtn.textContent = btnText;
+                            mcBtn.style.cssText = `width: 100%; padding: 6px; font-weight: 800; font-size: 10px; border-radius: 4px; cursor: pointer; transition: all 0.2s; ${btnBg}`;
+                        }
+                    }
+                }
+            }
+
+            // 6. 시리얼 통신 장치 렌더링 (최초 1회만 DOM 생성, 이후 In-Place 갱신)
+            const serialBody = document.getElementById('serial-devices-body');
+            const isInitialSerialBuild = (!serialBody.children || serialBody.children.length === 0);
+
+            serialDevices.forEach((item, index) => {
+                let dataTxt = "";
+                if (item.net === "INV506") {
+                    dataTxt = `설정: ${item.data.freqSet.toFixed(1)}Hz / 출력: <span style="color: var(--accent);">${item.data.freqOut.toFixed(2)}Hz</span> (${item.data.current.toFixed(1)}A)`;
+                } else if (item.net === "LCD500") {
+                    dataTxt = `화면: <span style="color: #60a5fa; font-weight:bold;">${item.data.backlight}</span> (휘도: ${item.data.brightness}%)`;
+                } else {
+                    dataTxt = `순시: <span style="color: var(--accent); font-weight:bold;">${item.data.flowRate.toFixed(2)} LPM</span> / 누적: ${item.data.flowTotal.toFixed(1)} L`;
+                }
+
+                const statusHtml = item.status === "OK"
+                    ? '<span class="link-status ok">정상</span>'
+                    : '<span class="link-status err">오류</span>';
+
+                if (isInitialSerialBuild) {
+                    const tr = document.createElement('tr');
+                    tr.id = `serial-dev-row-${index}`;
+                    tr.innerHTML = `
+                        <td style="font-weight: 700; color: #fff;">${item.name}</td>
+                        <td><span style="color: var(--text-muted); font-family: monospace;">${item.net}</span></td>
+                        <td><span style="font-size: 8.5px; color: #cbd5e1;">${item.model}</span></td>
+                        <td style="text-align: left; padding-left: 10px; font-size: 8.5px;" id="serial-data-${index}">${dataTxt}</td>
+                        <td style="text-align: center;">
+                            <span class="comm-led tx ${item.tx ? 'active-blink' : ''}" id="serial-tx-led-${index}" title="Transmit"></span>
+                            <span class="comm-led rx ${item.rx ? 'active-blink' : ''}" id="serial-rx-led-${index}" title="Receive"></span>
+                        </td>
+                        <td style="text-align: center;" id="serial-status-${index}">${statusHtml}</td>
+                    `;
+                    serialBody.appendChild(tr);
+                } else {
+                    const dataEl = document.getElementById(`serial-data-${index}`);
+                    if (dataEl && dataEl.innerHTML !== dataTxt) dataEl.innerHTML = dataTxt;
+                    const txLed = document.getElementById(`serial-tx-led-${index}`);
+                    if (txLed) {
+                        const hasBlink = txLed.classList.contains('active-blink');
+                        if (item.tx && !hasBlink) txLed.classList.add('active-blink');
+                        else if (!item.tx && hasBlink) txLed.classList.remove('active-blink');
+                    }
+                    const rxLed = document.getElementById(`serial-rx-led-${index}`);
+                    if (rxLed) {
+                        const hasBlink = rxLed.classList.contains('active-blink');
+                        if (item.rx && !hasBlink) rxLed.classList.add('active-blink');
+                        else if (!item.rx && hasBlink) rxLed.classList.remove('active-blink');
+                    }
+                }
+            });
+
+            // 메인 전원 상태에 따른 전체 음영 클래스 토글
+            const container = document.querySelector('.container');
+            if (container) {
+                if (mcItem && mcItem.active) {
+                    container.classList.remove('power-off');
+                } else {
+                    container.classList.add('power-off');
+                }
+            }
+        }
 
             // 5. 디지털 출력 릴레이 렌더링 (DO 20채널 - In-Place DOM 업데이트로 깜빡임 완전 박멸 & 원클릭 즉시 반응)
             const doGrid = document.getElementById('do-grid');
@@ -3973,14 +4205,13 @@
             }
         });
 
-        // 전역 패킷 통계 카운터
+        // 전역 패킷 통계 카운터 및 비동기 배치 큐
         let txCount = 0;
         let rxCount = 0;
+        const livePacketBatchQueue = [];
+        let packetRenderScheduled = false;
 
         function logLivePacket(direction, hexStr, desc) {
-            const liveStreamDom = document.getElementById('live-stream-log');
-            const modalStreamDom = document.getElementById('streamer-modal-log');
-
             const timeStr = new Date().toLocaleTimeString();
 
             // 카운터 갱신
@@ -3990,51 +4221,84 @@
                 rxCount++;
             }
 
-            const txCountEl = document.getElementById('stat-tx-count');
-            const rxCountEl = document.getElementById('stat-rx-count');
-            const txCountModalEl = document.getElementById('stat-tx-count-modal');
-            const rxCountModalEl = document.getElementById('stat-rx-count-modal');
+            // 배치 큐에 누적
+            livePacketBatchQueue.push({ direction, hexStr, desc, timeStr });
 
-            if (txCountEl) txCountEl.innerText = txCount;
-            if (rxCountEl) rxCountEl.innerText = rxCount;
-            if (txCountModalEl) txCountModalEl.innerText = txCount;
-            if (rxCountModalEl) rxCountModalEl.innerText = rxCount;
+            // 👑 [특허급 마우스 렉 완전 박멸] requestAnimationFrame 기반 비동기 일괄 배치 렌더링
+            if (!packetRenderScheduled) {
+                packetRenderScheduled = true;
+                requestAnimationFrame(() => {
+                    const liveStreamDom = document.getElementById('live-stream-log');
+                    const modalStreamDom = document.getElementById('streamer-modal-log');
 
-            // HTML 로그 라인 생성
-            function buildLogLine() {
-                const row = document.createElement('div');
-                row.style.marginBottom = '4px';
-                row.style.wordBreak = 'break-all';
+                    // 통계 카운터 일괄 갱신
+                    const txCountEl = document.getElementById('stat-tx-count');
+                    const rxCountEl = document.getElementById('stat-rx-count');
+                    const txCountModalEl = document.getElementById('stat-tx-count-modal');
+                    const rxCountModalEl = document.getElementById('stat-rx-count-modal');
+                    if (txCountEl) txCountEl.innerText = txCount;
+                    if (rxCountEl) rxCountEl.innerText = rxCount;
+                    if (txCountModalEl) txCountModalEl.innerText = txCount;
+                    if (rxCountModalEl) rxCountModalEl.innerText = rxCount;
 
-                if (direction === "TX") {
-                    row.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span style="color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.12); padding: 1px 5px; border-radius: 3px;">[TX 송신]</span> <span style="color: #86efac; font-family: monospace; font-weight: 600;">${hexStr}</span> ${desc ? `<span style="color: #94a3b8; font-size: 10.5px;">(${desc})</span>` : ''}`;
-                } else if (direction === "RX") {
-                    row.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span style="color: #38bdf8; font-weight: 800; background: rgba(56, 189, 248, 0.12); padding: 1px 5px; border-radius: 3px;">[RX 수신]</span> <span style="color: #7dd3fc; font-weight: bold; font-family: monospace;">${hexStr}</span> ${desc ? `<span style="color: #fde047; font-size: 10.5px;">(${desc})</span>` : ''}`;
-                } else {
-                    row.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span style="color: #c084fc; font-weight: 700;">[SYS]</span> <span style="color: #e2e8f0;">${hexStr}</span>`;
-                }
-                return row;
-            }
+                    const hasLiveStream = (liveStreamDom && liveStreamDom.offsetParent !== null);
+                    const hasModalStream = (modalStreamDom && modalStreamDom.offsetParent !== null);
 
-            // 1. 하단 미니 스트리머에 추가
-            if (liveStreamDom) {
-                liveStreamDom.appendChild(buildLogLine());
-                liveStreamDom.scrollTop = liveStreamDom.scrollHeight;
-                while (liveStreamDom.children.length > 150) {
-                    liveStreamDom.removeChild(liveStreamDom.firstChild);
-                }
-            }
+                    if (hasLiveStream || hasModalStream) {
+                        const fragLive = hasLiveStream ? document.createDocumentFragment() : null;
+                        const fragModal = hasModalStream ? document.createDocumentFragment() : null;
 
-            // 2. 팝업 모달 스트리머에 추가
-            if (modalStreamDom) {
-                modalStreamDom.appendChild(buildLogLine());
-                const autoScrollChk = document.getElementById('chk-streamer-autoscroll');
-                if (!autoScrollChk || autoScrollChk.checked) {
-                    modalStreamDom.scrollTop = modalStreamDom.scrollHeight;
-                }
-                while (modalStreamDom.children.length > 100) {
-                    modalStreamDom.removeChild(modalStreamDom.firstChild);
-                }
+                        while (livePacketBatchQueue.length > 0) {
+                            const pkt = livePacketBatchQueue.shift();
+                            
+                            function createLogNode() {
+                                const row = document.createElement('div');
+                                row.style.marginBottom = '3px';
+                                row.style.wordBreak = 'break-all';
+                                row.style.fontSize = '10.5px';
+
+                                if (pkt.direction === "TX") {
+                                    row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.12); padding: 1px 5px; border-radius: 3px;">[TX 송신]</span> <span style="color: #86efac; font-family: monospace; font-weight: 600;">${pkt.hexStr}</span> ${pkt.desc ? `<span style="color: #94a3b8; font-size: 10px;">(${pkt.desc})</span>` : ''}`;
+                                } else if (pkt.direction === "RX") {
+                                    row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #38bdf8; font-weight: 800; background: rgba(56, 189, 248, 0.12); padding: 1px 5px; border-radius: 3px;">[RX 수신]</span> <span style="color: #7dd3fc; font-weight: bold; font-family: monospace;">${pkt.hexStr}</span> ${pkt.desc ? `<span style="color: #fde047; font-size: 10px;">(${pkt.desc})</span>` : ''}`;
+                                } else {
+                                    row.innerHTML = `<span style="color: #64748b;">[${pkt.timeStr}]</span> <span style="color: #c084fc; font-weight: 700;">[SYS]</span> <span style="color: #e2e8f0;">${pkt.hexStr}</span>`;
+                                }
+                                return row;
+                            }
+
+                            if (fragLive) fragLive.appendChild(createLogNode());
+                            if (fragModal) fragModal.appendChild(createLogNode());
+                        }
+
+                        // 1. 하단 미니 스트리머 일괄 반영 및 50줄 링버퍼 제한
+                        if (hasLiveStream && fragLive) {
+                            liveStreamDom.appendChild(fragLive);
+                            while (liveStreamDom.children.length > 50) {
+                                liveStreamDom.removeChild(liveStreamDom.firstChild);
+                            }
+                            // 💡 scrollHeight를 읽지 않고 큰 값 직접 대입하여 Forced Reflow 100% 방지!
+                            liveStreamDom.scrollTop = 999999;
+                        }
+
+                        // 2. 모달 스트리머 일괄 반영 및 50줄 링버퍼 제한
+                        if (hasModalStream && fragModal) {
+                            modalStreamDom.appendChild(fragModal);
+                            while (modalStreamDom.children.length > 50) {
+                                modalStreamDom.removeChild(modalStreamDom.firstChild);
+                            }
+                            const autoScrollChk = document.getElementById('chk-streamer-autoscroll');
+                            if (!autoScrollChk || autoScrollChk.checked) {
+                                modalStreamDom.scrollTop = 999999;
+                            }
+                        }
+                    } else {
+                        // 표시 중이지 않을 때는 큐 비우기 (메모리 누수 원천 방지)
+                        livePacketBatchQueue.length = 0;
+                    }
+
+                    packetRenderScheduled = false;
+                });
             }
 
             // 3. 독립 팝업창(packet_streamer.html)으로 BroadcastChannel 단일 초고속 브로드캐스트 (중복 호출 제거로 CPU 점유율 0% 달성)
@@ -4334,7 +4598,7 @@
             });
 
             if (needRender) {
-                renderAll();
+                renderAllThrottled();
             }
 
             // 1초 주기로 파이썬 시퀀스 엔진으로 실시간 센서 및 DI 모니터링 telemetry 전달

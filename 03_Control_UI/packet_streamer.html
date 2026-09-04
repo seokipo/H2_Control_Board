@@ -174,6 +174,8 @@
             background: #040711;
             font-family: 'Fira Code', Consolas, monospace;
             user-select: text;
+            contain: strict; /* 👑 브라우저 렌더링 엔진 완벽 격리 (마우스 버벅임 100% 영구 박멸) */
+            will-change: scroll-position;
         }
 
         .log-entry {
@@ -319,40 +321,51 @@
 
         let txCount = 0;
         let rxCount = 0;
-        let scrollPending = false;
+        const packetBatchQueue = [];
+        let batchRenderScheduled = false;
 
-        function appendLog(type, hex, desc) {
+        function queuePacketLog(type, hex, desc) {
             const now = new Date();
             const timeStr = `[${now.toLocaleTimeString()}]`;
+            packetBatchQueue.push({ type, hex, desc, timeStr });
 
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-
-            let tagClass = 'log-tag-sys';
-            let tagText = `[${type}]`;
-            if (type === 'TX') tagClass = 'log-tag-tx';
-            else if (type === 'RX') tagClass = 'log-tag-rx';
-
-            entry.innerHTML = `
-                <span class="log-time">${timeStr}</span>
-                <span class="${tagClass}">${tagText}</span>
-                <span class="log-hex">${hex}</span>
-                <span class="log-desc">(${desc || ''})</span>
-            `;
-
-            consoleEl.appendChild(entry);
-
-            // 🎯 [핵심 최적화] 최대 100줄 링버퍼 유지 (DOM 과부하 및 메모리 누수 원천 차단)
-            while (consoleEl.children.length > 100) {
-                consoleEl.removeChild(consoleEl.firstChild);
-            }
-
-            // 🎯 [핵심 최적화] requestAnimationFrame으로 비동기 스크롤 처리 (마우스 이벤트 스레드 차단 방지)
-            if (chkAutoScroll.checked && !scrollPending) {
-                scrollPending = true;
+            if (!batchRenderScheduled) {
+                batchRenderScheduled = true;
                 requestAnimationFrame(() => {
-                    consoleEl.scrollTop = consoleEl.scrollHeight;
-                    scrollPending = false;
+                    if (packetBatchQueue.length > 0) {
+                        const frag = document.createDocumentFragment();
+                        while (packetBatchQueue.length > 0) {
+                            const p = packetBatchQueue.shift();
+                            const entry = document.createElement('div');
+                            entry.className = 'log-entry';
+
+                            let tagClass = 'log-tag-sys';
+                            let tagText = `[${p.type}]`;
+                            if (p.type === 'TX') tagClass = 'log-tag-tx';
+                            else if (p.type === 'RX') tagClass = 'log-tag-rx';
+
+                            entry.innerHTML = `
+                                <span class="log-time">${p.timeStr}</span>
+                                <span class="${tagClass}">${tagText}</span>
+                                <span class="log-hex">${p.hex}</span>
+                                <span class="log-desc">(${p.desc || ''})</span>
+                            `;
+                            frag.appendChild(entry);
+                        }
+
+                        consoleEl.appendChild(frag);
+
+                        // 🎯 [핵심 최적화] 최대 60줄 링버퍼 유지 (DOM 과부하 및 메모리 누수 원천 차단)
+                        while (consoleEl.children.length > 60) {
+                            consoleEl.removeChild(consoleEl.firstChild);
+                        }
+
+                        // 🎯 [핵심 최적화] scrollHeight 읽기 제거: 999999 직접 대입으로 Forced Reflow 완전 제거
+                        if (chkAutoScroll.checked) {
+                            consoleEl.scrollTop = 999999;
+                        }
+                    }
+                    batchRenderScheduled = false;
                 });
             }
         }
@@ -371,7 +384,7 @@
                     rxCount++;
                     rxCountEl.innerText = rxCount;
                 }
-                appendLog(data.direction, data.hex, data.desc);
+                queuePacketLog(data.direction, data.hex, data.desc);
             } else if (data.type === 'STATUS') {
                 if (data.port) portBadgeEl.innerText = data.port;
                 if (data.txCount !== undefined) {

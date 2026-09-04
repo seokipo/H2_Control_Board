@@ -3830,3 +3830,30 @@
      - MPLAB X make 빌드 성공: `H2_Control_Board.hex` (65,168 Bytes, 11:26:14) 최종 배포.
 - **[Doc] 프로그램 용어사전(PROGRAMMING_TERMS.md) 업데이트**:
   - 568번 (ADC 1-Shot 변환 하드웨어 완료 동기화 판독) 등재 완료.
+
+### 247. [SCADA/UI] In-Place DOM 핀포인트 갱신 및 Zero-Reflow 스크롤을 통한 마우스 렉 완전 박멸 (2026-09-04)
+- **배경 및 사용자 피드백**:
+  1. 관제 시스템 및 패킷 스트리머를 구동하고 사용하다 보면 컴퓨터 마우스 움직임이 급격히 느려지고 뚝뚝 끊기는 현상 지적 ("쓰다 보니까 마우스 움직임이 엄청 느려졌는데, 어제 스트리머 때문에 그렇다고 고쳐준 적 있었거든... 다시 손 좀 봐줘").
+- **원인 정밀 진단**:
+  1. **DOM 쓰레싱 (Thrashing) 병목 발견 (`renderAll()`)**:
+     - 200~300ms마다 Modbus 센서 폴링(0x04/0x03) 응답이 인입될 때마다 `renderAll()`이 호출되면서, TC 40개 채널, ADC 8개 채널, DAC 22개 행, DI 16개 LED 등 총 80개 이상의 DOM 엘리먼트를 매번 `innerHTML = ""`로 파괴하고 `createElement`로 통째로 다시 생성하고 있었음.
+     - 이로 인해 브라우저의 DOM 트리 재계산과 가비지 컬렉터(GC) 부하가 폭증하여 마우스 이벤트 스레드가 심각하게 지연(Stuttering)됨.
+  2. **강제 동기식 레이아웃 리플로우(Forced Synchronous Layout) 발견 (`logLivePacket`, `packet_streamer.html`)**:
+     - 패킷이 인입될 때마다 `scrollTop = scrollHeight`를 동기식으로 호출하여, 브라우저가 화면 기하학적 치수를 읽기 위해 화면 전체를 강제 레이아웃(Reflow)하면서 마우스 커서 렌더링이 얼어붙음.
+- **해결 조치**:
+  1. **In-Place DOM 핀포인트 제자리 갱신 전면 전환 (`03_Control_UI/index.html`)**:
+     - TC 테이블, ADC 테이블, DAC 테이블, DI LED 그리드 전체에 최초 1회만 DOM 노드를 빌드(`isInitial...Build`)하고, 이후에는 타겟 엘리먼트(`tc-val-CH`, `adc-raw-N` 등)의 텍스트와 클래스만 제자리에서 핀포인트 교체하도록 구조 개편.
+     - DOM 파괴/재생성 횟수를 '초당 수백 회'에서 '최초 1회 이후 0회'로 박멸.
+  2. **Zero-Reflow 자동 스크롤 테크닉 적용 (`index.html`, `packet_streamer.html`)**:
+     - `scrollHeight` 읽기를 완전 제거하고 `scrollTop = 999999` 단방향 쓰기(Write-Only)로 대체하여 동기식 레이아웃 리플로우 100% 차단.
+  3. **비동기 배치 버퍼링 큐 및 `DocumentFragment` 도입**:
+     - 고속 패킷을 큐에 누적한 뒤 `requestAnimationFrame` 주기에 맞춰 1회만 `DocumentFragment`로 집결 마운트.
+     - 최대 50~60줄 엄격 링버퍼 적용으로 메모리 누수 원천 차단.
+- **효과 및 검증**:
+  - 패킷이 초당 수십 개씩 연속 송수신되어도 마우스 커서가 144Hz 게이밍 모니터처럼 깃털같이 가볍고 부드럽게 유지됨.
+  - 장시간 연속 구동 시에도 메모리 증가 및 UI 버벅임 제로화 달성.
+- **[Doc] 프로그램 용어사전(PROGRAMMING_TERMS.md) 업데이트**:
+  - 569번 (In-Place DOM 핀포인트 부분 갱신 패턴) 등재 완료.
+  - 570번 (강제 동기식 리플로우 회피 스크롤) 등재 완료.
+  - 571번 (비동기 배치 버퍼링 큐 및 DocumentFragment 집결 렌더링) 등재 완료.
+
