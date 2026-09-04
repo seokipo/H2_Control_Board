@@ -1419,6 +1419,24 @@
             }
         }
 
+        /* 👑 [목표 상태 전환 중 스마트 펄스 & 인디케이터 스타일] */
+        .led-item.is-pending {
+            border-color: rgba(245, 158, 11, 0.75) !important;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.35) !important;
+            animation: pendingPulse 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pendingPulse {
+            0% { opacity: 0.85; filter: brightness(1.0); }
+            100% { opacity: 1.0; filter: brightness(1.25); box-shadow: 0 0 18px rgba(245, 158, 11, 0.6); }
+        }
+
+        .led-item.is-pending .do-btn {
+            border-color: #f59e0b !important;
+            color: #fde047 !important;
+            background: rgba(245, 158, 11, 0.25) !important;
+        }
+
         /* 모달 팝업 레이아웃 */
         .modal-overlay {
             position: fixed;
@@ -2769,6 +2787,15 @@
             { pin: 20, label: "DO_IGN175", desc: "점화 트랜스", active: false, is6kW: true, type: "GENERAL", model: "TZI5-15/100WE" }
         ];
 
+        // 🎯 [Target-State Guaranteed Engine] 각 DO 채널별 목표 상태 및 스마트 재시도 속성 초기화
+        doChannels.forEach(d => {
+            d.targetActive = d.active;
+            d.isPending = false;
+            d.retryCount = 0;
+            d.lastSentTime = 0;
+            d.lockUntil = 0;
+        });
+
         // 6. 보드 연동 서브 시리얼 통신 장치 데이터 맵
         const serialDevices = [
             { name: "인버터 제어기", net: "INV506", model: "BLP-8080 (인버터)", status: "OK", tx: false, rx: false, data: { freqSet: 60.00, freqOut: 59.85, current: 8.4 } },
@@ -3158,6 +3185,12 @@
                     }
                 }
 
+                // 🎯 [Target-State Pending 감지]
+                const pendingClass = item.isPending ? "is-pending" : "";
+                if (item.isPending) {
+                    btnText = "⏳ 전환 중";
+                }
+
                 const doVoltage = (item.type === "VALVE" || item.type === "GENERAL") ? "DC 24V" : "AC 220V";
                 const isHeaterOrIgniter = (item.type === "HEATER" || item.label === "DO_IGN175");
                 let feedbackClass = "";
@@ -3175,7 +3208,7 @@
                 if (isInitialDoBuild) {
                     const div = document.createElement('div');
                     div.id = `do-card-${index}`;
-                    div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
+                    div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass} ${pendingClass}`;
                     div.setAttribute('data-tooltip', `모델명: ${item.model} (${doVoltage})`);
                     div.innerHTML = `
                         <div class="led-indicator"></div>
@@ -3188,7 +3221,9 @@
                 } else {
                     const div = document.getElementById(`do-card-${index}`);
                     if (div) {
-                        div.className = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass}`;
+                        const targetClass = `led-item tooltip-trigger ${leftClass} ${activeClass} ${feedbackClass} ${pendingClass}`;
+                        if (div.className !== targetClass) div.className = targetClass;
+
                         const fbContainer = document.getElementById(`do-fb-${index}`);
                         if (fbContainer && fbContainer.innerHTML !== feedbackHtml) {
                             fbContainer.innerHTML = feedbackHtml;
@@ -3207,7 +3242,11 @@
             if (mcItem) {
                 const mcIndex = doChannels.findIndex(d => d.label === "DO_MC_SW");
                 const isMcOn = mcItem.active;
-                const btnText = isMcOn ? "⚡ 메인전원 OFF" : "⚡ 메인전원 ON";
+                let btnText = isMcOn ? "⚡ 메인전원 OFF" : "⚡ 메인전원 ON";
+                if (mcItem.isPending) {
+                    btnText = "⚡ ⏳ 전환 중...";
+                }
+                const mcPendingClass = mcItem.isPending ? "is-pending" : "";
                 const btnBg = isMcOn
                     ? "background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #f87171; color: #fff; box-shadow: 0 0 12px rgba(239,68,68,0.5);"
                     : "background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399; color: #fff; box-shadow: 0 0 12px rgba(16,185,129,0.5);";
@@ -3219,7 +3258,7 @@
                 if (isInitialDoBuild) {
                     const mcDiv = document.createElement('div');
                     mcDiv.id = `do-card-${mcIndex}`;
-                    mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
+                    mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'} ${mcPendingClass}`;
                     mcDiv.style.gridColumn = "span 2";
                     mcDiv.setAttribute('data-tooltip', `모델명: ${mcItem.model} (DC 24V 메인 루프 통전 스위치)`);
                     mcDiv.innerHTML = `
@@ -3234,7 +3273,9 @@
                 } else {
                     const mcDiv = document.getElementById(`do-card-${mcIndex}`);
                     if (mcDiv) {
-                        mcDiv.className = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'}`;
+                        const targetMcClass = `led-item main-power-card tooltip-trigger tooltip-left ${isMcOn ? 'active-power-on' : 'active-power-off'} ${mcPendingClass}`;
+                        if (mcDiv.className !== targetMcClass) mcDiv.className = targetMcClass;
+
                         const badgeEl = document.getElementById('mc-badge');
                         if (badgeEl && badgeEl.innerHTML !== badgeHtml) badgeEl.innerHTML = badgeHtml;
                         const mcBtn = document.getElementById('mc-btn');
@@ -3373,9 +3414,35 @@
             return bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
         }
 
-        // DO 수동 가상/실전 토글 제어
+        // 👑 [단일 릴레이 제어 패킷 생성 및 전송 전용 함수]
+        function sendDOWritePacket(index, targetActive) {
+            const item = doChannels[index];
+            if (!item) return;
+
+            // 표준 Modbus RTU 0x06 (Holding Register 20 + index) 쓰기 프레임 조립 (실제 CRC 부착)
+            const requestFrame = buildModbusRTUFrame(1, 6, 20 + index, targetActive ? 1 : 0);
+
+            if (commMode === "websocket" && socket && socket.readyState === WebSocket.OPEN && isPortConnected) {
+                socket.send(jsonStr({
+                    type: "WRITE_PORT",
+                    hex: requestFrame
+                }));
+                log(`TX -> [${requestFrame}] (DO [${item.label}] -> ${targetActive ? 'ON' : 'OFF'} 제어 패킷 송출)`);
+            } else {
+                // 오프라인 가상 모드
+                item.active = targetActive;
+                item.targetActive = targetActive;
+                item.isPending = false;
+                item.lockUntil = 0;
+                renderAllThrottled();
+                log(`[가상 제어] DO [${item.label}] -> ${targetActive ? 'ON' : 'OFF'}`);
+            }
+        }
+
+        // 👑 [DO 수동 토글 제어: Target-State Guaranteed Smart Retry]
         function toggleVirtualCoil(index) {
             const item = doChannels[index];
+            if (!item) return;
 
             // 메인 MC 스위치(DO_MC_SW)는 포트 연결 여부와 상관없이 오프라인 테스트 및 가상 시뮬레이션 기동이 항상 가능하도록 연동!
             if (!isPortConnected && item.label !== "DO_MC_SW") {
@@ -3383,14 +3450,21 @@
                 return;
             }
 
-            const nextActive = !item.active;
-            
-            // 🎯 [사용자 약속 핵심] 클릭 즉각 1ms 인지 반영 및 2.5초간 폴링 되돌림 방지 락(Lock)
-            item.active = nextActive;
-            item.lockUntil = Date.now() + 2500;
-            renderAll();
+            const currentTarget = (item.targetActive !== undefined) ? item.targetActive : item.active;
+            const nextActive = !currentTarget;
 
-            // 🔴 매크로 레코딩 스텝 자동 기록
+            // 🎯 [Target-State Guaranteed Engine]
+            // 1. 목표 상태 설정 및 UI 1ms 즉각 인지 반영(Optimistic UI)
+            item.targetActive = nextActive;
+            item.active = nextActive;
+            item.isPending = true;
+            item.retryCount = 0;
+            item.lastSentTime = Date.now();
+            item.lockUntil = Date.now() + 3500; // 폴링 상태 덮어쓰기 방지 윈도우
+
+            renderAllThrottled();
+
+            // 2. 매크로 레코딩 스텝 자동 기록
             dispatchMacroStep({
                 action_type: "SET_DO",
                 target: item.label,
@@ -3398,30 +3472,86 @@
                 description: `${item.label} (${item.desc}) ${nextActive ? 'ON (개방)' : 'OFF (차단)'}`
             });
 
-            // 표준 Modbus RTU 0x06 (Holding Register 20 + index) 쓰기 프레임 조립 (실제 CRC 부착)
-            const requestFrame = buildModbusRTUFrame(1, 6, 20 + index, nextActive ? 1 : 0);
-
-            if (commMode === "websocket" && socket && socket.readyState === WebSocket.OPEN && isPortConnected) {
-                // 단일 1회 즉시 송출 (브릿지 및 보드와 1:1 완벽 정합)
-                socket.send(jsonStr({
-                    type: "WRITE_PORT",
-                    hex: requestFrame
-                }));
-                log(`TX -> [${requestFrame}] (DO [${item.label}] 릴레이 스위칭 송출)`);
-            } else {
-                let actionStr = "";
-                if (item.type === "VALVE") {
-                    actionStr = item.active ? "열림" : "닫힘";
-                } else if (item.type === "HEATER") {
-                    actionStr = item.active ? "가열" : "대기";
-                } else {
-                    actionStr = item.active ? "기동" : "정지";
-                }
-                log(`Virtual DO [${item.label}] 수동 제어 트리거 -> ${actionStr}`);
-            }
+            // 3. 제어 패킷 1차 송출
+            sendDOWritePacket(index, nextActive);
         }
 
         const toggleDO = toggleVirtualCoil;
+
+        // 👑 [하드웨어 수신 상태와 목표 상태(Target State) 정합성 판별 및 스마트 재시도 엔진]
+        function updateDOBoardState(index, boardState, sourceDesc) {
+            const item = doChannels[index];
+            if (!item) return;
+
+            if (item.isPending) {
+                if (boardState === item.targetActive) {
+                    // 🎯 [성공 확정] 보드가 목표 상태에 물리적으로 도달 성공!
+                    item.active = boardState;
+                    item.isPending = false;
+                    item.retryCount = 0;
+                    item.lockUntil = 0;
+                    log(`[HW 확정] DO [${item.label}] 목표 상태 (${boardState ? 'ON' : 'OFF'}) 하드웨어 안착 성공 (${sourceDesc})`);
+                    renderAllThrottled();
+                } else {
+                    // ⚠️ 아직 보드가 이전 상태임! 절대로 UI의 optimistic 상태를 되돌리지 않음!
+                    const now = Date.now();
+                    const elapsed = now - (item.lastSentTime || 0);
+
+                    // 350ms 이상 지났는데 아직 목표 상태가 아니면 패킷 유실/글리치로 판단하여 스마트 자동 재전송!
+                    if (elapsed >= 350 && item.retryCount < 4) {
+                        item.retryCount++;
+                        item.lastSentTime = now;
+                        log(`[스마트 재시도] DO [${item.label}] -> ${item.targetActive ? 'ON' : 'OFF'} 자동 재전송 (${item.retryCount}/4회)`);
+                        sendDOWritePacket(index, item.targetActive);
+                    } else if (elapsed >= 3500 && item.retryCount >= 4) {
+                        // 3.5초 경과 및 4회 재시도 초과 시 하드웨어 무응답 경고 후 실제 보드 상태로 동기화
+                        item.active = boardState;
+                        item.targetActive = boardState;
+                        item.isPending = false;
+                        item.retryCount = 0;
+                        item.lockUntil = 0;
+                        log(`[제어 경고] DO [${item.label}] 하드웨어 응답 없음! 원래 상태(${boardState ? 'ON' : 'OFF'})로 롤백되었습니다.`);
+                        renderAllThrottled();
+                    }
+                }
+            } else {
+                // 평소 폴링 수신 시: 락 보호 기간이 끝났을 때만 실제 보드 상태로 동기화
+                if (!item.lockUntil || Date.now() >= item.lockUntil) {
+                    item.active = boardState;
+                    item.targetActive = boardState;
+                }
+            }
+        }
+
+        // 👑 [DO 상태 보장 백그라운드 타이머 워처]
+        // 폴링 패킷 인입과 무관하게 200ms 주기로 대기 중(isPending)인 채널을 상시 감시하여 재시도 보장
+        setInterval(() => {
+            const now = Date.now();
+            let needRender = false;
+            doChannels.forEach((item, index) => {
+                if (item.isPending) {
+                    const elapsed = now - (item.lastSentTime || 0);
+                    if (elapsed >= 400 && item.retryCount < 4) {
+                        item.retryCount++;
+                        item.lastSentTime = now;
+                        log(`[타이머 재시도] DO [${item.label}] -> ${item.targetActive ? 'ON' : 'OFF'} 재전송 (${item.retryCount}/4회)`);
+                        sendDOWritePacket(index, item.targetActive);
+                        needRender = true;
+                    } else if (elapsed >= 3500 && item.retryCount >= 4) {
+                        item.active = !item.targetActive;
+                        item.targetActive = item.active;
+                        item.isPending = false;
+                        item.retryCount = 0;
+                        item.lockUntil = 0;
+                        log(`[제어 타임아웃] DO [${item.label}] 명령 시간 초과. 보드 전원/통신선 확인 필요.`);
+                        needRender = true;
+                    }
+                }
+            });
+            if (needRender) {
+                renderAllThrottled();
+            }
+        }, 200);
 
         // 모달 윈도우 여닫기 핸들링
         const modalOverlay = document.getElementById('debug-modal-overlay');
@@ -3665,9 +3795,7 @@
                     log(`[HW ACK] DAC [${dacChannels[addr].net}] 출력 갱신 완료 -> ${val} (약 ${(val / 65535 * 5).toFixed(3)}V)`);
                 } else if (addr >= 20 && addr < 20 + doChannels.length) {
                     const doIdx = addr - 20;
-                    doChannels[doIdx].active = (val > 0);
-                    renderAll();
-                    log(`[HW ACK] DO [${doChannels[doIdx].label}] 릴레이 스위칭 완료 -> ${val > 0 ? 'ON' : 'OFF'}`);
+                    updateDOBoardState(doIdx, val > 0, "FC 06 ACK");
                 }
             }
             // [2] 0x05 (Write Single Coil Echo)
@@ -3675,9 +3803,8 @@
                 const addr = parseInt(tokens[2] + tokens[3], 16);
                 const val = parseInt(tokens[4] + tokens[5], 16);
                 if (addr >= 0 && addr < doChannels.length) {
-                    doChannels[addr].active = (val === 0xFF00 || val === 1);
-                    renderAll();
-                    log(`[HW ACK] DO Coil [${doChannels[addr].label}] 스위칭 완료 -> ${doChannels[addr].active ? 'ON' : 'OFF'}`);
+                    const coilState = (val === 0xFF00 || val === 1);
+                    updateDOBoardState(addr, coilState, "FC 05 ACK");
                 }
             }
             // [3] 0x04 (Read Input Registers Response: TC 0~30, ADC 32~47, RTC 50~55)
@@ -3749,10 +3876,7 @@
                             dacChannels[i].val = regVal;
                         } else if (i >= 20 && i < 20 + doChannels.length) {
                             const doIdx = i - 20;
-                            // 🎯 [사용자 약속 핵심] 클릭 락(Lock) 기간 동안에는 폴링 데이터로 상태를 되돌리지 않음!
-                            if (!doChannels[doIdx].lockUntil || Date.now() >= doChannels[doIdx].lockUntil) {
-                                doChannels[doIdx].active = (regVal > 0);
-                            }
+                            updateDOBoardState(doIdx, regVal > 0, "FC 03 폴링");
                         }
                     }
                     renderAllThrottled();
@@ -3766,10 +3890,8 @@
                     for (let bit = 0; bit < 8; bit++) {
                         const doIdx = (b * 8) + bit;
                         if (doIdx < doChannels.length) {
-                            // 🎯 [사용자 약속 핵심] 클릭 락(Lock) 기간 동안에는 폴링 데이터로 상태를 되돌리지 않음!
-                            if (!doChannels[doIdx].lockUntil || Date.now() >= doChannels[doIdx].lockUntil) {
-                                doChannels[doIdx].active = ((byteVal & (1 << bit)) !== 0);
-                            }
+                            const coilState = ((byteVal & (1 << bit)) !== 0);
+                            updateDOBoardState(doIdx, coilState, "FC 01 폴링");
                         }
                     }
                 }
@@ -4672,20 +4794,16 @@
                     const doIdx = doChannels.findIndex(d => d.label === key);
                     if (doIdx !== -1) {
                         const nextActive = (val === 1 || val === "ON" || val === true);
-                        doChannels[doIdx].active = nextActive;
+                        const item = doChannels[doIdx];
+                        item.targetActive = nextActive;
+                        item.active = nextActive;
+                        item.isPending = true;
+                        item.retryCount = 0;
+                        item.lastSentTime = Date.now();
+                        item.lockUntil = Date.now() + 3500;
 
-                        // Modbus 0x06 쓰기 프레임 모사 생성 및 전송
-                        if (commMode === "websocket" && socket && socket.readyState === WebSocket.OPEN && isPortConnected) {
-                            const slaveId = "01";
-                            const funcCode = "06";
-                            const addrHex = (20 + doIdx).toString(16).padStart(4, '0').toUpperCase();
-                            const valHex = (nextActive ? 1 : 0).toString(16).padStart(4, '0').toUpperCase();
-                            const mockCrc = "A23B";
-                            const requestFrame = `${slaveId} ${funcCode} ${addrHex.slice(0, 2)} ${addrHex.slice(2)} ${valHex.slice(0, 2)} ${valHex.slice(2)} ${mockCrc.slice(0, 2)} ${mockCrc.slice(2)}`;
-                            socket.send(jsonStr({ type: "WRITE_PORT", hex: requestFrame }));
-                        }
-
-                        log(`⚡ [시퀀스 릴레이 연동] ${key} (${doChannels[doIdx].desc}) -> ${nextActive ? '🟢 ON (초록색 개방)' : '⚫ OFF (차단)'}`);
+                        sendDOWritePacket(doIdx, nextActive);
+                        log(`⚡ [시퀀스 릴레이 연동] ${key} (${item.desc}) -> ${nextActive ? '🟢 ON (개방)' : '⚫ OFF (차단)'}`);
                     }
                 } else if (key.startsWith("AO_")) {
                     const targetDac = dacChannels.find(d => d.net === key);
@@ -4731,10 +4849,16 @@
 
             // 1. DO 릴레이 20채널 리셋 (DO_MC_SW 메인 전원 스위치는 ON 유연 보존, 나머지 19개 부하 릴레이는 OFF 차단!)
             doChannels.forEach(d => {
+                d.isPending = false;
+                d.retryCount = 0;
+                d.lastSentTime = 0;
+                d.lockUntil = 0;
                 if (d.label === "DO_MC_SW") {
                     d.active = true; // ⚡ 메인 MC 전원 릴레이 ON 상태 보존
+                    d.targetActive = true;
                 } else {
                     d.active = false; // 🔒 부하 밸브 및 히터 100% OFF 차단 닫기
+                    d.targetActive = false;
                 }
             });
 
