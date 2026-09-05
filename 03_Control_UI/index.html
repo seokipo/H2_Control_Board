@@ -3725,7 +3725,7 @@
                     logLivePacket("RX", data.hex, "보드 수신 응답 프레임");
                     processSerialPacket(data.hex);
                 } else if (data.type === "SERIAL_TIMEOUT") {
-                    logLivePacket("TIMEOUT", "--", data.desc || "보드 응답 시간 초과 (420ms)");
+                    logLivePacket("TIMEOUT", "--", data.desc || "보드 응답 시간 초과 (500ms)");
                 } else if (data.type === "MOCK_UPDATE") {
                     // 브릿지로부터 주기적으로 받는 가상 난수 갱신 데이터 동기화
                     tcChannels.forEach(item => {
@@ -3834,11 +3834,10 @@
                             const tempDeg = regVal / 10.0;
                             const curCjc = window.boardCjcTemp || null;
 
-                            // 👑 [특허급 스마트 가로바 필터링]
-                            // 펌웨어에서 보낸 0x9999 미결선 코드이거나, 칩 상온(CJC)과 0.8°C 이내로 동일한 빈 채널은 확실한 '--' 처리!
-                            const isCjcMirror = (curCjc !== null && Math.abs(tempDeg - curCjc) < 0.8);
+                            // 👑 [순수 하드웨어 단선 판정 기반 표출]
+                            // 펌웨어가 MAX31856 하드웨어 단선(OCFAIL)으로 검출한 0x9999/0x7FFF만 가로바로 처리하고,
+                            // 상온(CJC) 부근의 실제 센서 온도는 억울하게 가려지지 않고 100% 온전히 표출!
                             const isInvalid = (regVal === 0x7FFF || regVal === 0x9999 || regVal === 0 || 
-                                isCjcMirror ||
                                 (isTType && tempDeg > 250.0) || 
                                 (!isTType && tempDeg > 1100.0) ||
                                 tempDeg <= -40.0);

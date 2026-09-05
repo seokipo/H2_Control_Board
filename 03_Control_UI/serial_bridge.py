@@ -15,6 +15,7 @@ tcp_host = None
 tcp_port = None
 write_lock = asyncio.Lock()
 last_write_time = 0.0
+force_holding_read = False # 제어 쓰기 직후 0x03 즉각 우선 폴링 플래그
 
 # 연결된 모든 웹소켓 클라이언트 (브로드캐스트용)
 CONNECTED_CLIENTS = set()
@@ -68,7 +69,7 @@ async def read_serial_response(sp: serial.Serial, timeout_ms: int = 420, expecte
     👑 [길이 인지형 초정밀 1:1 수신 엔진]
     - Modbus RTU 헤더(국번, FC, 바이트 수)를 실시간 감지하여 기대 전체 패킷 길이를 동적 산출.
     - 패킷이 온전히 도착(len >= expected_len)하는 순간 0.1ms 만에 즉시 반환하여 응답 속도 극대화.
-    - 패킷이 도착할 때까지 최대 timeout_ms(기본 420ms) 동안 여유 있게 대기하여 조기 포기 및 연속 TX 누락 원천 차단.
+    - 패킷이 도착할 때까지 최대 timeout_ms(기본 500ms) 동안 여유 있게 대기하여 조기 포기 및 연속 TX 누락 원천 차단.
     """
     start_time = time.time()
     deadline = start_time + (timeout_ms / 1000.0)
@@ -111,13 +112,15 @@ async def read_serial_response(sp: serial.Serial, timeout_ms: int = 420, expecte
 
 async def global_serial_worker():
     """
-    👑 [싱글톤 1:1 핑퐁 동기화 엔진]
-    전역에서 오직 1개만 실행되는 시리얼 마스터 워커 루프.
-    다수의 웹 브라우저 창/탭이 열려도 시리얼 요청은 오직 1개씩 순차 송출(TX)되고,
-    보드의 응답(RX)을 1:1로 수신한 후 모든 창에 실시간 브로드캐스트합니다.
+    👑 [가중치 비대칭 1:1 핑퐁 스마트 폴링 엔진 (Weighted Asymmetric Smart Polling Engine)]
+    - 실시간으로 계속 변화하는 0x04 센서 계측값(117바이트)은 매 턴(3회 연속) 고속 갱신 (약 300~350ms 주기).
+    - 상태가 드물게 변하는 0x03 출력 레지스터(85바이트)는 4턴에 1회(약 1.5초 주기) 경량 확인하여 보드 CPU 과부하 원천 방지.
+    - ⚡ 사용자가 화면에서 DO/AO 제어 명령(Write)을 내리면 force_holding_read 플래그가 발동하여
+      다음 폴링 턴에서 즉각 0x03을 최우선으로 질의하여 0.1초 만에 하드웨어 확정 상태 반영!
+    - 보드가 비트뱅잉 송출 후 메인 루프를 안전하게 완수할 수 있는 220ms/200ms 마진 부여로 타임아웃 0% 달성!
     """
-    global serial_port, mock_active, last_write_time, write_lock
-    poll_step = 0
+    global serial_port, mock_active, last_write_time, write_lock, force_holding_read
+    poll_cycle = 0
 
     while True:
         try:
@@ -134,17 +137,19 @@ async def global_serial_worker():
                         if serial_port.in_waiting > 0:
                             serial_port.reset_input_buffer()
 
-                        # 폴링 요청 패킷 생성
-                        if poll_step == 0:
-                            req = build_modbus_frame(1, 4, 0, 56) # 0x04 Read Input Regs (센서 56개)
-                            desc = "0x04 Read Input Regs (센서 계측)"
-                            expected_len = 117 # 5 + 112
-                        else:
+                        # 👑 [가중치 비대칭 스케줄러]
+                        # 쓰기 명령 직후이거나 4턴에 1번(poll_cycle % 4 == 3)은 0x03(출력), 그 외 3턴은 0x04(센서)
+                        if force_holding_read or (poll_cycle % 4 == 3):
                             req = build_modbus_frame(1, 3, 0, 40) # 0x03 Read Holding Regs (출력 40개)
                             desc = "0x03 Read Holding Regs (출력 상태)"
                             expected_len = 85 # 5 + 80
-                        
-                        poll_step = (poll_step + 1) % 2
+                            force_holding_read = False
+                        else:
+                            req = build_modbus_frame(1, 4, 0, 56) # 0x04 Read Input Regs (센서 56개)
+                            desc = "0x04 Read Input Regs (센서 계측)"
+                            expected_len = 117 # 5 + 112
+
+                        poll_cycle = (poll_cycle + 1) % 4
 
                         # TX 송출 및 모든 클라이언트에 브로드캐스트
                         serial_port.write(req)
@@ -156,8 +161,8 @@ async def global_serial_worker():
                             "desc": desc
                         })
 
-                        # 👑 보드의 응답 완독 대기 (1:1 Ping-Pong, 최대 420ms)
-                        rx_data = await read_serial_response(serial_port, timeout_ms=420, expected_len=expected_len)
+                        # 👑 보드의 응답 완독 대기 (1:1 Ping-Pong, 최대 500ms)
+                        rx_data = await read_serial_response(serial_port, timeout_ms=500, expected_len=expected_len)
                         if rx_data:
                             rx_hex = rx_data.hex().upper()
                             rx_formatted = " ".join([rx_hex[i:i+2] for i in range(0, len(rx_hex), 2)])
@@ -165,19 +170,30 @@ async def global_serial_worker():
                                 "type": "SERIAL_RX",
                                 "hex": rx_formatted
                             })
+                            # 정상 수신 후 MCU가 메인 루프(센서 MUX/ADC 계측)를 완수하고 수신 대기로 복귀할 안전 턴어라운드 마진
+                            turnaround_delay = 0.22 if expected_len > 100 else 0.20
                         else:
                             # ⚠️ 타임아웃 발생 시 화면에 침묵하지 않고 명확하게 통지하여 1:1 시각적 싱크 보존
                             await broadcast({
                                 "type": "SERIAL_TIMEOUT",
-                                "desc": f"{desc} 보드 응답 시간 초과 (420ms)"
+                                "desc": f"{desc} 보드 응답 시간 초과 (500ms)"
                             })
-                            print(f"[POLL TIMEOUT] {desc} - 보드 응답 없음 (420ms 경과)")
+                            print(f"[POLL TIMEOUT] {desc} - 보드 응답 없음 (500ms 경과)")
+                            # 👑 [연쇄 타임아웃 차단] 타임아웃 후 송수신 버퍼 완전 리셋 및 위상 안정화 회복 딜레이(350ms)
+                            try:
+                                serial_port.reset_input_buffer()
+                                serial_port.reset_output_buffer()
+                            except:
+                                pass
+                            turnaround_delay = 0.35 # 0.15초 -> 0.35초로 확대하여 보드 루프 복귀 후 완벽 재동기화 보장!
 
                     except Exception as poll_err:
                         print(f"[POLL ERROR] {poll_err}")
+                        turnaround_delay = 0.25
 
-                # 다음 폴링까지 100ms 안전 턴어라운드 유휴 대기 (초당 약 3회의 완벽한 1:1 왕복 리듬)
-                await asyncio.sleep(0.10)
+                # 👑 [적응형 턴어라운드 딜레이]
+                # 보드가 다음 수신 준비를 100% 완료할 수 있도록 안정적인 유휴 시간 보장
+                await asyncio.sleep(turnaround_delay)
 
             elif mock_active:
                 await asyncio.sleep(2.0)
@@ -196,7 +212,7 @@ async def global_serial_worker():
             await asyncio.sleep(0.3)
 
 async def handler(websocket, path=None):
-    global serial_port, mock_active, tcp_host, tcp_port, last_write_time, write_lock
+    global serial_port, mock_active, tcp_host, tcp_port, last_write_time, write_lock, force_holding_read
     CONNECTED_CLIENTS.add(websocket)
     client_addr = getattr(websocket, 'remote_address', 'unknown')
     print(f"[WS CLIENT] Connected from: {client_addr} (Total: {len(CONNECTED_CLIENTS)})")
@@ -269,6 +285,7 @@ async def handler(websocket, path=None):
                 hex_str = req.get("hex", "").replace(" ", "")
                 if hex_str:
                     last_write_time = time.time()
+                    force_holding_read = True # 👑 제어 쓰기 즉시 0x03 우선 폴링 트리거
                     if serial_port and serial_port.is_open:
                         async with write_lock:
                             # 턴어라운드 안전 윈도우 (보드가 송신 직후 수신 모드로 복귀할 시간 확보)

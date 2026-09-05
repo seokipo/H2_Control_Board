@@ -124,3 +124,20 @@ uint8_t RS422_ReadByte(void) {
 
   return 0;
 }
+
+// 👑 [특허급 버스트 수신 엔진] 타임아웃 윈도우 내에서 스타트 비트를 감시하여 1바이트 정밀 수신
+bool RS422_ReadByteTimeout(uint8_t *out_byte, uint32_t timeout_cycles) {
+  // 루프 1회당 약 4 인스트럭션 사이클 (FCY=4MHz 기준 1사이클=0.25us)
+  uint32_t loop_count = timeout_cycles >> 2;
+  while (loop_count > 0) {
+    if (PORTEbits.RE10 == 0) {
+      if (out_byte != 0) {
+        *out_byte = RS422_ReadByte();
+      }
+      return true;
+    }
+    loop_count--;
+  }
+  return false;
+}
+

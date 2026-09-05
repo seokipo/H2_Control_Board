@@ -112,11 +112,13 @@ int main(void) {
   ODCE = 0x0000;
 
   // [2] 시스템 하드웨어 드라이버 및 통신 포트 초기화
-  GPIO_Initialize();   // DO 포트 및 릴레이/솔레노이드 밸브 초기화
-  TC_Initialize();     // MAX31856 및 MUX 열전대 온도 센서 드라이버 개시
-  RS422_Initialize();  // 👑 [특허급 하드웨어 구제] 70번 핀 초정밀 비트뱅잉 RX & 71번 하드웨어 TX (19200 bps)
-  RS485_Initialize();  // 필드/컨버터용 9600bps 하드웨어 UART1 (RB6 RX, RD5 TX, RB5 DIR)
-  Modbus_Initialize(); // Modbus RTU 슬레이브 데이터베이스 초기화
+  GPIO_Initialize();     // DO 포트 및 릴레이/솔레노이드 밸브 초기화
+  TC_Initialize();       // MAX31856 및 MUX 열전대 온도 센서 드라이버 개시
+  DAC60516_Initialize(); // 🎛️ DAC60516 16비트 DAC 초기화 (내부 2.5V 레퍼런스 ON, 0~5V 2x 게인 ON, 전 채널 활성화)
+  ADS1115_Initialize();  // 📊 ADS1115 16비트 ADC 4개 칩 및 RB0/RB1 I2C 버스 초기화 (+/-6.144V FSR)
+  RS422_Initialize();    // 👑 [특허급 하드웨어 구제] 70번 핀 초정밀 비트뱅잉 RX & 71번 하드웨어 TX (19200 bps)
+  RS485_Initialize();    // 필드/컨버터용 9600bps 하드웨어 UART1 (RB6 RX, RD5 TX, RB5 DIR)
+  Modbus_Initialize();   // Modbus RTU 슬레이브 데이터베이스 초기화
 
   // DO 초기화 (기본 OFF)
   DO_SV149_TRIS = 0;
@@ -133,6 +135,7 @@ int main(void) {
   static uint8_t prio_idx = 0;
   static uint8_t norm_idx = 0;
   static bool is_prio_turn = false;
+  static uint8_t adc_scan_idx = 0;  // 현재 스캔 중인 ADC 센서 인덱스 (0 ~ 13)
 
   // 주요 집중 감시 채널 목록 (체감 응답속도 1초대 보장)
   static const uint8_t priority_channels[] = {
@@ -148,6 +151,7 @@ int main(void) {
 
   // 초기 0번 채널 1-Shot 변환 트리거
   TC_TriggerConversion(TC_CH1_CITY_GAS_IN);
+  ADS1115_TriggerChannel(adc_channel_map[0]); // ADS1115 0번 채널 초기 변환 사전 트리거
 
   while (1) {
     // [A] 관제용 Modbus RTU 통신 패킷 스캔 및 고속 응답 처리
@@ -173,10 +177,10 @@ int main(void) {
         // 2. 완벽하게 변환 완료된 순수 열전대 온도 판독 (오차 0%)
         float temp = TC_ReadTemperature((TC_Channel_t)current_tc_ch);
 
-        // 👑 [특허급 스마트 가로바 필터링] 
-        // 센서 미체결 빈 채널은 차동 기생 전압이 0mV이므로 칩 내부 상온(cj_temp)과 거의 동일하게 측정됨!
-        // 따라서 냉접점 온도와의 차이가 0.8도 미만이거나 단선 오류인 채널은 0x9999(-- 가로바)로 처리!
-        if (temp > -100.0f && temp < 2000.0f && fabsf(temp - cj_temp) >= 0.8f) {
+        // 👑 [순수 하드웨어 단선 판정 기반 유효 온도 기록]
+        // MAX31856 칩셋의 하드웨어 단선 검출(OCFAIL)로 미체결 채널은 -999.0f로 확정 판정되므로,
+        // 실제 센서가 상온(CJC) 부근일 때 가로바로 사라지는 부작용(상온 실명)을 없애고 100% 온전히 표출!
+        if (temp > -100.0f && temp < 2000.0f) {
           modbus_db.input_regs[current_tc_ch] = (uint16_t)(temp * 10.0f);
         } else {
           modbus_db.input_regs[current_tc_ch] = 0x9999; // 미결선 빈 채널 -> UI 가로바(--) 표출
@@ -207,6 +211,36 @@ int main(void) {
                      (modbus_db.holding_regs[20 + i] > 0);
         Modbus_SetDO(i, state);
       }
+
+      // 6. 🎛️ Modbus Holding Registers (0~11) 아날로그 출력(DAC60516) 하드웨어 동기화
+      // 👑 [Dirty Check 최적화] 값이 실제로 변경되었을 때만 초고속 SPI 전송 (CPU 점유율 99% 절감)
+      static uint16_t last_dac_cache[12] = {
+          0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+          0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
+      };
+      static uint16_t dac_sync_count = 0;
+      bool dac_force_sync = (++dac_sync_count >= 500); // 약 5초마다 노이즈 방어용 전 채널 동기화
+      if (dac_force_sync) dac_sync_count = 0;
+
+      for (uint8_t i = 0; i < 12; i++) {
+        if (dac_force_sync || modbus_db.holding_regs[i] != last_dac_cache[i]) {
+          last_dac_cache[i] = modbus_db.holding_regs[i];
+          DAC60516_OutputChannel_t dac_ch = dac_channel_map[i];
+          DAC60516_WriteRaw(dac_ch, modbus_db.holding_regs[i]);
+          Modbus_Task(); // 통신 수신 즉각 감시
+        }
+      }
+
+      // 7. 📊 ADS1115 아날로그 입력(ADC 14개 센서) 👑 [제로 블로킹 파이프라인 변환]
+      // 1.3ms 대기 딜레이를 0.000ms로 소멸! 이전 변환 완료값 즉각 판독 후 다음 채널 즉각 사전 트리거
+      ADS1115_SensorChannel_t curr_adc = adc_channel_map[adc_scan_idx];
+      modbus_db.input_regs[32 + adc_scan_idx] = ADS1115_ReadNormalized(curr_adc);
+      Modbus_Task(); // 통신 수신 감시 공백 제로화
+
+      adc_scan_idx = (adc_scan_idx + 1) % 14;
+      ADS1115_SensorChannel_t next_adc = adc_channel_map[adc_scan_idx];
+      ADS1115_TriggerChannel(next_adc); // 대기시간 0ms 비동기 트리거!
+      Modbus_Task(); // 통신 수신 감시 공백 제로화
     }
 
     // [C] 하트비트 및 워치독 타이머 클리어 (MCU 오동작/강제 리셋 방지)

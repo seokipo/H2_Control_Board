@@ -89,8 +89,11 @@ typedef enum {
  * 5. 드라이버 API 함수 원형
  * ========================================================================== */
 
+// UI 대시보드 인덱스(0 ~ 13)와 매칭되는 센서 채널 순서 테이블 (14개 유효 센서)
+extern const ADS1115_SensorChannel_t adc_channel_map[14];
+
 /**
- * @brief ADS1115 4개 칩의 통신 상태 검증 및 기본 속성 초기화
+ * @brief ADS1115 4개 칩의 통신 상태 검증 및 I2C 버스 초기화
  * @return true 초기화 성공, false 실패
  */
 bool ADS1115_Initialize(void);
@@ -112,10 +115,32 @@ bool ADS1115_ReadRaw(ADS1115_SensorChannel_t channel, int16_t *value);
 bool ADS1115_ReadVoltage(ADS1115_SensorChannel_t channel, float *voltage);
 
 /**
- * @brief 특정 센서 채널의 16비트 ADC 원시 값 직접 반환 (main.c 바인딩용)
+ * @brief 특정 센서 채널의 16비트 ADC 원시 값 직접 반환
  * @param channel 계측할 센서 채널 인덱스
  * @return uint16_t 16비트 ADC 원시 값
  */
 uint16_t ADS1115_ReadChannel(ADS1115_SensorChannel_t channel);
 
+/**
+ * @brief 특정 센서 채널의 전압을 0V~5V FSR 기준 0~65535로 정규화하여 반환 (UI 직결용)
+ * @param channel 계측할 센서 채널 인덱스
+ * @return uint16_t 0 ~ 65535 정규화된 ADC 코드 (5.0V = 65535)
+ */
+uint16_t ADS1115_ReadChannelNormalized(ADS1115_SensorChannel_t channel);
+
+/**
+ * @brief 👑 [제로 블로킹 파이프라인] 센서 채널 변환 비동기 트리거 (딜레이 0ms)
+ * @param channel 트리거할 센서 채널
+ * @return true 성공, false I2C 오류
+ */
+bool ADS1115_TriggerChannel(ADS1115_SensorChannel_t channel);
+
+/**
+ * @brief 👑 [제로 블로킹 파이프라인] 이전 완료된 변환 결과 즉시 판독 및 0~65535 정규화 반환 (딜레이 0ms)
+ * @param channel 판독할 센서 채널
+ * @return uint16_t 정규화된 0~65535 값
+ */
+uint16_t ADS1115_ReadNormalized(ADS1115_SensorChannel_t channel);
+
 #endif /* ADS1115_H */
+

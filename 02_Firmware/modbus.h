@@ -60,7 +60,10 @@ typedef struct {
     uint8_t discrete_inputs[2]; // 16개 비트 상태
 } Modbus_Registers_t;
 
+#include "dac60516.h"
+
 extern Modbus_Registers_t modbus_db;
+extern const DAC60516_OutputChannel_t dac_channel_map[12];
 
 /* ==========================================================================
  * 4. 드라이버 API 함수 원형

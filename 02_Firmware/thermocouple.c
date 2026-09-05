@@ -239,27 +239,36 @@ bool TC_TriggerConversion(TC_Channel_t channel)
     // 1. MUX 채널 및 센서 타입(T/K) 전환
     TC_SelectChannel(channel);
 
-    // 2. CR0 레지스터에 1-Shot 변환(Bit 6 = 1)과 Fault Clear(Bit 1 = 1) 동시 송출 (0x42)
-    // MUX 전환 시 일시적으로 발생할 수 있는 Open-Circuit Fault를 즉시 클리어하고 새 변환 개시
-    MAX31856_WriteRegister(MAX31856_REG_CR0, 0x42);
+    // 2. CR0 레지스터에 1-Shot 변환(Bit 6 = 1), 하드웨어 오픈 서킷 단선 검출(Bit 4 = 1), Fault Clear(Bit 1 = 1) 송출 (0x52)
+    // 👑 [특허급 하드웨어 단선/플로팅 검출 엔진 (OCFAIL=01)]
+    // 센서가 체결되지 않은 빈 채널(Open/Floating)을 5ms 만에 하드웨어가 자동 감지하여 고온 잔류 전하 고스팅 완벽 차단!
+    MAX31856_WriteRegister(MAX31856_REG_CR0, 0x52);
 
     return true;
 }
 
 float TC_ReadTemperatureOnly(TC_Channel_t channel)
 {
-    // [1] 3바이트 선형화 온도 레지스터 값 순차 수신 (0x0C, 0x0D, 0x0E 번지)
+    // [1] MAX31856 하드웨어 Fault Status Register (0x0F) 판독
+    uint8_t sr = MAX31856_ReadRegister(MAX31856_REG_SR);
+    // Bit 0: OPEN (1 = 센서 미체결 / 단선 오류)
+    if (sr & 0x01)
+    {
+        return -999.0f; // 센서 미연결 빈 채널 확정 -> UI 가로바(--) 즉각 처리
+    }
+
+    // [2] 3바이트 선형화 온도 레지스터 값 순차 수신 (0x0C, 0x0D, 0x0E 번지)
     uint8_t th = MAX31856_ReadRegister(MAX31856_REG_LTCBH);
     uint8_t tm = MAX31856_ReadRegister(MAX31856_REG_LTCBM);
     uint8_t tl = MAX31856_ReadRegister(MAX31856_REG_LTCBL);
 
-    // [2] MAX31856 공식 단선(Open Circuit / Fault) 플래그 검출 (0x7F, 0x80)
+    // [3] MAX31856 공식 단선 플래그 검출 (0x7F, 0x80)
     if (th == 0x7F || th == 0x80)
     {
         return -999.0f; // 센서 단선/미연결
     }
 
-    // [3] SPI 통신 단절(MISO 풀업 0xFF 또는 풀다운 0x00) 검출
+    // [4] SPI 통신 단절(MISO 풀업 0xFF 또는 풀다운 0x00) 검출
     if (th == 0xFF && tm == 0xFF && tl == 0xFF)
     {
         return -999.0f;

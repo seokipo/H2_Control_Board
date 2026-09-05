@@ -21,7 +21,7 @@ static bool rx_frame_completed = false;
 static uint32_t rx_timeout_counter = 0;
 
 // UI 대시보드 인덱스(0~11)와 MCU DAC60516 채널 간 1:1 매핑 테이블
-static const DAC60516_OutputChannel_t dac_channel_map[12] = {
+const DAC60516_OutputChannel_t dac_channel_map[12] = {
     AO_AB212_STACK_BLOWER,    // 0: STACK 공기 공급 에어블로어 (AO_AB212)
     AO_AB221_BURNER_BLOWER,   // 1: 개질기 연소용 에어블로어 (AO_AB221)
     AO_AB232_PROX_BLOWER,     // 2: Prox 제어용 에어블로어 (AO_AB232)
@@ -453,33 +453,76 @@ static void Modbus_ProcessFrame(void)
 
 void Modbus_Task(void)
 {
-    // [1] 시리얼 포트(RS-422)로부터 수신 데이터가 들어오고 있는지 상시 긁어옴
-    while (RS422_IsRxReady())
+    // [1] 시리얼 포트(RS-422) 70번 핀(RE10)에서 첫 바이트 스타트 비트 감지
+    if (RS422_IsRxReady())
     {
-        uint8_t rx_data = RS422_ReadByte();
-        Modbus_ProcessRxByte(rx_data);
-    }
+        uint8_t first_byte = RS422_ReadByte();
 
-    // [2] 3.5T 캐릭터 무전송 타임아웃 판정 (19200 bps 기준 약 8~10ms 안전 임계치)
-    // dsPIC33CK 고속 루프에서 바이트 간 조기 프레임 단절(조각남) 방지
-    if (rx_index > 0 && !rx_frame_completed)
-    {
-        rx_timeout_counter++;
-        if (rx_timeout_counter > 2000UL) 
+        // 👑 [슬레이브 국번 0x01 선두 엄격 필터링]
+        // 선두가 0x01(내 국번)이 아니면 노이즈/잔류 데이터이므로 즉시 무시
+        if (first_byte == MODBUS_SLAVE_ADDR)
         {
-            rx_frame_completed = true;
+            rx_buffer[0] = first_byte;
+            rx_index = 1;
+            rx_frame_completed = false;
+
+            // 기본 기대 길이는 표준 8바이트 (FC 01~06)
+            uint16_t expected_len = 8; 
+
+            // 👑 [특허급 버스트 패킷 완독 엔진 (Burst Packet Collector)]
+            // 첫 바이트 감지 즉시 루프를 탈출하지 않고, 바이트 간 최대 1.5ms(6000사이클) 이내에서
+            // 전체 요청 패킷(약 4.2ms)을 한 호흡에 단번에 싹 긁어 담음!
+            while (rx_index < expected_len)
+            {
+                uint8_t next_b = 0;
+                // 바이트 간 유휴 타임아웃: 1.5ms(6000사이클) -> 5.0ms(20000사이클 @ FCY=4MHz)로 확장!
+                // Windows OS 스케줄링 및 USB-to-RS422 컨버터 패킷 분할 지터(1~2ms)로 인한 패킷 누락 원천 방어!
+                if (RS422_ReadByteTimeout(&next_b, 20000UL))
+                {
+                    if (rx_index < MODBUS_BUFFER_SIZE)
+                    {
+                        rx_buffer[rx_index++] = next_b;
+                    }
+
+                    // FC 0x10(다중 레지스터 쓰기)의 경우 7번째 바이트(인덱스 6)에 바이트 수가 실려옴
+                    if (rx_index == 7 && rx_buffer[1] == MODBUS_FC_WRITE_MULTIPLE_REGS)
+                    {
+                        uint8_t data_bytes = rx_buffer[6];
+                        expected_len = 7 + data_bytes + 2; // 헤더 7 + 데이터 + CRC 2
+                    }
+                }
+                else
+                {
+                    // 1.5ms 동안 다음 바이트 미인입 -> 비정상 조각 패킷이므로 버퍼 즉시 소거!
+                    rx_index = 0;
+                    return;
+                }
+            }
+
+            // [2] 기대 패킷 완독 즉시 CRC16 무결성 초고속 검증
+            if (rx_index == expected_len)
+            {
+                uint16_t rx_crc = (uint16_t)rx_buffer[rx_index - 2] | ((uint16_t)rx_buffer[rx_index - 1] << 8);
+                uint16_t calc_crc = Modbus_CRC16(rx_buffer, rx_index - 2);
+
+                if (rx_crc == calc_crc)
+                {
+                    // 👑 0.001초 만에 즉시 응답 생성 및 전송! (레이턴시 0ms)
+                    Modbus_ProcessFrame();
+                }
+
+                // 처리 완료 또는 CRC 오류 시 버퍼 즉각 리셋하여 잔류 찌꺼기 100% 제거
+                rx_index = 0;
+                rx_frame_completed = false;
+                rx_timeout_counter = 0;
+            }
+        }
+        else
+        {
+            // 쓰레기 바이트 유입 시 버퍼 리셋
+            rx_index = 0;
         }
     }
-
-    // [3] 수신 완료된 프레임이 있으면 표준 Modbus RTU 분석 연산 처리하고 버퍼 리셋
-    if (rx_frame_completed)
-    {
-        Modbus_ProcessFrame();
-        
-        // 프레임 버퍼 리셋하여 다음 패킷 수신 준비
-        rx_index = 0;
-        rx_frame_completed = false;
-        rx_timeout_counter = 0;
-    }
 }
+
 

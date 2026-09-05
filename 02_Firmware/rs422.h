@@ -62,9 +62,19 @@ void RS422_WriteBuffer(const uint8_t *buffer, uint16_t length);
 bool RS422_IsRxReady(void);
 
 /**
- * @brief 수신 버퍼에서 1바이트 데이터 읽기
+ * @brief 수신 버퍼에서 1바이트 데이터 즉시 비트뱅잉 읽기
  * @return uint8_t 읽어낸 수신 데이터, 없으면 0
  */
 uint8_t RS422_ReadByte(void);
 
+/**
+ * @brief 타임아웃 제한 내에서 1바이트 비트뱅잉 수신
+ * @param out_byte 수신된 데이터 저장 포인터
+ * @param timeout_cycles 대기할 최대 인스트럭션 사이클 수 (FCY=4MHz 기준 4000사이클 = 1ms)
+ * @return true 수신 성공, false 타임아웃 미수신
+ */
+bool RS422_ReadByteTimeout(uint8_t *out_byte, uint32_t timeout_cycles);
+
 #endif /* RS422_H */
+
+

@@ -13,29 +13,35 @@
 #include <stdbool.h>
 
 /* ==========================================================================
- * 1. DAC60516 내부 레지스터 맵 정의
+ * 1. DAC60516 내부 레지스터 맵 정의 (TI 공식 데이터시트 SLASFK6 표준)
  * ========================================================================== */
-#define DAC60516_REG_NOOP       0x00    // 동작 없음
-#define DAC60516_REG_DEVID      0x01    // 디바이스 ID 레지스터 (R)
-#define DAC60516_REG_SYNC       0x02    // 채널 동기화 설정 (R/W)
-#define DAC60516_REG_CONFIG     0x03    // 전원 및 통신 레퍼런스 설정 (R/W)
-#define DAC60516_REG_GAIN       0x04    // 채널별 출력 이득 설정 (R/W)
-#define DAC60516_REG_TRIGGER    0x05    // 소프트웨어 리셋 및 트리거 (W)
-#define DAC60516_REG_STATUS     0x06    // 칩 오류 상태 정보 (R)
+#define DAC60516_REG_NOOP       0x00    // 동작 없음 (NOP, W)
+#define DAC60516_REG_DEVID      0x01    // 디바이스 ID 레지스터 (0x6516, R)
+#define DAC60516_REG_VERSION_ID 0x02    // 버전 ID (R)
+#define DAC60516_REG_PWDWN      0x03    // 채널별 전원 관리 레지스터 (R/W, 리셋 0xFFFF)
+#define DAC60516_REG_GAIN       0x04    // QUAD 버퍼 게인 설정 레지스터 (R/W, 0=1x 2.5V, 1=2x 5.0V)
+#define DAC60516_REG_TRIGGER    0x05    // 소프트웨어 리셋 및 LDAC 트리거 (W)
+#define DAC60516_REG_BCAST_DATA 0x06    // 브로드캐스트 데이터 레지스터 (R/W)
+#define DAC60516_REG_STATUS     0x07    // 칩 오류 상태 정보 (R)
+#define DAC60516_REG_SDO_EN     0x08    // SDO 출력 인에이블 설정 (R/W)
+#define DAC60516_REG_GEN_CONFIG 0x09    // 일반 설정: 내부 레퍼런스(Bit 2: REF_PWDWN) 등 (R/W, 리셋 0x0014)
+#define DAC60516_REG_SYNC_EN    0x0A    // 채널별 동기화 설정 (R/W, 리셋 0x0000 비동기 즉각 출력)
+#define DAC60516_REG_BCAST_EN   0x0B    // 브로드캐스트 인에이블 (R/W)
+#define DAC60516_REG_CLEAR      0x0C    // 채널 클리어 (R/W)
 
-// DAC 채널 데이터 레지스터 (OUT0 ~ OUT15)
-#define DAC60516_REG_DAC0       0x08    // OUT0 (AO_AB232)
-#define DAC60516_REG_DAC1       0x09    // OUT1 (AO_AB212)
-#define DAC60516_REG_DAC2       0x0A    // OUT2 (AO_P341)
-#define DAC60516_REG_DAC3       0x0B    // OUT3 (AO_P375)
-#define DAC60516_REG_DAC4       0x0C    // OUT4 (AO_P108)
-#define DAC60516_REG_DAC5       0x0D    // OUT5 (AO_P370)
-#define DAC60516_REG_DAC6       0x0E    // OUT6 (AO_P380)
-#define DAC60516_REG_DAC7       0x0F    // OUT7 (AO_AB221)
-#define DAC60516_REG_DAC8       0x10    // OUT8 (AO_MFC111)
-#define DAC60516_REG_DAC9       0x11    // OUT9 (AO_MFC121)
-#define DAC60516_REG_DAC10      0x12    // OUT10 (AO_P351)
-#define DAC60516_REG_DAC11      0x13    // OUT11 (AO_SPARE1)
+// DAC 채널 데이터 버퍼 레지스터 (OUT0 ~ OUT15, Offset 0x10 ~ 0x1F)
+#define DAC60516_REG_DAC0       0x10    // OUT0 (AO_AB232 - PrOx 에어블로우)
+#define DAC60516_REG_DAC1       0x11    // OUT1 (AO_AB212 - STACK 에어블로어)
+#define DAC60516_REG_DAC2       0x12    // OUT2 (AO_P341 - AOG 냉각 물펌프)
+#define DAC60516_REG_DAC3       0x13    // OUT3 (AO_P375 - STACK 2 냉각수 공급)
+#define DAC60516_REG_DAC4       0x14    // OUT4 (AO_P108 - 가스 가압펌프)
+#define DAC60516_REG_DAC5       0x15    // OUT5 (AO_P370 - STACK 1 냉각수 공급)
+#define DAC60516_REG_DAC6       0x16    // OUT6 (AO_P380 - 개질수 펌프)
+#define DAC60516_REG_DAC7       0x17    // OUT7 (AO_AB221 - 개질기 버너 에어블로어)
+#define DAC60516_REG_DAC8       0x18    // OUT8 (AO_MFC111 - BNG 유량 제어)
+#define DAC60516_REG_DAC9       0x19    // OUT9 (AO_MFC121 - PNG 유량 제어)
+#define DAC60516_REG_DAC10      0x1A    // OUT10 (AO_P351 - Anode 냉각 물펌프)
+#define DAC60516_REG_DAC11      0x1B    // OUT11 (AO_SPARE1 - 스페어 아날로그 출력)
 
 /* ==========================================================================
  * 2. 12개 아날로그 출력 채널 매핑 리스트
