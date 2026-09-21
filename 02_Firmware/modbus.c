@@ -136,7 +136,7 @@ void Modbus_Initialize(void)
 {
     // 데이터베이스 메모리 초기화
     for (int i = 0; i < 80; i++) modbus_db.input_regs[i] = 0;
-    for (int i = 0; i < 40; i++) modbus_db.holding_regs[i] = 0;
+    for (int i = 0; i < 80; i++) modbus_db.holding_regs[i] = 0;
     for (int i = 0; i < 4; i++) modbus_db.coils[i] = 0;
     for (int i = 0; i < 2; i++) modbus_db.discrete_inputs[i] = 0;
 
@@ -295,9 +295,9 @@ static void Modbus_ProcessFrame(void)
             break;
         }
 
-        case MODBUS_FC_READ_HOLDING_REGS: // 0x03 Holding Registers 읽기 (DAC 및 제어 설정)
+        case MODBUS_FC_READ_HOLDING_REGS: // 0x03 Holding Registers 읽기 (DAC, DO 및 RTC 설정)
         {
-            if (start_addr + quantity > 40)
+            if (start_addr + quantity > 80)
             {
                 SendExceptionResponse(func_code, MODBUS_ERR_ILLEGAL_DATA_ADDR);
                 return;
@@ -362,9 +362,9 @@ static void Modbus_ProcessFrame(void)
             break;
         }
 
-        case MODBUS_FC_WRITE_SINGLE_REG: // 0x06 단일 홀딩 레지스터 쓰기 (DAC 및 DO 제어)
+        case MODBUS_FC_WRITE_SINGLE_REG: // 0x06 단일 홀딩 레지스터 쓰기 (DAC, DO 및 RTC 제어)
         {
-            if (start_addr >= 40)
+            if (start_addr >= 80)
             {
                 SendExceptionResponse(func_code, MODBUS_ERR_ILLEGAL_DATA_ADDR);
                 return;
@@ -385,6 +385,30 @@ static void Modbus_ProcessFrame(void)
                 uint8_t do_idx = (uint8_t)(start_addr - 20);
                 Modbus_SetDO(do_idx, write_val > 0);
             }
+            // [3] DS3231 RTC 시간 동기화 트리거 (46번지에 1 쓰기)
+            else if (start_addr == REG_HOLD_RTC_TRIGGER && write_val == 1)
+            {
+                DateTime_t dt;
+                uint16_t yr = modbus_db.holding_regs[REG_HOLD_RTC_YEAR];
+                dt.year   = (yr >= 2000) ? (uint8_t)(yr - 2000) : (uint8_t)yr;
+                dt.month  = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_MONTH];
+                dt.date   = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_DATE];
+                dt.hour   = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_HOUR];
+                dt.minute = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_MIN];
+                dt.second = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_SEC];
+                dt.day    = 1;
+
+                if (RTC_SetTime(&dt))
+                {
+                    modbus_db.input_regs[REG_IN_RTC_YEAR]  = (uint16_t)dt.year + 2000;
+                    modbus_db.input_regs[REG_IN_RTC_MONTH] = (uint16_t)dt.month;
+                    modbus_db.input_regs[REG_IN_RTC_DATE]  = (uint16_t)dt.date;
+                    modbus_db.input_regs[REG_IN_RTC_HOUR]  = (uint16_t)dt.hour;
+                    modbus_db.input_regs[REG_IN_RTC_MIN]   = (uint16_t)dt.minute;
+                    modbus_db.input_regs[REG_IN_RTC_SEC]   = (uint16_t)dt.second;
+                }
+                modbus_db.holding_regs[REG_HOLD_RTC_TRIGGER] = 0;
+            }
 
             // 에코백 응답 조립 (수신 패킷 그대로 돌려줌)
             for (int i = 0; i < 6; i++)
@@ -397,7 +421,7 @@ static void Modbus_ProcessFrame(void)
 
         case MODBUS_FC_WRITE_MULTIPLE_REGS: // 0x10 복수 홀딩 레지스터 일괄 쓰기
         {
-            if (start_addr + quantity > 40)
+            if (start_addr + quantity > 80)
             {
                 SendExceptionResponse(func_code, MODBUS_ERR_ILLEGAL_DATA_ADDR);
                 return;
@@ -409,6 +433,8 @@ static void Modbus_ProcessFrame(void)
                 SendExceptionResponse(func_code, MODBUS_ERR_ILLEGAL_DATA_VAL);
                 return;
             }
+
+            bool rtc_trigger_requested = false;
 
             for (uint16_t i = 0; i < quantity; i++)
             {
@@ -426,6 +452,35 @@ static void Modbus_ProcessFrame(void)
                     uint8_t do_idx = (uint8_t)(reg_addr - 20);
                     Modbus_SetDO(do_idx, write_val > 0);
                 }
+                else if (reg_addr == REG_HOLD_RTC_TRIGGER && write_val == 1)
+                {
+                    rtc_trigger_requested = true;
+                }
+            }
+
+            // 40~46번지 복수 기입 완료 후 RTC 시간 일괄 기입 실행
+            if (rtc_trigger_requested || (start_addr <= REG_HOLD_RTC_YEAR && (start_addr + quantity) >= REG_HOLD_RTC_TRIGGER))
+            {
+                DateTime_t dt;
+                uint16_t yr = modbus_db.holding_regs[REG_HOLD_RTC_YEAR];
+                dt.year   = (yr >= 2000) ? (uint8_t)(yr - 2000) : (uint8_t)yr;
+                dt.month  = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_MONTH];
+                dt.date   = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_DATE];
+                dt.hour   = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_HOUR];
+                dt.minute = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_MIN];
+                dt.second = (uint8_t)modbus_db.holding_regs[REG_HOLD_RTC_SEC];
+                dt.day    = 1;
+
+                if (RTC_SetTime(&dt))
+                {
+                    modbus_db.input_regs[REG_IN_RTC_YEAR]  = (uint16_t)dt.year + 2000;
+                    modbus_db.input_regs[REG_IN_RTC_MONTH] = (uint16_t)dt.month;
+                    modbus_db.input_regs[REG_IN_RTC_DATE]  = (uint16_t)dt.date;
+                    modbus_db.input_regs[REG_IN_RTC_HOUR]  = (uint16_t)dt.hour;
+                    modbus_db.input_regs[REG_IN_RTC_MIN]   = (uint16_t)dt.minute;
+                    modbus_db.input_regs[REG_IN_RTC_SEC]   = (uint16_t)dt.second;
+                }
+                modbus_db.holding_regs[REG_HOLD_RTC_TRIGGER] = 0;
             }
 
             // 정상 응답 (국번, FC, StartAddr_H, StartAddr_L, Qty_H, Qty_L)

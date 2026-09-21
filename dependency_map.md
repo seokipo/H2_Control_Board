@@ -33,12 +33,14 @@ graph TD
         TC["🌡️ thermocouple.c/.h<br>(MAX31856 + ADG706 6개 MUX)"]
         ADC["📊 ads1115.c/.h<br>(ADS1115 4개 16ch ADC)"]
         DAC["🎛️ dac60516.c/.h<br>(DAC60516 12ch 16비트 DAC)"]
+        PID["⚙️ pid.h<br>(MCU 내장 폐루프 PID 엔진)"]
         RTC["⏰ rtc.c/.h<br>(DS3231 고정밀 RTC)"]
         ETH["🌐 ethernet.c/.h<br>(듀얼 W5500 이더넷)"]
         FLASH["💾 flash.c/.h<br>(W25Q256 SPI 플래시)"]
         
         MAIN --> MB
-        MAIN --> TC & ADC & DAC & RTC & ETH & FLASH & UART1 & UART2
+        MAIN --> TC & ADC & DAC & PID & RTC & ETH & FLASH & UART1 & UART2
+        PID --> DAC
         MB --> UART2
         MB --> DAC
         MB --> PIN
@@ -65,22 +67,24 @@ graph TD
 
 ### 🔌 2.1. 메인 제어 및 하드웨어 매핑 계통
 *   **[main.c](file:///d:/Work/H2_Control_Board/02_Firmware/main.c)**: 
-    *   **의존성**: `pin_map.h`, `ads1115.h`, `dac60516.h`, `thermocouple.h`, `modbus.h`, `rs422.h`, `rs485.h`, `rtc.h`, `ethernet.h`, `flash.h`.
-    *   **역할**: 200ms 주기로 전체 센서 계측 및 Modbus DB 바인딩을 수행하고, 20채널 DO 릴레이 하드웨어 동기화 및 WDT 리셋을 총괄합니다.
+    *   **의존성**: `pin_map.h`, `ads1115.h`, `dac60516.h`, `thermocouple.h`, `modbus.h`, `rs422.h`, `rs485.h`, `rtc.h`, `ethernet.h`, `flash.h`, `pid.h`.
+    *   **역할**: 200ms 주기로 전체 센서 계측 및 Modbus DB 바인딩을 수행하고, 내장 폐루프 PID 연산 및 DAC60516 물리 전압 갱신, 20채널 DO 릴레이 하드웨어 동기화 및 WDT 리셋을 총괄합니다.
+*   **[pid.h](file:///d:/Work/H2_Control_Board/02_Firmware/pid.h)**:
+    *   **역할**: dsPIC33CK MCU 전용 고성능 Closed-Loop PID 폐루프 연산 모듈. 냉각수 순환/공급 펌프 역동작(Reverse Action), 안티 와인드업(Anti-Windup) 클램핑 및 냉각 컷오프(Cooling Cutoff)를 실시간 자율 수행.
 *   **[pin_map.h](file:///d:/Work/H2_Control_Board/02_Firmware/pin_map.h)**:
     *   **역할**: dsPIC33CK512MP710 MCU의 모든 GPIO/SFR 비트필드 정의 및 `GPIO_Initialize()` 포트 초기화 제공.
 
 ### 📡 2.2. 통신 및 프로토콜 제어 계통
 *   **[modbus.c](file:///d:/Work/H2_Control_Board/02_Firmware/modbus.c) / [modbus.h](file:///d:/Work/H2_Control_Board/02_Firmware/modbus.h)**:
     *   **의존성**: `rs422.h`, `dac60516.h`, `ads1115.h`, `thermocouple.h`, `pin_map.h`.
-    *   **지원 펑션 코드**:
+    *   **지원 펑션 코드 및 레지스터 맵**:
         *   `0x01`: Read Coils (DO 0~19)
         *   `0x02`: Read Discrete Inputs (DI 0~15)
-        *   `0x03`: Read Holding Registers (DAC 0~11, DO 20~39)
-        *   `0x04`: Read Input Registers (TC 온도 0~30, ADC 32~47, RTC 50~55)
+        *   `0x03`: Read Holding Registers (DAC 0~11, PID 모드/SP 12~19, DO 20~39, RTC 40~46, PID 게인 Kp/Ki/Kd 50~61)
+        *   `0x04`: Read Input Registers (TC 온도 0~30, ADC 32~47, RTC 50~55, M701 가스/환경 56~63)
         *   `0x05`: Write Single Coil (DO 직접 스위칭)
-        *   `0x06`: Write Single Register (DAC 전압 및 DO 릴레이 제어)
-        *   `0x10`: Write Multiple Registers (다중 DAC/DO 일괄 제어)
+        *   `0x06`: Write Single Register (DAC 전압, PID 모드/SP, DO 릴레이, RTC 설정, PID 실시간 게인 Kp/Ki/Kd 주입)
+        *   `0x10`: Write Multiple Registers (다중 DAC/DO 일괄 제어 및 RTC/PID 게인 일괄 기입)
     *   **핵심 함수**: `Modbus_SetDO(uint8_t index, bool state)`를 통해 물리 `LAT` 레지스터를 즉시 스위칭.
 *   **[rs422.c](file:///d:/Work/H2_Control_Board/02_Firmware/rs422.c) / [rs422.h](file:///d:/Work/H2_Control_Board/02_Firmware/rs422.h)**: 관제 PC 연동용 Full-Duplex UART2 드라이버.
 *   **[rs485.c](file:///d:/Work/H2_Control_Board/02_Firmware/rs485.c) / [rs485.h](file:///d:/Work/H2_Control_Board/02_Firmware/rs485.h)**: 필드 인버터 및 순시 유량계 연동용 Half-Duplex UART1 드라이버.

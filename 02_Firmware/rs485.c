@@ -111,3 +111,134 @@ uint8_t RS485_ReadByte(void)
     
     return 0;
 }
+
+/* ==========================================================================
+ * 2. M701 7-in-1 복합 가스/환경 센서 파서 구현
+ * ========================================================================== */
+
+// 최신 계측 데이터 보관 정적 인스턴스
+static M701_Data_t s_m701_data = {0};
+
+// M701 패킷 파서 내부 상태
+typedef enum {
+    M701_STATE_WAIT_HEADER1 = 0,
+    M701_STATE_WAIT_HEADER2,
+    M701_STATE_COLLECT_DATA,
+    M701_STATE_WAIT_CHECKSUM
+} M701_ParserState_t;
+
+static M701_ParserState_t s_parser_state = M701_STATE_WAIT_HEADER1;
+static uint8_t s_rx_buf[17];
+static uint8_t s_rx_index = 0;
+
+bool RS485_ProcessM701(void)
+{
+    bool new_packet_received = false;
+
+    // 수신 버퍼에 데이터가 있는 동안 연속 처리
+    while (RS485_IsRxReady())
+    {
+        uint8_t byte = RS485_ReadByte();
+
+        switch (s_parser_state)
+        {
+            case M701_STATE_WAIT_HEADER1:
+                if (byte == 0x3C)
+                {
+                    s_rx_buf[0] = byte;
+                    s_parser_state = M701_STATE_WAIT_HEADER2;
+                }
+                break;
+
+            case M701_STATE_WAIT_HEADER2:
+                if (byte == 0x02)
+                {
+                    s_rx_buf[1] = byte;
+                    s_rx_index = 2; // B3(인덱스 2)부터 수집 시작
+                    s_parser_state = M701_STATE_COLLECT_DATA;
+                }
+                else if (byte == 0x3C)
+                {
+                    // 헤더 바이트 재인입 처리
+                    s_rx_buf[0] = byte;
+                    s_parser_state = M701_STATE_WAIT_HEADER2;
+                }
+                else
+                {
+                    s_parser_state = M701_STATE_WAIT_HEADER1;
+                }
+                break;
+
+            case M701_STATE_COLLECT_DATA:
+                s_rx_buf[s_rx_index++] = byte;
+                if (s_rx_index == 16) // B16까지 수집 완료
+                {
+                    s_parser_state = M701_STATE_WAIT_CHECKSUM;
+                }
+                break;
+
+            case M701_STATE_WAIT_CHECKSUM:
+            {
+                s_rx_buf[16] = byte; // B17 Check Code
+
+                // [1] 체크코드 무결성 검증 (B1 ~ B16 바이트 합의 하위 8비트)
+                uint8_t calc_chk = 0;
+                for (uint8_t i = 0; i < 16; i++)
+                {
+                    calc_chk += s_rx_buf[i];
+                }
+
+                if (calc_chk == byte)
+                {
+                    // [2] 7대 복합 센서 데이터 파싱
+                    // B3, B4 : eCO2
+                    s_m701_data.eco2  = ((uint16_t)s_rx_buf[2] << 8) | s_rx_buf[3];
+                    // B5, B6 : eCH2O
+                    s_m701_data.ech2o = ((uint16_t)s_rx_buf[4] << 8) | s_rx_buf[5];
+                    // B7, B8 : TVOC
+                    s_m701_data.tvoc  = ((uint16_t)s_rx_buf[6] << 8) | s_rx_buf[7];
+                    // B9, B10 : PM2.5
+                    s_m701_data.pm25  = ((uint16_t)s_rx_buf[8] << 8) | s_rx_buf[9];
+                    // B11, B12 : PM10
+                    s_m701_data.pm10  = ((uint16_t)s_rx_buf[10] << 8) | s_rx_buf[11];
+
+                    // B13, B14 : 온도 (B13 bit7이 1이면 영하)
+                    uint8_t temp_int_byte = s_rx_buf[12];
+                    uint8_t temp_dec_byte = s_rx_buf[13];
+                    bool is_negative = (temp_int_byte & 0x80) != 0;
+                    int16_t temp_int = (temp_int_byte & 0x7F);
+                    int16_t temp_calc = (temp_int * 10) + (temp_dec_byte % 10);
+                    if (is_negative)
+                    {
+                        temp_calc = -temp_calc;
+                    }
+                    s_m701_data.temperature = temp_calc;
+
+                    // B15, B16 : 습도 (0.1% 단위 스케일)
+                    s_m701_data.humidity = ((uint16_t)s_rx_buf[14] * 10) + (s_rx_buf[15] % 10);
+
+                    s_m701_data.is_valid = true;
+                    s_m701_data.rx_count++;
+                    new_packet_received = true;
+                }
+
+                // 다음 패킷 수신 대기 상태로 리셋
+                s_parser_state = M701_STATE_WAIT_HEADER1;
+                s_rx_index = 0;
+                break;
+            }
+
+            default:
+                s_parser_state = M701_STATE_WAIT_HEADER1;
+                s_rx_index = 0;
+                break;
+        }
+    }
+
+    return new_packet_received;
+}
+
+const M701_Data_t* M701_GetData(void)
+{
+    return &s_m701_data;
+}

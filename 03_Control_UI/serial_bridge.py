@@ -3,10 +3,37 @@ import time
 import json
 import websockets
 import serial
+import serial.tools.list_ports
 import sys
 import random
 import os
+import datetime
 from sequence_engine import SequenceEngine
+
+def get_available_ports():
+    """시스템에 연결된 실제 물리 시리얼 COM 포트 목록 동적 스캔 (장치명 및 하드웨어 ID 포함)"""
+    ports = []
+    try:
+        for p in serial.tools.list_ports.comports():
+            ports.append({
+                "port": p.device,
+                "description": p.description or p.device,
+                "hwid": p.hwid or ""
+            })
+    except Exception as e:
+        print(f"[PORT SCAN ERROR] {e}")
+
+    def port_sort_key(item):
+        port_str = item.get("port", "")
+        if port_str.upper().startswith("COM"):
+            num_part = port_str[3:]
+            if num_part.isdigit():
+                return int(num_part)
+        return 9999
+
+    ports.sort(key=port_sort_key)
+    return ports
+
 
 # 전역 상태 관리
 mock_active = False
@@ -19,6 +46,31 @@ force_holding_read = False # 제어 쓰기 직후 0x03 즉각 우선 폴링 플�
 
 # 연결된 모든 웹소켓 클라이언트 (브로드캐스트용)
 CONNECTED_CLIENTS = set()
+shutdown_timer_task = None
+has_client_connected_ever = False
+
+async def check_auto_shutdown():
+    """모든 관제 화면(클라이언트)이 닫혔을 때 백그라운드 프로세스 자동 자가 종료"""
+    global shutdown_timer_task
+    try:
+        await asyncio.sleep(4.0) # 새로고침(F5) 및 팝업 화면 전환 유예 시간
+        if len(CONNECTED_CLIENTS) == 0:
+            print("\n[AUTO SHUTDOWN] 모든 관제 화면이 닫혔습니다. 백그라운드 브릿지를 안전하게 자동 종료합니다.")
+            if serial_port and serial_port.is_open:
+                try:
+                    serial_port.close()
+                except Exception:
+                    pass
+            os._exit(0)
+    except asyncio.CancelledError:
+        pass
+
+async def initial_idle_watchdog():
+    """부팅 후 45초간 한 번도 클라이언트가 연결되지 않으면 유휴 프로세스 자동 종료"""
+    await asyncio.sleep(45.0)
+    if not has_client_connected_ever and len(CONNECTED_CLIENTS) == 0:
+        print("[IDLE WATCHDOG] 45초간 관제 클라이언트 연결이 없어 백그라운드 브릿지를 자동 종료합니다.")
+        os._exit(0)
 
 # 시퀀스 레시피 엔진 초기화
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -145,9 +197,10 @@ async def global_serial_worker():
                             expected_len = 85 # 5 + 80
                             force_holding_read = False
                         else:
-                            req = build_modbus_frame(1, 4, 0, 56) # 0x04 Read Input Regs (센서 56개)
-                            desc = "0x04 Read Input Regs (센서 계측)"
-                            expected_len = 117 # 5 + 112
+                            req = build_modbus_frame(1, 4, 0, 64) # 0x04 Read Input Regs (기존 센서 56개 + M701 복합센서 8개 = 총 64개)
+                            desc = "0x04 Read Input Regs (센서 계측 + M701)"
+                            expected_len = 133 # 5 + 128 (64 * 2)
+
 
                         poll_cycle = (poll_cycle + 1) % 4
 
@@ -197,13 +250,33 @@ async def global_serial_worker():
 
             elif mock_active:
                 await asyncio.sleep(2.0)
+                now_dt = datetime.datetime.now()
                 mock_packet = {
                     "type": "MOCK_UPDATE",
                     "temp_diff": (random.random() - 0.5) * 1.5,
                     "adc_diff": random.randint(-40, 40),
-                    "flow_diff": (random.random() - 0.5) * 0.8
+                    "flow_diff": (random.random() - 0.5) * 0.8,
+                    "rtc": {
+                        "year": now_dt.year,
+                        "month": now_dt.month,
+                        "date": now_dt.day,
+                        "hour": now_dt.hour,
+                        "minute": now_dt.minute,
+                        "second": now_dt.second
+                    },
+                    "m701": {
+                        "eco2": random.randint(420, 680),
+                        "ech2o": random.randint(10, 35),
+                        "tvoc": random.randint(45, 120),
+                        "pm25": random.randint(12, 38),
+                        "pm10": random.randint(18, 55),
+                        "temperature": round(23.5 + (random.random() - 0.5) * 2.0, 1),
+                        "humidity": round(48.0 + (random.random() - 0.5) * 5.0, 1),
+                        "valid": True
+                    }
                 }
                 await broadcast(mock_packet)
+
             else:
                 await asyncio.sleep(0.2)
 
@@ -212,7 +285,11 @@ async def global_serial_worker():
             await asyncio.sleep(0.3)
 
 async def handler(websocket, path=None):
-    global serial_port, mock_active, tcp_host, tcp_port, last_write_time, write_lock, force_holding_read
+    global serial_port, mock_active, tcp_host, tcp_port, last_write_time, write_lock, force_holding_read, shutdown_timer_task, has_client_connected_ever
+    has_client_connected_ever = True
+    if shutdown_timer_task and not shutdown_timer_task.done():
+        shutdown_timer_task.cancel()
+        shutdown_timer_task = None
     CONNECTED_CLIENTS.add(websocket)
     client_addr = getattr(websocket, 'remote_address', 'unknown')
     print(f"[WS CLIENT] Connected from: {client_addr} (Total: {len(CONNECTED_CLIENTS)})")
@@ -227,12 +304,33 @@ async def handler(websocket, path=None):
 
     seq_engine.set_broadcast_callback(send_to_all)
     
+    # 🔌 클라이언트 최초 접속 시 현재 시스템의 실제 사용 가능한 시리얼 포트 목록 및 연결 상태 즉각 전송
+    try:
+        cur_port = serial_port.port if (serial_port and serial_port.is_open) else None
+        await websocket.send(json.dumps({
+            "type": "PORTS_LIST",
+            "ports": get_available_ports(),
+            "current_port": cur_port,
+            "is_open": bool(serial_port and serial_port.is_open)
+        }))
+    except Exception as ex:
+        print(f"[WS CLIENT INIT] Port list push failed: {ex}")
+
     try:
         async for message in websocket:
             req = json.loads(message)
             req_type = req.get("type")
             
-            if req_type == "OPEN_PORT":
+            if req_type in ["GET_PORTS", "REFRESH_PORTS", "SCAN_PORTS"]:
+                cur_port = serial_port.port if (serial_port and serial_port.is_open) else None
+                await websocket.send(json.dumps({
+                    "type": "PORTS_LIST",
+                    "ports": get_available_ports(),
+                    "current_port": cur_port,
+                    "is_open": bool(serial_port and serial_port.is_open)
+                }))
+
+            elif req_type == "OPEN_PORT":
                 port = req.get("port", "COM3")
                 baud = int(req.get("baud", 19200))
                 parity_char = req.get("parity", "N")[0].upper()
@@ -259,7 +357,15 @@ async def handler(websocket, path=None):
                     await broadcast({
                         "type": "PORT_STATUS",
                         "status": "OPENED",
-                        "msg": f"{port} 열기 성공 (물리 장비 연동 활성화)"
+                        "msg": f"{port} 열기 성공 (물리 장비 연동 활성화)",
+                        "port": port
+                    })
+                    # 전체 클라이언트에 포트 상태 갱신 통지
+                    await broadcast({
+                        "type": "PORTS_LIST",
+                        "ports": get_available_ports(),
+                        "current_port": port,
+                        "is_open": True
                     })
                 except Exception as ex:
                     print(f"[PORT CONTROL] Failed to open {port}: {ex}")
@@ -268,6 +374,12 @@ async def handler(websocket, path=None):
                         "type": "PORT_STATUS",
                         "status": "MOCK_ACTIVE",
                         "msg": f"{port} 포트 연결 실패 ({ex}). 시뮬레이터(가상) 모드로 자동 전환됩니다."
+                    })
+                    await broadcast({
+                        "type": "PORTS_LIST",
+                        "ports": get_available_ports(),
+                        "current_port": None,
+                        "is_open": False
                     })
                     
             elif req_type == "CLOSE_PORT":
@@ -279,6 +391,12 @@ async def handler(websocket, path=None):
                 await broadcast({
                     "type": "PORT_STATUS",
                     "status": "CLOSED"
+                })
+                await broadcast({
+                    "type": "PORTS_LIST",
+                    "ports": get_available_ports(),
+                    "current_port": None,
+                    "is_open": False
                 })
                 
             elif req_type == "WRITE_PORT":
@@ -329,6 +447,65 @@ async def handler(websocket, path=None):
                             "type": "SERIAL_RX",
                             "hex": req.get("hex")
                         })
+
+            # ⏰ DS3231 RTC 시간 동기화 커맨드 핸들링 (PC -> 보드 RTC)
+            elif req_type == "SYNC_RTC":
+                year = int(req.get("year", 2026))
+                month = int(req.get("month", 1))
+                date = int(req.get("date", 1))
+                hour = int(req.get("hour", 0))
+                minute = int(req.get("minute", 0))
+                second = int(req.get("second", 0))
+
+                # 40~46번지 FC 0x10 프레임 조립 (Slave 1, FC 16, Start 40, Qty 7, Bytes 14)
+                data_bytes = bytearray()
+                for val in [year, month, date, hour, minute, second, 1]:
+                    data_bytes.append((val >> 8) & 0xFF)
+                    data_bytes.append(val & 0xFF)
+
+                hdr = bytearray([1, 16, 0, 40, 0, 7, 14]) + data_bytes
+                crc = modbus_crc16(hdr)
+                frame = bytes(hdr + bytearray([crc & 0xFF, (crc >> 8) & 0xFF]))
+
+                last_write_time = time.time()
+                force_holding_read = True
+                tx_formatted = " ".join([f"{b:02X}" for b in frame])
+
+                if serial_port and serial_port.is_open:
+                    async with write_lock:
+                        await asyncio.sleep(0.015)
+                        try:
+                            serial_port.reset_input_buffer()
+                        except:
+                            pass
+                        serial_port.write(frame)
+                        await broadcast({
+                            "type": "SERIAL_TX",
+                            "hex": tx_formatted,
+                            "desc": f"0x10 Write RTC Sync ({year:04d}-{month:02d}-{date:02d} {hour:02d}:{minute:02d}:{second:02d})"
+                        })
+                        print(f"[WS -> SERIAL] RTC SYNC TX: {tx_formatted}")
+
+                        ack_data = await read_serial_response(serial_port, timeout_ms=400, expected_len=8)
+                        if not ack_data:
+                            await asyncio.sleep(0.02)
+                            serial_port.write(frame)
+                            ack_data = await read_serial_response(serial_port, timeout_ms=400, expected_len=8)
+
+                        if ack_data:
+                            ack_formatted = " ".join([f"{b:02X}" for b in ack_data])
+                            await broadcast({
+                                "type": "SERIAL_RX",
+                                "hex": ack_formatted
+                            })
+                            print(f"[SERIAL -> WS] RTC SYNC ACK: {ack_formatted}")
+
+                print(f"[RTC SYNC] Synced time {year:04d}-{month:02d}-{date:02d} {hour:02d}:{minute:02d}:{second:02d} dispatched to board.")
+                await broadcast({
+                    "type": "RTC_SYNC_ACK",
+                    "status": "SUCCESS",
+                    "time": f"{year:04d}-{month:02d}-{date:02d} {hour:02d}:{minute:02d}:{second:02d}"
+                })
 
             # 🤖 시퀀스 레시피 제어 커맨드 핸들링
             elif req_type == "GET_RECIPES":
@@ -419,11 +596,23 @@ async def handler(websocket, path=None):
                 telemetry = req.get("data", {})
                 seq_engine.update_sensor_data(telemetry)
 
+            elif req_type == "SHUTDOWN_BRIDGE":
+                print("[SHUTDOWN] 관제 UI 창 닫힘 감지. 백그라운드 브릿지를 안전하게 즉각 종료합니다.")
+                if serial_port and serial_port.is_open:
+                    try:
+                        serial_port.close()
+                    except Exception:
+                        pass
+                os._exit(0)
+
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
         CONNECTED_CLIENTS.discard(websocket)
         print(f"[WS CLIENT] Disconnected: {client_addr} (Remaining: {len(CONNECTED_CLIENTS)})")
+        if len(CONNECTED_CLIENTS) == 0 and has_client_connected_ever:
+            if shutdown_timer_task is None or shutdown_timer_task.done():
+                shutdown_timer_task = asyncio.create_task(check_auto_shutdown())
 
 async def main():
     print("==================================================")
@@ -433,6 +622,8 @@ async def main():
     
     # 👑 단독 시리얼 마스터 워커 루프 백그라운드 상시 가동
     asyncio.create_task(global_serial_worker())
+    # 👑 초기 유휴 방지 워치독 가동 (부팅 후 아무도 안 오면 45초 후 자동 종료)
+    asyncio.create_task(initial_idle_watchdog())
     
     async with websockets.serve(handler, "localhost", 8888):
         await asyncio.Future()  # run forever

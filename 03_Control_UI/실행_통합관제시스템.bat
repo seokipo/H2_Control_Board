@@ -6,8 +6,8 @@ echo ========================================================
 echo   [H2 Control Board] Integrated Control System Launcher
 echo ========================================================
 echo.
-echo [1/2] Starting Python Serial Bridge Server...
-start "H2_Serial_Bridge" cmd /k "python serial_bridge.py"
+echo [1/2] Starting Python Serial Bridge in Background (Silent Mode)...
+wscript.exe "%~dp0run_silent_bridge.vbs"
 
 timeout /t 2 /nobreak > nul
 
@@ -16,5 +16,6 @@ start "" "index.html"
 
 echo.
 echo ========================================================
-echo   Launch Complete!
+echo   Launch Complete! (Bridge running in Background)
 echo ========================================================
+

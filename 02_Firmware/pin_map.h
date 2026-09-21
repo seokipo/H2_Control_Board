@@ -579,9 +579,9 @@ extern volatile uint16_t _SDI2RXR, _RP96R, _RP108R;
 #define TC_EN2_LAT LATEbits.LATE5
 #define TC_EN2_TRIS TRISEbits.TRISE5
 
-// 35번 핀: TC_EN3 (RC3) -> MUX3 인에이블 (CH17~CH20)
-#define TC_EN3_LAT LATCbits.LATC3
-#define TC_EN3_TRIS TRISCbits.TRISC3
+// 35번 핀: TC_EN3 (RD12) -> MUX3 인에이블 (CH17~CH20, CH36~CH40)
+#define TC_EN3_LAT LATDbits.LATD12
+#define TC_EN3_TRIS TRISDbits.TRISD12
 
 // 57번 핀: TC_SPI_CS (RB4) -> MAX31856 SPI CS 제어
 #define TC_SPI_CS_LAT LATBbits.LATB4

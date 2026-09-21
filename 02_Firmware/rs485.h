@@ -51,4 +51,36 @@ bool RS485_IsRxReady(void);
  */
 uint8_t RS485_ReadByte(void);
 
+/* ==========================================================================
+ * 2. M701 7-in-1 복합 가스/환경 센서 수신 스택
+ * ========================================================================== */
+
+/**
+ * @brief M701 복합 센서 계측 데이터 구조체
+ */
+typedef struct {
+    uint16_t eco2;        /**< eCO2 농도 (ppm, 400~5000) */
+    uint16_t ech2o;       /**< eCH2O 포름알데히드 농도 (ug/m3, 0~2000) */
+    uint16_t tvoc;        /**< TVOC 농도 (ug/m3, 0~5000) */
+    uint16_t pm25;        /**< PM2.5 극초미세먼지 (ug/m3, 0~999) */
+    uint16_t pm10;        /**< PM10 미세먼지 (ug/m3, 0~1000) */
+    int16_t  temperature; /**< 온도 (0.1도 단위 x10 스케일, 영하 지원) */
+    uint16_t humidity;    /**< 습도 (0.1% 단위 x10 스케일) */
+    bool     is_valid;    /**< 최근 유효 패킷 수신 성공 여부 */
+    uint32_t rx_count;    /**< 누적 수신 패킷 카운트 */
+} M701_Data_t;
+
+/**
+ * @brief RS-485 UART1 수신 버퍼를 폴링하여 M701 17바이트 패킷을 상태 머신으로 파싱
+ * @return true 새로운 유효 패킷 수신 완료 및 데이터 갱신됨, false 미완료 또는 패킷 없음
+ */
+bool RS485_ProcessM701(void);
+
+/**
+ * @brief 최신 M701 센서 계측 데이터 구조체 포인터 반환
+ * @return const M701_Data_t* 최신 계측 데이터 포인터
+ */
+const M701_Data_t* M701_GetData(void);
+
 #endif /* RS485_H */
+

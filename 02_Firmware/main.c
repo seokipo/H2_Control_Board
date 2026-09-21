@@ -83,6 +83,7 @@
 #include "rs485.h"
 #include "rtc.h"
 #include "thermocouple.h"
+#include "pid.h"
 
 // 내부 FRC (8MHz) 기준 명령 클록 FCY = Fosc / 2 = 4 MHz
 #ifndef FCY
@@ -116,9 +117,53 @@ int main(void) {
   TC_Initialize();       // MAX31856 및 MUX 열전대 온도 센서 드라이버 개시
   DAC60516_Initialize(); // 🎛️ DAC60516 16비트 DAC 초기화 (내부 2.5V 레퍼런스 ON, 0~5V 2x 게인 ON, 전 채널 활성화)
   ADS1115_Initialize();  // 📊 ADS1115 16비트 ADC 4개 칩 및 RB0/RB1 I2C 버스 초기화 (+/-6.144V FSR)
+  RTC_Initialize();      // ⏰ DS3231 고정밀 RTC 초기화 (I2C1 버스 공유, 24시간 형식 설정)
   RS422_Initialize();    // 👑 [특허급 하드웨어 구제] 70번 핀 초정밀 비트뱅잉 RX & 71번 하드웨어 TX (19200 bps)
   RS485_Initialize();    // 필드/컨버터용 9600bps 하드웨어 UART1 (RB6 RX, RD5 TX, RB5 DIR)
   Modbus_Initialize();   // Modbus RTU 슬레이브 데이터베이스 초기화
+
+  // 초기 RTC 시간 1-Shot 획득 및 Modbus DB 등록
+  DateTime_t init_dt;
+  if (RTC_GetTime(&init_dt)) {
+    modbus_db.input_regs[REG_IN_RTC_YEAR]  = (uint16_t)init_dt.year + 2000;
+    modbus_db.input_regs[REG_IN_RTC_MONTH] = (uint16_t)init_dt.month;
+    modbus_db.input_regs[REG_IN_RTC_DATE]  = (uint16_t)init_dt.date;
+    modbus_db.input_regs[REG_IN_RTC_HOUR]  = (uint16_t)init_dt.hour;
+    modbus_db.input_regs[REG_IN_RTC_MIN]   = (uint16_t)init_dt.minute;
+    modbus_db.input_regs[REG_IN_RTC_SEC]   = (uint16_t)init_dt.second;
+  }
+
+  // 🎛️ [펌웨어 내장형 Closed-Loop PID 제어기 인스턴스 초기화]
+  static PID_Controller_t pid_anode;
+  static PID_Controller_t pid_stack1;
+  static PID_Controller_t pid_aog;
+
+  PID_Initialize(&pid_anode,  3.8f, 0.35f, 0.5f, true); // Anode 냉각수 순환 (Reverse Action)
+  PID_Initialize(&pid_stack1, 3.8f, 0.35f, 0.5f, true); // STACK 1 냉각수 공급 (Reverse Action)
+  PID_Initialize(&pid_aog,    3.8f, 0.35f, 0.5f, true); // AOG 회수라인 응축수 (Reverse Action)
+
+  // 기본 레지스터 초기값 (기본 수동 모드, 안전 기본 목표치 설정)
+  modbus_db.holding_regs[REG_HOLD_PID_ANODE_MODE]  = 0;   // 수동
+  modbus_db.holding_regs[REG_HOLD_PID_ANODE_SP]    = 300; // 30.0도
+  modbus_db.holding_regs[REG_HOLD_PID_STACK1_MODE] = 0;   // 수동
+  modbus_db.holding_regs[REG_HOLD_PID_STACK1_SP]   = 240; // 24.0도
+  modbus_db.holding_regs[REG_HOLD_PID_AOG_MODE]    = 0;   // 수동
+  modbus_db.holding_regs[REG_HOLD_PID_AOG_SP]      = 290; // 29.0도
+  modbus_db.holding_regs[REG_HOLD_PID_STACK2_MODE] = 0;   // 수동 (10kW 전용)
+  modbus_db.holding_regs[REG_HOLD_PID_STACK2_SP]   = 240; // 24.0도 (10kW 전용)
+
+  // 기본 PID 게인 레지스터 초기값 (100배 스케일: Kp=3.80 -> 380, Ki=0.35 -> 35, Kd=0.50 -> 50)
+  modbus_db.holding_regs[REG_HOLD_PID_ANODE_KP]    = 380;
+  modbus_db.holding_regs[REG_HOLD_PID_ANODE_KI]    = 35;
+  modbus_db.holding_regs[REG_HOLD_PID_ANODE_KD]    = 50;
+
+  modbus_db.holding_regs[REG_HOLD_PID_STACK1_KP]   = 380;
+  modbus_db.holding_regs[REG_HOLD_PID_STACK1_KI]   = 35;
+  modbus_db.holding_regs[REG_HOLD_PID_STACK1_KD]   = 50;
+
+  modbus_db.holding_regs[REG_HOLD_PID_AOG_KP]      = 380;
+  modbus_db.holding_regs[REG_HOLD_PID_AOG_KI]      = 35;
+  modbus_db.holding_regs[REG_HOLD_PID_AOG_KD]      = 50;
 
   // DO 초기화 (기본 OFF)
   DO_SV149_TRIS = 0;
@@ -158,19 +203,35 @@ int main(void) {
     // (RS-422 70번 핀 초정밀 비트뱅잉 수신 & 71번 초정밀 언롤 비트뱅잉 송신)
     Modbus_Task();
 
+    // [A-2] 필드 RS-485 (UART1) M701 7-in-1 복합 가스/환경 센서 패킷 수신 및 DB 바인딩
+    if (RS485_ProcessM701()) {
+      const M701_Data_t* p_m701 = M701_GetData();
+      if (p_m701 && p_m701->is_valid) {
+        modbus_db.input_regs[REG_IN_M701_ECO2]   = p_m701->eco2;
+        modbus_db.input_regs[REG_IN_M701_ECH2O]  = p_m701->ech2o;
+        modbus_db.input_regs[REG_IN_M701_TVOC]   = p_m701->tvoc;
+        modbus_db.input_regs[REG_IN_M701_PM25]   = p_m701->pm25;
+        modbus_db.input_regs[REG_IN_M701_PM10]   = p_m701->pm10;
+        modbus_db.input_regs[REG_IN_M701_TEMP]   = (uint16_t)p_m701->temperature;
+        modbus_db.input_regs[REG_IN_M701_HUMI]   = p_m701->humidity;
+        modbus_db.input_regs[REG_IN_M701_STATUS] = 1;
+      }
+    }
+
     // [B] 주기적 논블로킹 센서 계측 및 DO 물리 동기화
     sensor_scan_counter++;
     if (sensor_scan_counter >= 3000UL) {
+
       sensor_scan_counter = 0;
 
       // 👑 [특허급 하드웨어 변환 완료 검사]
       // MAX31856 칩셋의 1-Shot 델타-시그마 ADC 변환(약 143ms)이 100% 끝났을 때만 판독!
       // 변환 진행 중에는 절대 MUX를 건드리거나 미완성 값을 읽지 않음으로써 황당한 이상 온도 원천 차단!
       if (TC_IsConversionDone()) {
-        // 1. 보드 기준 냉접점(CJ, 칩 내부 상온) 온도 판독 및 Modbus DB(31번지) 기록
+        // 1. 보드 기준 냉접점(CJ, 칩 내부 상온) 온도 판독 및 Modbus DB(48번지) 기록
         float cj_temp = TC_ReadColdJunction();
         if (cj_temp > 0.0f && cj_temp < 80.0f) {
-          modbus_db.input_regs[31] = (uint16_t)(cj_temp * 10.0f);
+          modbus_db.input_regs[48] = (uint16_t)(cj_temp * 10.0f);
         }
         Modbus_Task(); // 통신 수신 감시 공백 제로화
 
@@ -193,8 +254,8 @@ int main(void) {
           current_tc_ch = priority_channels[prio_idx];
           prio_idx = (prio_idx + 1) % (sizeof(priority_channels) / sizeof(priority_channels[0]));
         } else {
-          norm_idx = (norm_idx + 1) % 31; // 0~30번 채널 스캔 (31번은 CJC 전용 레지스터로 보존)
-          if (norm_idx == 19 || norm_idx == 20) norm_idx = 21; // 미사용 채널 스킵
+          norm_idx = (norm_idx + 1) % 32; // 0~31번 채널 스캔 (CH1 ~ CH32 전수 32개 채널 스캔)
+          if (norm_idx == TC_CH20_RESERVED) norm_idx = TC_CH21_REF_BN; // 19번(CH20 예비 채널)만 안전 스킵
           current_tc_ch = norm_idx;
         }
 
@@ -210,6 +271,60 @@ int main(void) {
         bool state = (modbus_db.coils[byte_idx] & bit_mask) ||
                      (modbus_db.holding_regs[20 + i] > 0);
         Modbus_SetDO(i, state);
+      }
+
+      // 5-2. 🎛️ [MCU 펌웨어 내장형 Closed-Loop PID 폐루프 연산 엔진 (독립 자율 제어)]
+      // 관제 PC가 다운되거나 통신이 두절되어도 MCU 자체 폐루프에서 스택 냉각을 100% 안전 유지!
+      
+      // [A] Anode 냉각수 순환 물펌프 (AO_P351, DAC ch7 ↔ CH14 열전대 회수온도)
+      if (modbus_db.holding_regs[REG_HOLD_PID_ANODE_MODE] == 1) {
+        if (modbus_db.holding_regs[REG_HOLD_PID_ANODE_KP] > 0) {
+          pid_anode.kp = (float)modbus_db.holding_regs[REG_HOLD_PID_ANODE_KP] / 100.0f;
+          pid_anode.ki = (float)modbus_db.holding_regs[REG_HOLD_PID_ANODE_KI] / 100.0f;
+          pid_anode.kd = (float)modbus_db.holding_regs[REG_HOLD_PID_ANODE_KD] / 100.0f;
+        }
+        uint16_t raw_pv = modbus_db.input_regs[TC_CH14_ANODE_COOL_RET];
+        if (raw_pv != 0x9999) {
+          float pv = (float)((int16_t)raw_pv) / 10.0f;
+          float sp = (float)((int16_t)modbus_db.holding_regs[REG_HOLD_PID_ANODE_SP]) / 10.0f;
+          modbus_db.holding_regs[7] = PID_Update(&pid_anode, sp, pv, 100.0f, 0.2f);
+        }
+      } else {
+        PID_Reset(&pid_anode);
+      }
+
+      // [B] STACK 1 냉각수 공급 펌프 (AO_P370, DAC ch8 ↔ CH15 열전대 회수온도)
+      if (modbus_db.holding_regs[REG_HOLD_PID_STACK1_MODE] == 1) {
+        if (modbus_db.holding_regs[REG_HOLD_PID_STACK1_KP] > 0) {
+          pid_stack1.kp = (float)modbus_db.holding_regs[REG_HOLD_PID_STACK1_KP] / 100.0f;
+          pid_stack1.ki = (float)modbus_db.holding_regs[REG_HOLD_PID_STACK1_KI] / 100.0f;
+          pid_stack1.kd = (float)modbus_db.holding_regs[REG_HOLD_PID_STACK1_KD] / 100.0f;
+        }
+        uint16_t raw_pv = modbus_db.input_regs[TC_CH15_STACK1_COOL_RET];
+        if (raw_pv != 0x9999) {
+          float pv = (float)((int16_t)raw_pv) / 10.0f;
+          float sp = (float)((int16_t)modbus_db.holding_regs[REG_HOLD_PID_STACK1_SP]) / 10.0f;
+          modbus_db.holding_regs[8] = PID_Update(&pid_stack1, sp, pv, 100.0f, 0.2f);
+        }
+      } else {
+        PID_Reset(&pid_stack1);
+      }
+
+      // [C] AOG 회수라인 응축수 펌프 (AO_P341, DAC ch6 ↔ CH17 열전대 인입온도)
+      if (modbus_db.holding_regs[REG_HOLD_PID_AOG_MODE] == 1) {
+        if (modbus_db.holding_regs[REG_HOLD_PID_AOG_KP] > 0) {
+          pid_aog.kp = (float)modbus_db.holding_regs[REG_HOLD_PID_AOG_KP] / 100.0f;
+          pid_aog.ki = (float)modbus_db.holding_regs[REG_HOLD_PID_AOG_KI] / 100.0f;
+          pid_aog.kd = (float)modbus_db.holding_regs[REG_HOLD_PID_AOG_KD] / 100.0f;
+        }
+        uint16_t raw_pv = modbus_db.input_regs[TC_CH17_WASTE_HEAT_IN];
+        if (raw_pv != 0x9999) {
+          float pv = (float)((int16_t)raw_pv) / 10.0f;
+          float sp = (float)((int16_t)modbus_db.holding_regs[REG_HOLD_PID_AOG_SP]) / 10.0f;
+          modbus_db.holding_regs[6] = PID_Update(&pid_aog, sp, pv, 100.0f, 0.2f);
+        }
+      } else {
+        PID_Reset(&pid_aog);
       }
 
       // 6. 🎛️ Modbus Holding Registers (0~11) 아날로그 출력(DAC60516) 하드웨어 동기화
@@ -241,6 +356,22 @@ int main(void) {
       ADS1115_SensorChannel_t next_adc = adc_channel_map[adc_scan_idx];
       ADS1115_TriggerChannel(next_adc); // 대기시간 0ms 비동기 트리거!
       Modbus_Task(); // 통신 수신 감시 공백 제로화
+
+      // 8. ⏰ DS3231 고정밀 RTC 실시간 시각 계측 (약 1.0초 주기)
+      static uint16_t rtc_scan_div = 0;
+      if (++rtc_scan_div >= 10) {
+        rtc_scan_div = 0;
+        DateTime_t cur_dt;
+        if (RTC_GetTime(&cur_dt)) {
+          modbus_db.input_regs[REG_IN_RTC_YEAR]  = (uint16_t)cur_dt.year + 2000;
+          modbus_db.input_regs[REG_IN_RTC_MONTH] = (uint16_t)cur_dt.month;
+          modbus_db.input_regs[REG_IN_RTC_DATE]  = (uint16_t)cur_dt.date;
+          modbus_db.input_regs[REG_IN_RTC_HOUR]  = (uint16_t)cur_dt.hour;
+          modbus_db.input_regs[REG_IN_RTC_MIN]   = (uint16_t)cur_dt.minute;
+          modbus_db.input_regs[REG_IN_RTC_SEC]   = (uint16_t)cur_dt.second;
+        }
+        Modbus_Task();
+      }
     }
 
     // [C] 하트비트 및 워치독 타이머 클리어 (MCU 오동작/강제 리셋 방지)

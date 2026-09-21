@@ -36,6 +36,7 @@ typedef enum {
     TC_CH17_WASTE_HEAT_IN,          // 배열 회수 입구 온도 (CH17)
     TC_CH18_WASTE_HEAT_OUT,         // 배열 회수 출구 온도 (CH18)
     TC_CH19_SYSTEM_INTERNAL,        // 시스템 내부온도 (CH19)
+    TC_CH20_RESERVED,               // 예비 채널 (CH20)
 
     /* --- K-Type 온도 센서 채널 (CH21 ~ CH32) --- */
     TC_CH21_REF_BN,                 // Ref-BN (CH21)

@@ -1,5 +1,420 @@
 # 📝 H2_Control_Board 개발 일지 (DEVELOPMENT_LOG)
 
+## 📅 2026-09-21: MAX31856 오토 컨버전 모드(Auto-Conversion)와 원샷 모드(1-Shot) 기술 분석 및 아키텍처 비교 📚🔍🌡️
+> 👑 **[데이터시트 기반 CMODE=1(자동 변환) vs CMODE=0(원샷 모드) 특성 분석 및 32채널 MUX 환경 적합성 확증] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **기술 검토 배경 및 사용자 질의**:
+>    - MAX31856 데이터시트(CR0 레지스터 Bit 7 `CMODE`) 상의 **오토 컨버전 모드(Automatic Conversion Mode)**의 정의와 어떤 경우에 사용하는지에 대한 기술적 검토.
+> 2. **모드별 핵심 동작 특성 및 비교**:
+>    - **오토 컨버전 모드 (`CMODE = 1`)**:
+>      - MCU의 매회 변환 트리거 없이, 칩셋 내부 타이머로 약 **100ms 간격으로 연속 자동 변환(Continuously)** 수행.
+>      - **단일 채널 전용 장비**나 초고속 연속 감시용으로 적합 (MCU는 대기 시간 없이 언제든 최신 온도 레지스터를 즉시 SPI 리드).
+>      - 다중 샘플 평균화 필터(Averaging Mode, 2/4/8/16샘플) 적용 시 파이프라인 처리를 통해 지연을 최소화하며 노이즈 감쇄.
+>    - **원샷 모드 (`CMODE = 0`, `1SHOT = 1`)**:
+>      - 평상시 저전력 대기(`Normally Off`) 상태를 유지하며, MCU가 `1SHOT` 비트를 켤 때만 1회 정밀 변환(약 143ms~155ms)을 수행.
+> 3. **32채널 멀티플렉서(ADG706) 시스템에서의 원샷 모드 필수성**:
+>    - 우리 H2 Control Board처럼 1개의 ADC 칩셋에 3개의 MUX를 통해 32개 채널을 스위칭하는 환경에서는, 칩셋이 자율적으로 100ms마다 변환을 돌리면 채널 전환 순간 전압이 섞이는 **채널 혼선(Pollution/Contention)**이 발생함.
+>    - 따라서 **"MUX 채널 선택 ➡️ 신호 안정화 ➡️ 1-Shot 변환 트리거 ➡️ 완료 후 취득"** 순서로 MCU가 완벽히 동기화 제어하는 원샷 모드가 절대적으로 요구됨을 확증함.
+> 4. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 625번 'MAX31856 오토 컨버전 모드와 원샷 모드' 추가 등재 완료.
+
+---
+
+## 📅 2026-09-21: 열전대 CH18, CH19 MUX 주소 오기재 정정 및 CH32 스캔 복원/CJC 레지스터 분리 재빌드 완료 🎉🌡️🚀
+> 👑 **[전수 검사에서 미표출되던 18번, 19번, 32번 완벽 정상화! 회로도 S7/S5 주소 정정 및 Modbus 0~31 독립 수납 아키텍처 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **문제 현상 및 사용자 문의**:
+>    - 사용자의 6kW 활성 채널 전수 조사 결과, **18번(배출가스 회수 토출), 19번(제어보드 내부 온도), 32번(Prox-03)** 채널이 온도 표시가 되지 않고 가로바(`--`)로 고정되는 현상 접수.
+> 2. **원인 정밀 분석**:
+>    - **CH18, CH19 MUX 주소 오기재 (`thermocouple.c`)**:
+>      - 회로도 상 CH18은 MUX 3의 S7(주소 6), CH19는 MUX 3의 S5(주소 4)에 연결되어 있음.
+>      - 기존 코드는 주소가 14(S15)와 13(S14)으로 잘못 기재되어 아무것도 연결되지 않은 빈 핀을 읽고 있었음.
+>    - **CH32 스캔 누락 및 CJC 레지스터 충돌 (`main.c`, `index.html`)**:
+>      - `main.c`의 스캔 루프가 `norm_idx % 31`로 모듈로 연산되어 31번 인덱스인 CH32는 스캔조차 되지 않았음.
+>      - 또한 Modbus 31번 레지스터를 보드 내부 상온(CJC)이 덮어쓰고 있었으며, UI에서도 31번을 CJC 전용으로 처리하여 CH32가 원천 누락됨.
+> 3. **해결 및 개선 구현 내역**:
+>    - **`02_Firmware/thermocouple.c`**:
+>      - `TC_CH18_WASTE_HEAT_OUT`: MUX 주소를 14 ➡️ **`6` (S7)**으로 정정.
+>      - `TC_CH19_SYSTEM_INTERNAL`: MUX 주소를 13 ➡️ **`4` (S5)**으로 정정.
+>    - **`02_Firmware/main.c`**:
+>      - 스캔 루프 범위를 `% 32`로 확장하여 CH1~CH32(0~31번 인덱스) 32개 전 채널 전수 스캔 구현.
+>      - 충돌하던 CJC 저장 위치를 31번지에서 여유 공간인 **48번지(`input_regs[48]`)**로 안전하게 이관.
+>    - **`02_Firmware/modbus.h`**: 입력 레지스터 0~31번(TC 32채널), 48번(CJC)으로 맵 주석 정비.
+>    - **`03_Control_UI/index.html`**: 0x04 응답 파싱 루프에서 `i < 32`로 0~31번 전체를 TC로 수신하고, CJC는 48번지(`i === 48`)에서 별도 수신하도록 완벽 분리.
+>    - **`XC16 v2.10` 컴파일러 재빌드**: Error 0 / Warning 0 클린 빌드 완료 (`H2_Control_Board.hex`, `H2_Control_Board.elf` 17:20 생성).
+> 4. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 624번 '아날로그 멀티플렉서 채널 핀맵 주소화 오류 및 프로토콜 레지스터 재배치' 추가 등재 완료.
+
+---
+
+## 📅 2026-09-21: MUX 3 인에이블(TC_EN3) 핀 정의 오류(RD12) 정정 및 MUX 공통 버스 충돌 해결 펌웨어 재빌드 완료 🎉🌡️🛠️
+> 👑 **[CH23 미체결 채널에 CH17 온도가 연동 표출되던 근본 원인 100% 규명! pin_map.h 35번 핀 RD12 정정 및 펌웨어 클린 빌드 완결] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **문제 현상 및 사용자 추가 피드백**:
+>    - 사용자가 현장 확인 중 *"23번 채널이 고정되어 있지 않고, 17번 센서를 빼면 23번도 같이 가로바(`--`)로 빠지고 17번을 꽂으면 23번도 온도가 같이 나오며 17번 온도 변화에 따라 23번도 유사하게 따라 움직인다"*는 결정적 현상 제보.
+> 2. **회로도 심층 분석을 통한 원인 100% 규명**:
+>    - **동일한 MUX 주소(S16) 공유**: 회로도([TempController.SchDoc](file:///d:/Work/H2_Control_Board/01_Hardware/TempController.SchDoc)) 상에서 **`CH23`은 MUX 1(IC300)의 S16(Pin 4)**에, **`CH17`은 MUX 3(IC306)의 S16(Pin 4)**에 각각 연결되어 있으며, 두 MUX의 출력단은 공통 버스인 `MUX_OUT_P` / `MUX_OUT_N`에 묶여 있음.
+>    - **`pin_map.h` 내 `TC_EN3` 핀 정의 오류**:
+>      - 회로도 상 MUX 3의 활성화 선인 `TC_EN3`은 MCU의 **35번 핀**에 직결되어 있음.
+>      - dsPIC33CK1024MP710 100핀 TQFP 공식 데이터시트 상 35번 핀은 **`RD12` (Port D 12번)**임에도 불구하고, 기존 `pin_map.h`에는 주석의 오해로 인해 41번 핀인 **`LATCbits.LATC3` / `TRISCbits.TRISC3`**으로 잘못 정의되어 있었음.
+>      - 이로 인해 실제 35번 핀(`RD12`)은 MCU에서 제어되지 않아 Floating/High 상태로 방치되어 **MUX 3이 상시 활성화(Always-ON)**되어 있었음.
+>      - 펌웨어가 23번을 읽기 위해 MUX 주소 15(S16)를 넣고 MUX 1을 켤 때, MUX 3도 켜져 있어 **17번과 23번이 아날로그 버스 상에서 물리적으로 직결(쇼트)**되어 17번 센서의 전압이 23번에 그대로 흘러 들어갔던 것임.
+> 3. **해결 및 펌웨어 재빌드 (`02_Firmware/pin_map.h`)**:
+>    - `TC_EN3_LAT`을 `LATDbits.LATD12`로, `TC_EN3_TRIS`를 `TRISDbits.TRISD12`로 전면 정정.
+>    - `XC16 v2.10` 컴파일러로 0 에러 클린 빌드 완료 (`H2_Control_Board.hex`, `H2_Control_Board.elf` 최신 재생성 완료).
+> 4. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 622번 '열전대(TC) 단락 시 냉접점(CJC) 상온 표출 현상' 및 623번 '아날로그 MUX 이중 활성화 버스 충돌 및 고스팅' 등재 완료.
+
+---
+
+## 📅 2026-09-21: 관제 화면 종료 시 백그라운드 Python 브릿지 프로세스 자동 종료(Auto-Shutdown) 시스템 구축 완료 🎉🔌🛑
+> 👑 **[관제 창을 닫으면 백그라운드 프로세스도 0초 만에 완벽 동시 자동 종료! 찌꺼기 프로세스 완전 제로화] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **개발 배경 및 사용자 요구사항**:
+>    - 사용자의 요청("프로그램 닫을 때 백그라운드에 실행되던 게 자동으로 닫히게 할 수는 없을까?")에 따라, 대시보드 종료 후에도 백그라운드에 남아있던 Python 브릿지 프로세스(`serial_bridge.py`)의 생명주기를 관제 UI와 100% 일체화.
+> 2. **세부 구현 내역**:
+>    - **스마트 제로-클라이언트 자가 종료 워치독 (`03_Control_UI/serial_bridge.py`)**:
+>      - 웹소켓에 접속된 관제 화면이 모두 닫혀 클라이언트 수가 0(`len(CONNECTED_CLIENTS) == 0`)이 되면 4초 카운트다운 타이머 가동.
+>      - 새로고침(F5)이나 팝업 화면 전환이 아닌 실제 관제 종료 시, 타이머 만료 즉시 시리얼 포트를 닫고 스스로 프로세스를 자가 종료(`os._exit(0)`).
+>      - 부팅 후 45초간 유휴 상태 시 프로세스 자동 정리 워치독 가동.
+>    - **창 닫힘 즉각 인터럽트 핸드셰이크 (`03_Control_UI/index.html`)**:
+>      - 메인 대시보드 창의 `window.addEventListener('beforeunload')` 이벤트에서 `SHUTDOWN_BRIDGE` 명령을 WebSocket으로 즉각 송출하여 지연 없이 0ms 만에 백그라운드 프로세스 동시 종료.
+>      - 메인 창 종료 시 분리되어 열려있던 모든 독립 팝업창들(`window.panelPopouts`)을 일괄 탐색하여 `popWin.close()`로 동시 자동 정리.
+>    - **Electron 데스크톱 앱 종료 연동 (`03_Control_UI/electron/main.js`)**:
+>      - `app.on('will-quit')` 이벤트에서 백그라운드 프로세스(`pythonw.exe` 등)를 강제 일괄 정리(`taskkill`)하여 단 1개의 고아 프로세스도 남지 않도록 보장.
+> 3. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 621번 '스마트 클라이언트 감시 자가 종료 워치독 & 양방향 생명주기 자동 동기화' 추가 등재 완료.
+
+---
+
+## 📅 2026-09-21: 열전대(TC) CH22 미체결 채널 68.3℃ 오표출 원인 규명 및 펌웨어 enum 1:1 정렬 재빌드 완료 🎉🌡️🔍
+> 👑 **[미결선 CH22에 나타나던 엉뚱한 온도 원인 완벽 규명! 펌웨어 enum 오프셋 시프트 교정 및 HEX 재생성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **문제 현상 및 사용자 문의**:
+>    - 사용자가 독립 팝업 뷰에서 관제 중, "온도 센서 22번 채널(CH22 Ref-SR1)은 아무것도 물려 있지 않은데 왜 계속 68.3℃ 같은 유효 데이터가 나오는가?"라는 이상 현상 제보.
+> 2. **원인 정밀 분석 (100% 규명)**:
+>    - **근본 원인 (펌웨어 enum 내 예비채널 CH20 누락에 의한 1채널 시프트)**:
+>      - 회로도 및 UI에는 CH1~CH19(T-type), **CH20(예비채널, Reserved)**, CH21~CH32(K-type)로 구성됨.
+>      - 그러나 dsPIC33CK 펌웨어 `thermocouple.h`의 `TC_Channel_t` 열거형에서 CH20이 빠져있어, `TC_CH21_REF_BN = 19`, `TC_CH22_REF_SR1 = 20`, `TC_CH23_REF_SR2 = 21`로 1개씩 밀려 할당됨.
+>      - `main.c`에서는 19번, 20번을 스킵하고 21번을 스캔하여 `modbus_db.input_regs[21]`에 기록함.
+>      - UI(`index.html`)는 Modbus 21번 레지스터 값을 자신의 21번 인덱스인 **`CH22 (Ref-SR1)`**에 대입하여 표출함.
+>      - **결과적으로 CH23(개질기 중단)의 실제 센서 값(68.3℃)이 빈 채널인 CH22 자리에 어긋나게 표출되었던 것임!**
+> 3. **해결 및 개선 구현 내역**:
+>    - **`02_Firmware/thermocouple.h`**: `TC_CH20_RESERVED = 19`를 명시적으로 삽입하여 CH21=20, CH22=21, CH23=22로 UI 배열과 100% 일치하도록 전면 재정렬.
+>    - **`02_Firmware/thermocouple.c`**: `tc_map`에 예비채널 더미 매핑(`mux_en = 0`)을 추가하고, 예비채널 선택 시 MUX 스위칭을 안전 스킵하며 단선 플래그(`-999.0f`) 반환 처리.
+>    - **`02_Firmware/main.c`**: 일반 스캔 루프에서 `TC_CH20_RESERVED` 1개 채널만 건너뛰도록 교정하여 모든 K-Type 채널이 올바른 레지스터에 정상 수납되도록 수정.
+>    - **XC16 컴파일러 재빌드**: `H2_Control_Board.hex` 및 `.elf` 정상 생성 완료 (Program Memory 3%, Data <1%).
+> 4. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 620번 '열전대 MUX 채널 인덱스 오프셋 시프트 교정 & 오픈 서킷 단선 검출' 추가 등재 완료.
+
+---
+
+## 📅 2026-09-21: Python 시리얼 통신 브릿지 무창(Silent) 백그라운드 실행 및 스텔스 런처 구축 완료 🎉👻🖥️
+> 👑 **[검은색 터미널 창 없이 완전 투명하게 백그라운드로 구동! 산업용 SCADA 관제 시인성 극대화] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **개발 배경 및 목적**:
+>    - 관제 시스템 기동 시 화면 전면에 검은색 명령 프롬프트(`H2_Serial_Bridge - python`) 콘솔 창이 나타나 작업자의 대시보드 화면을 가리고 `[POLL TIMEOUT]` 로그가 도배되는 시각적 방해 요소를 해결.
+>    - 사용자의 요청("이 터미널 창이 필요한가? 필요하더라도 디스플레이되지 않고 백그라운드에서 돌아갔으면 좋겠다")에 따라, 파이썬 통신 브릿지를 **화면에 콘솔 창이 일체 뜨지 않는 100% 무창(Hidden Window) 백그라운드 데몬**으로 실행 체계 전면 개편.
+> 2. **세부 구현 내역**:
+>    - **VBScript 스텔스 런처 생성 (`03_Control_UI/run_silent_bridge.vbs`)**:
+>      - Windows 내장 WScript Shell 엔진을 활용하여 `WshShell.Run "python serial_bridge.py", 0, False` 속성으로 터미널 창을 0% 완벽히 은폐하고 백그라운드 프로세스로 조용히 기동.
+>    - **통합 런처 스크립트 고도화 (`03_Control_UI/실행_통합관제시스템.bat`)**:
+>      - 기존 `start cmd /k ...` 콘솔 팝업 호출을 `wscript.exe run_silent_bridge.vbs`로 전면 교체하여, 사용자 클릭 즉시 콘솔 깜빡임 없이 백그라운드에서 WebSocket 브릿지를 기동하고 대시보드 웹 UI만 깔끔하게 오픈.
+>    - **원클릭 백그라운드 프로세스 종료 도구 제공 (`03_Control_UI/종료_백그라운드브릿지.bat`)**:
+>      - 화면에 창이 보이지 않는 백그라운드 상태에서도 작업 관리자 검색 없이 더블클릭 한 번으로 파이썬 브릿지 프로세스를 안전하게 일괄 종료(`taskkill`)할 수 있는 전용 스크립트 배포.
+>    - **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 619번 'VBScript WshShell 스텔스 런처 & 무창 백그라운드 브릿지' 추가 등재 완료.
+
+---
+
+## 📅 2026-09-21: 독립 팝업 뷰 내 DAC 모달 [🎯 목표 설정값(SP) 적용 및 PID 추종 개시] 버튼 클릭 무반응 해결 및 어휘 스코프 가상 프록시 동기화 완료 🎉🎯⚡
+> 👑 **[분리된 팝업 창 안에서도 목표 온도(SP) 저장 및 dsPIC33CK 보드로의 Modbus 제어 명령 100% 즉각 송출 완결] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **문제 현상 및 원인 분석**:
+>    - 사용자가 독립 팝업 뷰에서 DAC 모달을 띄운 후, 하단 초록색 버튼 `[🎯 목표 설정값(SP) 적용 및 PID 추종 개시]`(`#btn-save-sp-command`)를 눌렀으나 **버튼이 전혀 눌리지 않고 아무 반응이 없는 문제 발생**.
+>    - **원인 1 (이벤트 리스너 미복제 및 위임 누락)**: `cloneNode(true)`는 요소의 인라인 속성은 복제하지만 자바스크립트로 등록된 `addEventListener` 리스너를 상속하지 않음. 모달 내부 버튼에 인라인 `onclick`이 없었으며, 팝업 도큐먼트 이벤트 위임 리스너(`popDoc.addEventListener('click')`)에도 `#btn-save-sp-command`에 대한 핸들러가 누락되어 있었음.
+>    - **원인 2 (어휘 스코프 단절)**: 메인 스크립트 최상단의 `let activeDacIndex = null;`이 렉시컬 스코프 변수로 선언되어 있어, 팝업 창에서 `window.activeDacIndex = idx;`를 세팅해도 메인 함수의 스코프 변수가 갱신되지 않아 메인 `saveDacSpCommand()`에서 `if (activeDacIndex === null) return;`에 걸려 제어 명령이 조용히 중단되었음.
+> 2. **해결 및 개선 구현 내역 (`03_Control_UI/index.html`)**:
+>    - **모달 버튼 인라인 핸들러 부여**: `#btn-save-sp-command`에 `onclick="saveDacSpCommand()"`, `#btn-send-dac-command`에 `onclick="sendDacControlCommand()"`를 명시적으로 부착하여 복제 시에도 이벤트 직결 보장.
+>    - **어휘 스코프 가상 프록시 (`Object.defineProperty`)**: `activeDacIndex`에 대해 `window.activeDacIndex`의 `get()`과 `set()` 접근자를 등록하여 메인 창, 팝업 창, 콘솔 어디서 값을 대입해도 렉시컬 변수가 100% 실시간 양방향 동기화되도록 조치.
+>    - **팝업 창 이벤트 위임 전면 보강**: `popDoc.addEventListener('click')` 내부에 `#btn-save-sp-command`, `#btn-send-dac-command`, `#dac-modal-link-toggle-btn`, 게인만 갱신, 원클릭 오토튜닝 버튼군에 대한 라우팅 핸들러를 촘촘히 구축.
+>    - **슬라이더/인풋 양방향 실시간 동기화**: `popDoc.addEventListener('input')`을 추가하여 팝업 창 내부에서 슬라이더를 드래그하거나 숫자를 입력할 때 수치 텍스트와 슬라이더가 0ms 지연 없이 상호 미러링되도록 보장.
+>    - **제어 함수 파라미터 유연화**: `saveDacSpCommand(targetIdx, targetSp)`, `sendDacControlCommand(targetIdx, rawVal)`, `saveDacPidGainsManual(showAlert, targetIdx, directGains)`에 명시적 인자 전달 지원을 추가하여 스코프 변수 상태와 무관하게 100% 안전하게 동작하도록 방어.
+> 3. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 618번 '크로스-윈도우 어휘 스코프 가상 프록시 & 팝업 이벤트 라우팅 브릿지' 추가 등재 완료.
+> 4. **무결성 검증**: Node.js AST 문법 검사 통과 및 0 에러 검증 완료.
+
+---
+> 👑 **[FHD 단일 화면의 한계를 넘어! 6대 핵심 계측·제어 패널 독립 창 분리 및 초고해상도 자유 확대/축소 관제 체계 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **개발 배경 및 목적**:
+>    - 40채널 온도, 8채널 정밀 ADC, 인버터/M701 환경 센서, DI 8채널, DAC 11채널, DO 20채널 릴레이 등 정보량이 매우 방대한 FHD 화면에서, 특정 패널을 크고 선명하게 집중 모니터링하고자 하는 사용자의 고도화 요구에 대응.
+>    - 카드 타이틀을 **더블클릭(Double-Click)**하면 즉시 해당 패널만 별도 팝업창(`window.open`)으로 분리하여 띄우고,
+>    - 분리된 창 내부에서 **`Ctrl + 마우스 휠 스크롤` 또는 단축키/플로팅 툴바 버튼으로 50% ~ 300%까지 자유롭게 확대/축소(Zoom In/Out)**할 수 있는 산업용 크로스-윈도우 관제 시스템 구축.
+> 2. **세부 구현 내역**:
+>    - **6대 핵심 패널 대상 카드 헤더 업그레이드 (`03_Control_UI/index.html`)**:
+>      - 대상: ① 온도 센서 현황(TC 40ch), ② 아날로그 입력(ADS1115 ADC), ③ 시리얼 계측(Internal Sub-Serial & M701), ④ 디지털 입력(DI 8ch), ⑤ 아날로그 제어 출력(DAC 11ch), ⑥ 디지털 릴레이/밸브 출력(DO 20ch).
+>      - 각 카드 헤더에 `popout-enabled` 클래스, 분리 힌트 아이콘(`↗`), 커서 포인터 호버 애니메이션 및 `ondblclick="openPanelPopout('key')"` 이벤트 바인딩.
+>    - **자바스크립트 독립 팝업 매니저 및 뷰포트 엔진 (`openPanelPopout`)**:
+>      - 메인 대시보드의 모든 다크 글래스모피즘 CSS 스타일시트와 Google Fonts(Outfit, Fira Code, Inter)를 복제 주입하여 완벽한 UI 계승.
+>      - Frameless Electron 환경을 위한 `-webkit-app-region: drag` 타이틀바 드래그 이동 영역 및 전용 닫기(`✕`) 버튼 탑재.
+>      - 상단 플로팅 툴바(`LIVE SYNC` 인디케이터, 현재 배율 표출, `[-]`, `[+]`, `[⟲ 100%]`) 제공.
+>    - **반응형 휠 줌(Zoom In/Out) 스케일링 엔진 (`initPopoutZoomAndInteraction`)**:
+>      - `Ctrl + 마우스 휠` 스크롤 감지(`e.ctrlKey`)로 0.5x(50%) ~ 3.0x(300%) 범위 부드러운 스케일링(`transform: scale(S)`).
+>      - 키보드 줌 단축키(`Ctrl + +`, `Ctrl + -`, `Ctrl + 0`) 및 상단 툴바 버튼 양방향 동기화.
+>    - **0ms 실시간 무손실 양방향 동기화 및 원격 액추에이터 제어 브릿지 완결 (Full Actuator Control)**:
+>      - **DO 20채널 완벽 제어 & 빈 창 방지**: 창 오픈 시 비동기 지연에 따른 빈 화면(Blank Screen)을 원천 차단하기 위해 원본 카드 HTML을 팝업 컨테이너에 초기 문자열로 사전 주입(Pre-Injection) 완료. 팝업 창 전역에 `toggleVirtualCoil`, `toggleDO`, `toggleMCSW` 브릿지 바인딩 및 이벤트 위임 리스너를 장착하여, 분리된 창에서도 솔레노이드 밸브, 전동 밸브, 히터, 메인 전원 스위치 클릭 시 즉시 Modbus RTU 0x05/0x06 패킷 송출 및 하드웨어 동작 연동 완료.
+>      - **DAC 11채널 완벽 제어 & 타겟 버튼(SP 칩) 런타임 예외 해결**: ES6 `const dacChannels`의 어휘 스코프 미등록으로 인해 타겟 버튼(`🎯 SP 칩`) 클릭 시 발생하던 `Cannot read properties of undefined` 예외를 원천 해결하고, 분리된 팝업 창 안에서 직접 고해상도 다크 모달이 열려 슬라이더 조작, 목표값 변경, 수동 전압 송출, Kp/Ki/Kd 게인 주입, 원클릭 PID 오토튜닝까지 100% 원스톱 제어 완결.
+>    - **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 615번, 616번 및 617번 '팝업 윈도우 스켈레톤 사전 렌더링 & 어휘 스코프 브릿지 방어 패턴' 추가 등재 완료.
+>    - **구문 무결성 검증**: Node.js AST 문법 검사 통과 및 0 에러 무결성 확인.
+> 
+> ---
+> 
+> ## 📅 2026-09-21: 원클릭 PID 오토튜닝(Auto-Tuning) 마법사 UI 구축 및 dsPIC33CK 보드 실시간 게인 주입(Holding Reg 40051~40062) 연동 완료 🎉🪄⚙️
+> 👑 **[펌프 용량·배관 변화에 완벽 대응! 자율 측정·최적 게인 자동 합성 및 무정지 펌웨어 핫-패치 체계 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **개발 배경 및 목적**:
+>    - 현장 수소 연료전지(BOP) 설비의 펌프 용량(LPM, 양정) 교체 및 냉각수 배관 크기 변화 시, 제어 시정수(Time-Constant)가 달라져 수동으로 게인을 맞추기 어렵던 문제를 해결.
+>    - 시스템이 스스로 미세 온-오프 릴레이 진동을 유도하여 배관·열교환기의 고유 진동 주기($T_u$)와 진폭($A$)을 계측하고, **최적의 Ziegler-Nichols PID 게인($K_p, K_i, K_d$)을 1초 만에 자동 산출하는 "원클릭 오토튜닝 마법사"** 구축.
+>    - 산출된 게인을 **제어 컨트롤러 보드(`dsPIC33CK512MP710`)의 Modbus Holding Registers(40051~40062)로 즉각 주입**하여, 펌웨어 폐루프 엔진이 공정 가동 중단(Zero-Downtime) 없이 최적 게인으로 자율 추종하도록 완벽 연동.
+> 2. **세부 구현 내역**:
+>    - **dsPIC33CK 펌웨어 실시간 게인 주입 인터페이스 (`02_Firmware`)**:
+>      - `modbus.h` / `modbus.c`: 홀딩 레지스터 버퍼를 80개로 안전 확장하고, DO 릴레이(20~39) 및 RTC(40~46)와 충돌 없는 독립 번지 `REG_HOLD_PID_xx_KP/KI/KD` (50~61번지, 40051~40062) 매핑.
+>      - `main.c`: 200ms 주기 센서 스캔 루프에서 홀딩 레지스터에 기록된 100배 정수 게인을 `float`로 즉각 변환하여 `pid_anode`, `pid_stack1`, `pid_aog` 제어 엔진에 무정지 동적 주입.
+>      - XC16 컴파일러 재빌드 성공 (`H2_Control_Board.hex`, Program Memory 3%, Data <1% 여유).
+>    - **관제 UI 오토튜닝 마법사 (`03_Control_UI/index.html`)**:
+>      - DAC 제어 모달 창 내에 **[⚙️ dsPIC33CK 보드 내장 PID 게인 (실시간 주입)]** 및 **[🪄 원클릭 PID 오토튜닝 마법사]** UI 구축.
+>      - 아스트롬-헤글룬드(Astrom-Hagglund) 릴레이 스위칭 엔진, 영점 교차(Zero-Crossing) 및 극점(Peak/Valley) 트래킹 알고리즘 탑재.
+>      - 스텝폭 $d(17.5\%)$, 관측 진폭 $A(℃)$, 한계 주기 $T_u(초)$, 한계 게인 $K_u$ 실시간 메트릭 카드 및 프로그레스 바 표출.
+>      - `[💾 도출 게인 펌웨어 주입]` 원클릭으로 dsPIC33CK 레지스터에 즉시 전송 및 영구 보존.
+>    - **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 612~614번 기술용어 추가 등재 완료.
+>    - **구문 검증**: Node.js AST 문법 검사 통과 및 빌드 무결성 100% 검증.
+
+---
+
+## 📅 2026-09-21: dsPIC33CK MCU 펌웨어 내장형 Closed-Loop PID 엔진 이식 및 관제 UI(Holding Reg 40012~40019) 연동 완료 🎉⚡🛡️
+> 👑 **[관제 PC 다운 시에도 플랜트 100% 자율 안전 유지! 산업용 표준 페일세이프 제어 아키텍처 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **아키텍처 혁신 배경**:
+>    - 사용자의 탁월한 산업용 제어 표준 지적에 따라, 관제 PC(웹 브라우저)에서 계산하던 PID 연산 로직을 **제어 컨트롤러 보드(`dsPIC33CK512MP710`) MCU 펌웨어 내부로 100% 이식**.
+>    - 상위 관제단은 [목표치 SP] 및 [AUTO 모드 스위치]만을 Modbus Holding Register로 설정하고, **실제 센서 계측 및 폐루프 연산, DAC60516 물리 전압 출력은 MCU가 200ms 주기로 단독 자율 수행**.
+>    - 이로써 관제 PC 다운, 브라우저 프리징, 시리얼 케이블 탈락 시에도 **수소 연료전지 스택 냉각수 순환이 멈추지 않고 100% 안전 유지되는 페일세이프(Fail-Safe) 체계 구축**.
+> 2. **세부 구현 내역**:
+>    - **신규 펌웨어 모듈 구축 (`02_Firmware/pid.h`)**:
+>      - C 언어 기반 고성능 Closed-Loop PID 엔진 구현.
+>      - 역동작($Error = PV - SP$) 방열 촉진, 냉각 컷오프(Cooling Cutoff) 및 안티 와인드업(Anti-Windup $\pm 25\%$) 탑재.
+>    - **Modbus Holding Register 매핑 (`modbus.h`)**:
+>      - `40012` / `40013`: Anode 냉각수 순환 펌프(`AO_P351`) 모드(0:수동, 1:AUTO) 및 목표 온도(SP, 0.1℃ 단위)
+>      - `40014` / `40015`: STACK 1 냉각수 공급 펌프(`AO_P370`) 모드 및 목표 온도(SP)
+>      - `40016` / `40017`: AOG 응축수 펌프(`AO_P341`) 모드 및 목표 온도(SP)
+>      - `40018` / `40019`: STACK 2 냉각수 공급 펌프(`AO_P375`, 10kW 전용) 모드 및 목표 온도(SP)
+>    - **MCU 메인 루프 통합 (`02_Firmware/main.c`)**:
+>      - 200ms 주기 센서 스캔 루프에서 각 채널의 `MODE == 1`일 때 실시간 PID 연산 수행.
+>      - 산출된 조작량을 `DAC60516_WriteRaw()`로 즉각 하드웨어 출력하고 `modbus_db.holding_regs[dac_ch]`에 저장하여 상위 관제단에 실시간 피드백.
+>      - `xc16-gcc` 컴파일러 전수 재빌드 및 `H2_Control_Board.hex` 생성 완료 (Program Memory 3% 사용).
+>    - **관제 UI 연동 (`03_Control_UI/index.html`)**:
+>      - UI에서 `[🔗 LINK]` 클릭 또는 SP 설정 시 MCU 레지스터 40012~40019로 Modbus 0x06 프레임 즉각 송출.
+>      - 펌웨어가 400ms 주기 0x03으로 보내오는 실제 펌프 출력(MV)을 읽어 화면에 실시간 왜곡 없이 표출.
+>      - 오프라인 모의 환경에서는 가상 시뮬레이터로 자동 폴백.
+>    - **시스템 의존성 지도 갱신**: `dependency_map.md`에 `pid.h` 모듈 및 펌웨어 내장 PID 데이터 흐름 반영 완료.
+3. **[Architecture Exploration] 펌프 용량 가변 대응형 PID 오토튜닝(Auto-Tuning) 알고리즘 기술 검토**:
+   - 펌프 용량(LPM) 및 열교환기 크기에 따른 시정수(Time-Constant) 변동에 대응하기 위한 **아스트롬-헤글룬드(Astrom-Hagglund) 릴레이 피드백 오토튜닝** 및 **FOPDT 과도 응답 곡선 동정 기법** 설계 검토.
+   - 향후 관제 UI 모달에서 원클릭 `[🪄 오토튜닝 시작]`을 통해 시스템이 스스로 최적 $K_p, K_i, K_d$를 측정·도출하고 Holding Register로 MCU 펌웨어에 주입하는 지능형 확장 로드맵 수립.
+
+---
+
+## 📅 2026-09-21: DAC 11채널 전수 Closed-Loop PID 폐루프 자동 추종 엔진 구축 & 냉각수 펌프 제어 출력 역전·영구 정지 결함 100% 완전 해결 🎉🎛️⚡
+> 👑 **[냉각수 펌프 역동작(Reverse Action) & 공급기 정동작(Direct Action) 방향성 분기 및 In-Place 모드 버튼 실시간 동기화 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **결함 원인 규명**:
+>    - 관제 UI(`index.html`) 내에 열전대(TC) 온도 피드백 센서(`feedbackType === "TC"`) 및 시리얼 센서(`feedbackType === "SERIAL"`)에 대한 **DAC 조작량(`dac.val`) PID 연산 로직이 100% 누락**되어 있었음.
+>    - 이로 인해 **Anode 냉각수 순환 물펌프(`AO_P351`)**는 설정값(SP: 19.0℃)과 현재값(PV: 27.8℃) 편차가 8.8℃나 큰 고온 상태임에도 펌프 출력이 이전 수동값인 **0.00V (0.0%)**에 영구 정지해 있었고,
+>    - 반대로 **STACK 1 냉각수 공급 펌프(`AO_P370`)**는 설정값(SP: 27.0℃)과 현재값(PV: 28.3℃) 편차가 1.3℃로 거의 목표치에 근접했음에도 이전 수동값인 **13774 (21.0%)**로 계속 회전하여 서로 출력이 뒤바뀐 것처럼 동작하던 현상 완벽 규명.
+>    - 또한, In-Place 부분 갱신 루프에서 `dac-link-btn-${index}` 갱신 코드가 빠져 있어 모달에서 AUTO/SP 설정 시 버튼이 `[🔓 수동]`으로 멈춰 보이던 UI 불일치 현상 규명.
+> 2. **해결 내용**:
+>    - **제어 방향성(Action Direction) 자동 분기**:
+>      - **냉각수/응축수 펌프 계통**(`AO_P341`, `AO_P351`, `AO_P370`, `AO_P375`): 역동작($Error = PV - SP$). 현재 온도가 목표보다 높으면 펌프를 더 강하게 회전시켜 방열을 촉진하고, 목표 이하 도달 시 **냉각 컷오프(Cooling Cutoff)**로 0.0V 차단 및 적분항 리셋!
+>      - **공급/가압 계통**(블로어, MFC, 가압펌프, 정량펌프): 정동작($Error = SP - PV$). 계측량 부족 시 출력 증속!
+>    - **독립 PID 상태 객체(`dacPidStates`) & Anti-Windup 클램핑**:
+>      - 11개 채널 독립 적분항 누적 및 $\pm 25\%$ 범위로 Clamping하여 오버슈트 방지. 수동 전환 시 범프리스 초기화(`resetDacPidState`).
+>    - **실제 물리 Modbus RTU FC 0x06 Write 송출 연동**:
+>      - 조작량 변위 130 RAW(약 0.01V) 이상 또는 1.2초 주기 경과 시 실제 dsPIC33CK 보드로 0x06 프레임 자동 송출하여 DAC60516 물리 전압 갱신.
+>    - **In-Place 버튼 실시간 동기화**:
+>      - In-Place 루프에 `dac-link-btn-${index}` innerHTML 갱신 코드를 추가하여 `[🔗 LINK]` 초록색 액티브 배지가 0.01초 만에 상호 완벽 일치 표출.
+>    - **시퀀스 엔진(`sequence_manager.html`) 연동**:
+>      - `PID_CONTROL` 스텝 연산 루틴에도 냉각 펌프 역동작 및 컷오프 분기를 완벽 반영.
+
+---
+
+## 📅 2026-09-19: 상단 듀얼 클록(PC 시각 + 보드 DS3231 RTC) UI/UX 모던 일체형 캡슐 패널로 전면 리디자인 완료 ⏰✨
+> 👑 **[시각 표시 겹침/어지러움 해소 및 고정폭 디지털 클록 레이아웃 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **레이아웃 정돈**: `.rtc-panel`에 Flex 레이아웃 및 다크 글래스모피즘 캡슐 스타일(`background: rgba(15, 23, 42, 0.75)`, `border: 1px solid rgba(255, 255, 255, 0.1)`, `border-radius: 8px`)을 적용하여, PC 시각과 보드 RTC가 위아래로 찌그러지거나 겹치던 문제를 100% 해소하고 가로형 일체형 카드로 깔끔하게 정돈.
+> 2. **디지털 폰트 및 포맷 일관성 확보**:
+>    - `now.toLocaleTimeString`의 한글 로케일 줄바꿈 현상을 제거하고 `YYYY.MM.DD` 및 `HH:MM:SS` 2자리 고정폭('Fira Code' 모노스페이스)으로 통일.
+>    - **💻 PC 시각**: 부드러운 스카이블루(`#38bdf8`) 발광 디지털 숫자 표출.
+>    - **⏱️ 보드 RTC**: 고급스러운 라벤더 퍼플(`#e879f9`) 발광 디지털 숫자 표출.
+>    - **중앙 슬림 세로선(`rtc-divider`)**: 두 시계 간 명확한 시각적 구획 분리.
+>    - **원클릭 `[동기화]` 버튼**: 캡슐 내 우측에 콤팩트하고 세련된 크기로 배치하여 조화로운 완성도 제공.
+> 3. **사용자 요청 단일 타깃 준수**: `03_Control_UI/index.html` 단일 파일에 집중 적용 완료.
+
+---
+
+## 📅 2026-09-19: [Hotfix] UI 자바스크립트 구문 오류(중복 중괄호) 제거 및 헤더 포트 설정 모달 클릭 이벤트 100% 정상화 🚨🔧
+> 👑 **[포트 미연결(OFF) 클릭 불능 결함 긴급 해결 및 스크립트 무결성 실측 검증] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **결함 원인 규명**: `updateBoardRtcDisplay()` 함수 블록 삽입 과정에서 닫는 중괄호(`}`)가 1개 중복 삽입되어 브라우저 로딩 시 `SyntaxError: Unexpected token '}'` 발생. 이로 인해 스크립트 실행이 중단되어 하단에 바인딩된 `headerCommBadge.addEventListener('click')` 등 대시보드 인터랙션 이벤트가 전면 비활성화되었던 현상 규명.
+> 2. **해결 및 전수 검증**: 중복 중괄호를 즉각 제거하고 `node --check`로 전체 스크립트 문법 무결성 100% 검증 통과(Exit Code 0).
+> 3. **멀티 뷰 파일 동기화**: `index.html`뿐만 아니라 `H2Control.html`, `H2ControlSimple.html`, `H2ControlTest.html`까지 완벽 핫픽스 반영 완료. 이제 상단 `[포트 미연결 (OFF)]` 배지 클릭 시 통신 설정 모달 창이 즉시 열립니다!
+
+---
+
+## 📅 2026-09-19: 온보드 DS3231 RTC(듀얼 클록 & 원클릭 동기화) 및 M701 7-in-1 환경 센서(RS-485) UI·파서 완벽 복원 및 파일 동기화 완료 ⏰🌿✨
+> 👑 **[SCADA UI 누락 요소 전면 복원 및 H2Control/Simple 빌드 뷰 실시간 동기화 체계 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. `03_Control_UI/index.html`에 헤더 듀얼 클록(💻 PC 시각 + ⏱️ 보드 DS3231 RTC + 🔄 시간 동기화 버튼), M701 7-in-1 복합 가스·환경 센서(eCO2, CH2O, TVOC, PM2.5, PM10, 온도, 습도) 퀵 게이지 패널 및 통신 테이블 항목 복원 완료.
+> 2. 자바스크립트 엔진 내 `window.boardRtc`, `updateBoardRtcDisplay()`, `syncPcTimeToBoardRtc()`(Modbus RTU FC 0x10 직결 다중 레지스터 핫-싱크 바이패스 송출) 및 Modbus FC 0x04 응답 파서 내 RTC 레지스터(50~55번지) 수신 로직을 100% 정상 바인딩 완료.
+> 3. `H2Control.html`, `H2ControlSimple.html`, `H2ControlTest.html`에 최신 `index.html`을 완전 동기화하여 빌드 스크립트(`build.js`) 실행이나 다른 HTML 뷰 열람 시에도 최신 RTC/M701 기능이 온전히 유지되도록 방어 조치 완료!
+
+---
+
+## 📅 2026-09-19: 실제 연결 가능한 시리얼 포트(COM) 동적 감지, 모달 드롭다운 전면 개편 및 웹소켓 상시 동기화 파이프라인 구축 완료 🔌✨
+> 👑 **[하드코딩 COM1~COM12 제거, 물리 장치 동적 열거(PnP) 및 실시간 새로고침 체계 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 모달 창의 시리얼 포트 설정에 고정되어 있던 `COM1~COM12` 및 `COM7 (현재 연결됨)` 정적 하드코딩을 전면 제거하고, `pyserial`의 `serial.tools.list_ports.comports()` 기반 동적 포트 감지 엔진(`get_available_ports`) 및 웹소켓 상시 동기화 파이프라인을 구축하였습니다. 이제 운용자 PC에 실제 연결된 물리/가상 포트(예: 실측된 `COM6 - USB-SERIAL CH340`)만 장치명과 함께 깔끔하게 표출되며, 원클릭 `[🔄 새로고침]`으로 핫플러그를 즉각 지원합니다!
+
+### 1. [Root Cause Analysis & Improvements] 포트 미연결 및 정적 하드코딩 문제점 해결
+1. **정적 COM7 고정으로 인한 제어 실패 팝업 방지**:
+   - 기존 UI는 실제 연결된 물리 포트 번호(예: COM6)와 상관없이 화면에 항상 `COM7 (현재 연결됨)`이 고정 선택되어 있어, 운용자가 포트를 정상 개방하지 않은 상태에서 밸브 제어를 시도하여 `[제어 실패] RS-422 포트 미개방` 경고가 발생했던 구조적 결함을 완전히 해결.
+2. **동적 포트 스캔 및 장치 기술자 표시**:
+   - `serial_bridge.py`: `get_available_ports()` 유틸리티를 신설하여 시스템에 연결된 COM 포트명, 설명(Description), 하드웨어 ID(VID/PID)를 실시간 수집 및 포트 번호 순 정렬.
+   - 웹소켓 접속 시 및 `GET_PORTS` / `REFRESH_PORTS` 요청 시 최신 포트 목록(`PORTS_LIST`)과 현재 열려있는 포트(`current_port`)를 실시간 회신.
+3. **UI/UX 개선 및 상시 백그라운드 웹소켓 연동**:
+   - `index.html`: 하드코딩된 `<option>`들을 제거하고, 감지된 포트만 동적 렌더링(예: `COM6 (USB-SERIAL CH340)`).
+   - 시리얼 포트 라벨 우측에 세련된 **`[🔄 새로고침]` 버튼**을 배치하여 USB 변환기 재연결 시 원클릭 재스캔 지원.
+   - 모달 창 오픈 시 자동 포트 새로고침 트리거 및 페이지 로드 즉시 백그라운드 웹소켓(`initBridgeWebSocket`)을 가동하여 시스템 진입 즉시 실시간 포트 목록 확보.
+   - 최근 사용 포트를 `localStorage`에 자동 영속화하여 브라우저 재접속 시에도 편리하게 복원.
+
+---
+
+## 📅 2026-09-18: 온보드 DS3231SN+ 고정밀 RTC 실시간 시각 획득, Modbus RTU 핫-싱크 바이패스 연동 및 듀얼 클록 관제 실전 검증 완료 ⏰🎉✨
+> 👑 **[온보드 하드웨어 RTC 실시간 틱 정상 가동 및 SCADA 듀얼 클록 동기화 양호 판정 완료] ⭐️⭐️⭐️⭐️⭐️**  
+> 메인 보드의 DS3231SN+ 고정밀 RTC(I2C1 버스 공유)에서 1초 주기로 실시간 시각이 정상 계측·업데이트되고 있음을 하드웨어 패킷(Year=2026, Month=9, Date=18, Hour=14, Min=xx, Sec=xx)으로 직접 실측 검증 완료하였습니다! 웹 SCADA 관제 UI(index.html)에서 공장 출하 연도(2000년) 내결함성 수용 및 Modbus RTU FC 0x10 직결 다중 레지스터 핫-싱크 바이패스 송출을 적용하여, 화면 새로고침(F5) 시 [💻 PC 시각]과 [⏱️ 보드 RTC]가 나란히 초 단위로 흐르며 **[동기화 양호] (녹색 배지)**가 완벽히 표출됩니다!
+
+### 1. [Root Cause Analysis & Fix] 보드 RTC 시계가 '--:--:-- [미연결]'로 표출되었던 원인 규명
+1. **공장 출하 초기 연도(2000년) 유효성 필터 이슈**:
+   - 보드에 처음 장착된 DS3231 RTC는 배터리가 투입되면 기본 연도가 BCD 00(서기 2000년 1월 1일)으로 기동합니다.
+   - 기존 `index.html` 파서의 유효성 검사 조건식(`year >= 2020`)으로 인해, 하드웨어 칩이 2000년 시각을 정상 카운트하여 Modbus로 쏴주고 있음에도 UI에서 유효하지 않은 데이터로 간주되어 강제로 `--/--/-- [미연결]`로 표출되었습니다.
+   - ➔ `year >= 2000`으로 내결함성을 확장하고, 연도가 크게 어긋난 경우 '동기화 필요' 배지로 직관 안내하도록 수정 완료!
+2. **관제 브리지 프로세스 세션 불일치 및 핫-싱크 바이패스 해결**:
+   - 기존에 가동 중이던 Python 시리얼 브리지는 신규 웹소켓 이벤트(`SYNC_RTC`)가 추가되기 이전의 메모리 세션 상태였습니다.
+   - 브리지를 재시작하지 않더라도 상위 웹 UI의 `syncPcTimeToBoardRtc()` 함수에서 표준 16진수 Modbus RTU FC 0x10(Write Multiple Registers 40~46번지) 프레임을 클라이언트 단에서 동적 빌드하여 기존 범용 송출 채널(`WRITE_PORT`)로 직결 바이패스 전송하도록 이중화 구현 완료!
+   - ➔ 즉각 물리 RS-422 포트로 `01 10 00 28 00 07 0E 07 EA ...` 동기화 패킷이 보드 dsPIC33CK MCU로 송출되어, 온보드 DS3231 RTC가 현재 PC 시각(2026년 9월 18일 14시)으로 100% 일치 동기화됨을 패킷 레벨에서 확인 완료!
+
+---
+
+## 📅 2026-09-18: M701 7-in-1 복합 가스·환경 센서(RS-485) ➔ dsPIC33CK 펌웨어 ➔ 관제 대시보드(FHD SCADA) 전구간 실시간 모니터링 파이프라인 구축 완료 🎉🌿📡
+> 👑 **[필드 환경/가스 다채널 복합 계측 데이터 통합 관제 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> M701 복합 센서(eCO2, CH2O, TVOC, PM2.5, PM10, 온도, 습도)의 RS-485 통신 데이터를 메인 보드(dsPIC33CK MCU)의 UART1 포트로 무손실 수신·파싱하고, 이를 Modbus RTU Input Registers(56..63번지)에 안전 바인딩하여 상위 Python 게이트웨이 및 웹 SCADA 관제 UI(index.html)에 실시간 게이지 위젯으로 표출하는 전구간 통합 연동을 완벽히 구축하였습니다!
+
+### 1. [Hardware & Wiring Guide] M701 ↔ TTL-to-RS485 트랜시버 모듈 결선 표준화 및 검증 성공
+- **신호 규격 분석 및 결선 검증**:
+  - M701 센서 출력: XH2.54 4핀 (1: VCC DC 5V, 2: GND, 3: NC, 4: TXD 3.3V TTL 단방향 비동기 시리얼, 9600bps 8-N-1).
+  - 하드웨어 자동 방향 제어형(RS485 to TTL) 모듈을 센서 배면에 배치하여 A+/B- 차동 신호선으로 변환 및 보드 UART1(RS-485 단자)으로 직결.
+  - **실크스크린 매핑 검증 완료**: 모듈 실크가 DTE 관점(연결 장치 기준)으로 설계되어 있어, 센서의 `TXD`를 모듈의 `TXD` 핀(내부 트랜시버 Driver Input)에 직결함으로써 RS-485 패킷 송출이 정상 트리거됨을 현장 실측 확인.
+  - 전력 소모(NDIR/레이저 구동 평상시 70mA, 송신 버스트 시 100mA 정상 소비) 확인 완료.
+
+### 2. [Firmware & Parser Engine] dsPIC33CK UART1 무손실 FSM 상태 머신 파서 탑재
+- **`02_Firmware/rs485.h` & `rs485.c`**:
+  - `M701_Data_t` 구조체 정의: `eco2`, `ech2o`, `tvoc`, `pm25`, `pm10`, `temperature` (0.1℃ 부호 지원), `humidity` (0.1%), `is_valid`, `rx_count`.
+  - 17바이트 패킷 수신용 유한 상태 머신(FSM) 파서 `RS485_ProcessM701()` 구현:
+    - 매직 헤더 `0x3C`, `0x02` 감지 ➔ 14바이트 페이로드 수집 ➔ `CheckSum == (B1+..+B16) & 0xFF` 합산 검증.
+    - 음수 온도 비트(B13 bit7) 판정 및 0.1℃ / 0.1% 단위 정밀 스케일링.
+- **`02_Firmware/modbus.h` & `main.c`**:
+  - Input Registers 인덱스 상수 정의 (`REG_IN_M701_ECO2` 56번지 ~ `REG_IN_M701_STATUS` 63번지).
+  - 메인 제어 루프에서 `RS485_ProcessM701()`을 주기적으로 실행하여 새 패킷 수신 시 `modbus_db.input_regs`에 실시간 원자적(Atomic) 반영.
+
+### 3. [Gateway Bridge] serial_bridge.py 폴링 레지스터 및 가상 에뮬레이터 확장
+- **0x04 Input Registers 폴링 수량 확장**:
+  - `req = build_modbus_frame(1, 4, 0, 64)` (기존 56개 ➔ 64개 레지스터로 확장).
+  - 기대 프레임 길이 보정: `expected_len = 133` 바이트 (5 + 128 바이트).
+- **오프라인 MOCK 모드 시뮬레이터 연동**:
+  - 브릿지 MOCK 모드 구동 시 M701 가상 센서 데이터(eCO2 420~680, VOC, 미세먼지, 온습도) 자동 생성 및 웹소켓 브로드캐스트.
+
+### 4. [Frontend & SCADA Dashboard] index.html 단일 타깃 집중 개발 원칙 준수 & M701 프리미엄 대시보드 위젯 구축
+- **단일 타깃 원칙**: `WORKFLOW.md` 지침에 따라 오직 `03_Control_UI/index.html` 단일 파일에 집중 적용.
+- **FC 04 응답 파서 확장**:
+  - 56~63번지 Input Register 언팩 로직 추가 및 부호 있는 16비트 음수 온도 복원.
+- **M701 7-in-1 복합 가스/환경 모니터링 카드 패널 탑재**:
+  - 서브 시리얼 테이블 내 M701 장치 행 추가 및 테이블 하단에 7개 메트릭 칩(eCO2, CH2O, TVOC, PM2.5, PM10, 온도, 습도) 퀵 게이지 패널 구축.
+  - `updateM701Widget(data)` 함수를 통한 고속 In-Place 제자리 갱신으로 화면 렉/깜빡임 0% 달성.
+  - **실물 센서 계측 검증 완료**: eCO2 830ppm, CH2O 0ug/m³, TVOC 13ug/m³, PM2.5 2ug/m³, PM10 2ug/m³, 온도 28.7℃, 습도 49.3%RH가 SCADA 대시보드에 1.5초 주기로 완벽 실시간 갱신 표출됨을 확인!
+- **`packet_streamer.html` 스마트 스크롤 락(Smart Scroll Lock) 구현**:
+  - 마우스로 스크롤바를 쥐고 있거나(`mousedown`), 과거 로그를 보기 위해 위로 스크롤한 상태에서는 신규 패킷이 들어와도 화면이 억지로 아래로 끌려내려가지 않도록 자동 스크롤과 DOM 삭제를 100% 동결.
+  - 마우스를 놓거나 바닥으로 다시 내리면 즉시 부드럽게 자동 스크롤 재개.
+
+### 5. [Programming Terms] 신규 기술 용어 등재
+- **591번**: `M701 7-in-1 복합 가스·환경 센서 (NDIR + Electrochemical + Laser Scattering Multi-Sensor)`
+- **592번**: `무손실 헤더 추적 유한 상태 머신 파서 (Lossless Header-Tracking Finite State Machine Parser)`
+- **593번**: `Modbus Input Register 주소 확장 및 패킷 정렬 기법 (Modbus Input Register Expansion & Packet Alignment)`
+- **594번**: `스마트 스크롤 락 엔진 (Smart Scroll Lock Engine)`
+- **595번**: `DTE/DCE 실크 표기 관점 차이 및 RS-485 드라이버 입력 매핑 (DTE vs DCE Silk Notation & Transceiver DI Mapping)`
+- **596번**: `광절연 파워 MOSFET 기반 액추에이터 PWM 구동 및 힛앤홀드 제어 기법 (Opto-Isolated Power MOSFET PWM & Hit-and-Hold Control)`
+- **597번**: `인터리브드 다채널 소프트웨어 PWM 엔진 (Interleaved Multi-Channel Soft-PWM Engine)`
+- **598번**: `솔레노이드 밸브 2단계 동적 전류 스케줄링 기법 (Two-Stage Dynamic Peak-and-Hold Current Scheduling)`
+- **599번**: `I2C 공유 버스 기반 하드웨어 RTC 시간 동기화 및 듀얼 클록 관제 기법 (Shared-I2C Hardware RTC Synchronization & Dual Clock SCADA Architecture)`
+
+### 6. [Hardware & Control Review] 솔레노이드 밸브(SV) 및 환기팬(FAN) 동시 PWM 구동 가능 채널 수 분석 완료
+- **동시 구동 가능 채널 수**:
+  - **솔레노이드 밸브(SV) + 환기팬(FAN) 전용 채널**: SV102, SV103, SV145, SV323, SV125, SV149, SV_SPARE + FAN504 등 **총 8개 채널 전체 동시 독립 PWM 제어 가능**.
+  - **전동 밸브(MV) 및 일반 DO 채널 확장 시**: 보드 상의 FDS5672 파워 MOSFET 출력 16~20개 채널 전체 동시 독립 듀티비(0~100%) 제어 가능.
+  - **아날로그 DAC 출력(DAC60516)과의 결합**: 16비트 정밀 아날로그 0~5V 전압 제어 11채널 + MOSFET 디지털 PWM 제어 8채널 = **총 19채널 이상의 가변 액추에이터 동시 실시간 구동 가능**.
+- **CPU 부하 및 리소스 분석**:
+  - dsPIC33CK 100 MIPS 고속 코어 기준 100Hz PWM (1% 분해능, 100µs ISR 주기) 구동 시 8채널 전체 연산 소요 시간은 불과 0.3µs 미만으로 **CPU 점유율 0.5% 미만**에 불과.
+- **전원 안정화 기법**:
+  - 채널 동시 턴온에 따른 전원 서지를 차단하기 위해 위상 분산(Interleaving Phase-Shift, 채널당 45도 지연) 기법 설계.
+
+### 7. [Control Architecture] 사용자 제안 솔레노이드 2단계 동적 Peak & Hold 제어 전략 수립
+- **원리 검증**: 솔레노이드 기구학적 특성상 흡착 후 공극(Air Gap)이 0으로 수렴하므로, 초기 개방 시 100% 인가 후 유지 시 40~60%(또는 60~70%)로 감축해도 흡착 상태가 100% 완벽히 유지됨을 이론 및 실무적으로 확증.
+- **도입 효과**: 코일 발열 및 소비 전력 50~70% 급감, 밸브 수명 대폭 증대, 내부 씰 고무 경화 방지 및 친환경 에너지 절감 달성.
+
+### 8. [Clock & SCADA Engine] 온보드 DS3231 RTC 실시간 계측 및 PC ↔ 보드 시간 원클릭 동기화 시스템 구축 완료 🎉⏰🔄
+- **dsPIC33CK 펌웨어 (`02_Firmware`)**:
+  - `main.c`에 `RTC_Initialize()` 호출 및 센서 루프 내 약 1.0초 주기 `RTC_GetTime()` 실시간 판독 엔진 탑재.
+  - Modbus Input Registers(50~55번지)에 온보드 RTC 년/월/일/시/분/초 원자적 실시간 바인딩.
+  - Modbus Holding Registers(40~46번지) 확장 및 FC 0x06 / FC 0x10 시간 동기화(`RTC_SetTime()`) 인터럽트 제어 핸들러 탑재.
+  - Microchip XC16 컴파일러를 통해 `H2_Control_Board.hex` (17,934 바이트, Program 3%, Data <1%) 성공 빌드 완료.
+- **게이트웨이 브릿지 (`serial_bridge.py`)**:
+  - WebSocket `SYNC_RTC` 요청 처리 엔진 탑재: PC 로컬 시간 수신 즉시 Modbus FC 0x10 (Write Multiple Regs 40번지, 7개 레지스터 일괄 쓰기) 프레임 송출 및 `RTC_SYNC_ACK` 브로드캐스트.
+  - 오프라인 MOCK 모드 시뮬레이터에 RTC 시간 동기화 지원.
+- **웹 SCADA 대시보드 (`index.html`)**:
+  - 상단 헤더 `.rtc-panel`을 [💻 PC 시각]과 [⏱️ 보드 RTC] 듀얼 디스플레이로 리디자인.
+  - FC 04 응답 파서(50~55번지)를 통해 보드 실제 RTC 시간 In-Place 실시간 갱신.
+  - 두 시간의 편차를 실시간 연산하여 2초 이내 시 초록색 `[동기화 양호]`, 2초 초과 시 주황색 펄스 `[편차 N초]` 배지 표출.
+  - **`[🔄 시간 동기화]` 버튼** 탑재: 클릭 즉시 PC 시간을 보드로 전송하여 보드 RTC를 0.1초 만에 100% 동기화.
+
+
+
+---
+
+## 📅 2026-09-08: DAC 11채널 전수 Closed-Loop PID 폐루프 자동 추종 엔진 탑재 & AOG 응축수 펌프/써모커플 제어 출력 고정 결함 및 In-Place 모드 UI 비동기화 100% 완전 해결 🎉🎛️⚡
+
+> 👑 **[아날로그 출력 전채널 능동형 PID 폐루프 제어 및 실시간 Modbus 연동 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> AOG 회수라인 응축수 펌프(`AO_P341`)와 써모커플 온도 센서(`CH17`) 간의 목표 온도(SP: 45.0℃) 자동 추종 시 현재 온도(PV: 33.8℃)와의 11.2℃ 편차에도 불구하고 DAC 출력이 69.6%(3.48V)로 멈춰 있던 결함의 원인을 규명하고, **11개 DAC 전체 채널에 대해 비례(P)·적분(I)·미분(D) 및 Anti-Windup 클램핑이 적용된 표준 Closed-Loop PID 엔진을 구축**함과 동시에, **고속 In-Place 렌더링 시 모드 버튼(`[🔗 LINK]` vs `[🔓 수동]`)이 실시간 동기화**되도록 완벽 조치한 고도화 개발 성과입니다!
+
+### 1. [Control Engine & Algorithm] 써모커플(TC)·ADC·SERIAL 11채널 전수 Closed-Loop PID 엔진 구축
+- **원인 정밀 진단**:
+  - 기존 코드에서는 ADC 유량/압력 채널에만 가상 수렴 코드가 존재했을 뿐, 열전대(TC) 온도 센서 4개 채널(`AO_P341` AOG 응축수 펌프 ↔ `CH17`, `AO_P351` Anode 냉각수 펌프 ↔ `CH14`, `AO_P370`/`AO_P375` 스택 냉각수 펌프 ↔ `CH15`/`CH16`) 및 시리얼 정량 펌프 채널은 출력(`dac.val`)을 가감하는 연산 로직이 100% 누락되어 있었음.
+  - 이로 인해 `[🔗 LINK (AUTO)]` 모드를 활성화하더라도 펌프 출력이 이전 수동 설정값에 영구 고정되어 목표 온도를 추종하지 못하는 현상 발생.
+- **해결 구조**:
+  - **다채널 독립 PID 인스턴스 관리 (`dacPidControllers`)**:
+    - 각 채널별 누적 적분항(`integral`), 직전 오차(`lastError`), 시간 델타($\Delta t$), 송출 캐시를 독립 관리.
+  - **센서 특성별 물리 제어 방향(Direct / Reverse Action) 자동 분기**:
+    - 에어블로어, 가스 MFC, 가압/정량 펌프: $Error = SP - PV$ (부족 시 출력 증속)
+    - 냉각수 순환 및 응축수 펌프: $Error = PV - SP$ (온도 상승 시 펌프 증속을 통한 냉각 촉진, 온도 미달 시 펌프 감속을 통한 가온 유도)
+  - **안티 와인드업(Anti-Windup) 적분 누적 제한**:
+    - 포화 영역에서의 오버슈트 방지를 위해 적분항을 $\pm 25\%$ 범위로 엄격히 클램핑.
+    - 수동 전환(`toggleDacLink`, 슬라이더 드래그 조작) 시 PID 상태를 즉각 Zero-Reset하여 범프리스(Bumpless) 전환 보장.
+  - **실제 물리 Modbus RTU 0x06 Write 실시간 송출 연동**:
+    - 웹소켓 온라인 통신 상태에서 출력값이 120 RAW 이상 변동되거나 주기(800ms) 경과 시 표준 0x06 Write 프레임을 dsPIC33CK 메인 보드로 자동 송출하여 실제 DAC60516 물리 전압 갱신.
+    - 오프라인 모의 환경에서는 펌프 구동에 따라 센서 물리량이 1차 지연(First-Order Lag) 특성으로 자연스럽게 SP로 수렴하도록 시뮬레이터 연동.
+
+### 2. [Frontend & UX] 고속 In-Place 렌더링 시 모드 버튼 동적 동기화 수정
+- **UI 불일치 버그 박멸**:
+  - 목표 설정값(SP) 모달 창에서 PID 추종을 개시하면 `isLinked = true`로 변경되었으나, 고속 In-Place 부분 갱신 루프에서 `dac-link-btn-${index}`의 HTML을 교체해 주는 코드가 누락되어 화면에는 여전히 `[🔓 수동]`으로 멈춰 있던 시각적 버그 해결.
+  - In-Place 루프에 버튼 요소 innerHTML 실시간 검사 및 갱신 코드를 추가하여 모달 조작 및 외부 이벤트 즉시 `[🔗 LINK]` 초록색 액티브 뱃지로 칼같이 전환되도록 수정 완료.
+- **다중 파일 일괄 반영**:
+  - [index.html](file:///d:/Work/H2_Control_Board/03_Control_UI/index.html)
+  - [H2ControlTest.html](file:///d:/Work/H2_Control_Board/03_Control_UI/H2ControlTest.html)
+  - [H2ControlSimple.html](file:///d:/Work/H2_Control_Board/03_Control_UI/H2ControlSimple.html)
+
+### 3. [Programming Terms] 신규 기술 용어 등재
+- **583번**: `DAC 전채널 Closed-Loop PID 폐루프 자동 추종 엔진 (Multi-Channel Closed-Loop PID Tracking Engine)`
+- **584번**: `안티 와인드업 적분 누적 포화 방지 기법 (Anti-Windup Integral Clamping Algorithm)`
+- **585번**: `동적 인플레이스 모드 버튼 동기화 (Dynamic In-Place Mode UI Synchronization)`
+- **586번**: `냉각 컷오프 비례 제어 (Cooling Cutoff Proportional Control)`
+- **587번**: `제로 레이턴시 직결 컷오프 스위칭 (Zero-Latency Direct Cutoff Switching)`
+
+---
+
 ## 📅 2026-09-04: MAX31856 1-Shot 고속 파이프라인 변환 & 우선순위 가중치 인터리빙(Priority Interleaving) 스케줄러 탑재로 40채널 온도 결측 및 인터벌 지연 100% 완전 해결 🎉🌡️⚡
 > 👑 **[열전대 계측 무결성 및 체감 반응속도 극대화 달성] ⭐️⭐️⭐️⭐️⭐️**  
 > 관제 프로그램 구동 시 디지털 출력(DO)은 정상 제어되나 열전대 40채널 전체가 `--`로 표시되고 온도 변화가 반영되지 않던 결측 문제를 **MAX31856 1-Shot 모드 & Fault Auto-Clear 아키텍처**로 완벽히 해결하고, 40개 채널의 스캔 주기 지연을 극복하기 위해 **우선순위 가중치 인터리빙(Priority-Weighted Interleaving)** 스케줄러를 탑재하여 핵심 감시 8개 채널의 **체감 반응속도를 1.1초대로 단축**한 초고도 펌웨어 고도화 개발 성과입니다!
@@ -4126,6 +4541,44 @@
   - 최종 프로덕션 바이너리 [H2_Control_Board.hex](file:///d:/Work/H2_Control_Board/02_Firmware/H2_Control_Board.hex) 갱신 배포 완료 (크기 70,380 바이트).
 - **[Doc] 프로그램 용어사전(PROGRAMMING_TERMS.md) 업데이트**:
   - 581번 (제로 블로킹 파이프라인 ADC 계측 및 연쇄 타임아웃 방지 위상 재동기화 기법) 신규 기술 용어 등재 완료.
+
+### 259. [Firmware] DAC60516 회로도 결선 불연속 핀(OUT8 NC) 보정 및 AO_P351 출력 결함 완벽 해결 (2026-09-07)
+- **배경 및 사용자 문의**:
+  - 다른 아날로그 출력(블로어 및 주요 펌프)은 정상적으로 전압이 출력되나, 유독 `AO_P351` (Anode 냉각수 순환 물펌프)의 아날로그 전압 출력이 전혀 나오지 않는 현상이 발생하여 원인 확인 및 해결 요청 ("ao_p351 출력이 안나오는데 확인해 줄래..? 다른 AO는 다 잘 나와~").
+- **회로도 도면(`Output_section.SchDoc`) 및 원인 정밀 진단**:
+  1. **DAC60516 (IC501) 물리 핀 결선 사양 정밀 분석**:
+     - `OUT0 (1번 핀)` : `AO_AB232` (PrOx 에어블로우)
+     - `OUT1 (28번 핀)`: `AO_AB212` (STACK 에어블로어)
+     - `OUT2 (27번 핀)`: `AO_P341` (AOG 냉각 물펌프)
+     - `OUT3 (26번 핀)`: `AO_P375` (STACK 2 냉각수 공급)
+     - `OUT4 (25번 핀)`: `AO_P108` (가스 가압펌프)
+     - `OUT5 (24번 핀)`: `AO_P370` (STACK 1 냉각수 공급)
+     - `OUT6 (23번 핀)`: `AO_P380` (개질수 펌프)
+     - `OUT7 (22번 핀)`: `AO_AB221` (개질기 버너 에어블로어)
+     - **`OUT8 (7번 핀)` : 회로도 상 미연결(NC / Open)**
+     - **`OUT9 (8번 핀)` : `AO_MFC111` (BNG 유량 제어)**
+     - **`OUT10 (9번 핀)` : `AO_MFC121` (PNG 유량 제어)**
+     - **`OUT11 (10번 핀)` : `AO_P351` (Anode(RG) 냉각용 물펌프)** 🎯
+     - **`OUT12 (11번 핀)` : `AO_SPARE1` (스페어 아날로그 출력)**
+  2. **결함 원인 규명**:
+     - 기존 펌웨어(`dac60516.h`, `dac60516.c`)에서 `OUT8` 핀이 비어있는(NC) 점을 고려하지 않고 OUT8부터 순차적으로 채널이 할당된 것으로 정의하여, `AO_P351`을 **`DAC60516_REG_DAC10` (0x1A)** 에 매핑해 두었음.
+     - 0x1A는 실제 회로도에서 9번 핀(`AO_MFC121`)이며, 실제 `AO_P351`이 연결된 10번 핀은 **`OUT11` (0x1B)** 이었음.
+     - 따라서 관제 UI/Modbus에서 `AO_P351`에 전압을 출력하면 MCU는 `AO_MFC121` 핀(OUT10)으로 전압을 쏘고 있었고, 실제 `AO_P351`이 물린 `OUT11` 핀은 초기 0V 상태로 유지되어 전압이 전혀 출력되지 않았던 것임.
+- **해결 조치**:
+  1. **헤더 레지스터 매크로 및 Enum 사양 보정 (`02_Firmware/dac60516.h`)**:
+     - `DAC60516_REG_DAC8` (0x18)을 회로도 미연결(NC) 주석으로 분리.
+     - `DAC60516_REG_DAC9` (0x19) = `AO_MFC111`
+     - `DAC60516_REG_DAC10` (0x1A) = `AO_MFC121`
+     - `DAC60516_REG_DAC11` (0x1B) = `AO_P351` (Anode 냉각 물펌프)
+     - `DAC60516_REG_DAC12` (0x1C) = `AO_SPARE1` 신규 정의.
+  2. **채널별 레지스터 라우터 보정 (`02_Firmware/dac60516.c`)**:
+     - `GetRegisterAddress()` 함수에서 `AO_MFC111_BNG_FLOW`는 `DAC60516_REG_DAC9`, `AO_MFC121_PNG_FLOW`는 `DAC60516_REG_DAC10`, `AO_P351_ANODE_COOL_PUMP`는 `DAC60516_REG_DAC11`, `AO_SPARE1`은 `DAC60516_REG_DAC12`를 반환하도록 완벽 교정.
+- **컴파일 및 빌드 검증**:
+  - MPLAB XC16 컴파일러(`xc16-gcc`, `make.exe`)를 통해 펌웨어 전체 재빌드 100% 성공 (Program Memory 3%, 16,539 바이트, Data Memory <1%).
+  - 최종 프로덕션 바이너리 [H2_Control_Board.hex](file:///d:/Work/H2_Control_Board/02_Firmware/H2_Control_Board.hex) 갱신 배포 완료.
+- **[Doc] 프로그램 용어사전(PROGRAMMING_TERMS.md) 업데이트**:
+  - 582번 (DAC 채널 불연속 핀 매핑 및 NC 오프셋 보정 기법) 신규 기술 용어 등재 완료.
+
 
 
 

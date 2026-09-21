@@ -160,128 +160,24 @@
             gap: 20px;
         }
 
-        /* ⏱️ 상단 듀얼 클록(PC 시각 + 보드 DS3231 RTC) 통합 캡슐 패널 */
         .rtc-panel {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 4px 12px;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
-            user-select: none;
+            text-align: right;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            padding-right: 20px;
         }
 
-        .rtc-clock-box {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .rtc-clock-header {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 10px;
-            font-weight: 600;
-            line-height: 1.2;
-            margin-bottom: 2px;
-        }
-
-        .rtc-clock-header.pc {
-            color: #94a3b8;
-        }
-
-        .rtc-clock-header.board {
-            color: #c084fc;
-        }
-
-        .rtc-clock-digits {
-            font-family: 'Fira Code', 'Courier New', monospace;
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            line-height: 1;
+        #rtc-date {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
         #rtc-time {
-            color: #38bdf8;
-            text-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
-        }
-
-        #board-rtc-time {
-            color: #e879f9;
-            text-shadow: 0 0 8px rgba(232, 121, 249, 0.3);
-        }
-
-        .rtc-divider {
-            width: 1px;
-            height: 24px;
-            background: rgba(255, 255, 255, 0.12);
-            margin: 0 2px;
-        }
-
-        .rtc-diff-badge {
-            font-size: 9px;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: 3px;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            background: rgba(148, 163, 184, 0.15);
-            color: #94a3b8;
-            line-height: 1.1;
-            display: inline-block;
-            transition: all 0.25s ease;
-        }
-
-        .rtc-diff-badge.pulse-warn {
-            animation: rtcWarnPulse 1.5s infinite;
-        }
-
-        @keyframes rtcWarnPulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 rgba(251, 191, 36, 0); }
-            50% { opacity: 0.85; box-shadow: 0 0 6px rgba(251, 191, 36, 0.4); }
-        }
-
-        /* 🔄 시간 동기화 버튼 */
-        .btn-sync-rtc {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: linear-gradient(135deg, rgba(192, 132, 252, 0.22), rgba(168, 85, 247, 0.1));
-            border: 1px solid rgba(192, 132, 252, 0.45);
-            border-radius: 6px;
-            padding: 4px 8px;
-            color: #f3e8ff;
-            font-family: 'Outfit', sans-serif;
-            font-size: 10.5px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-            margin-left: 2px;
-        }
-
-        .btn-sync-rtc:hover {
-            background: linear-gradient(135deg, rgba(192, 132, 252, 0.4), rgba(168, 85, 247, 0.25));
-            border-color: rgba(192, 132, 252, 0.7);
-            color: #ffffff;
-            box-shadow: 0 0 10px rgba(192, 132, 252, 0.35);
-            transform: translateY(-1px);
-        }
-
-        .btn-sync-rtc:active {
-            transform: translateY(0);
-        }
-
-        .btn-sync-rtc.syncing .sync-icon {
-            animation: rtcSpin 0.7s linear infinite;
-        }
-
-        @keyframes rtcSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            color: var(--primary);
+            font-size: 15px;
+            font-family: 'Fira Code', monospace;
+            font-weight: 600;
+            margin-top: 1px;
         }
 
         /* 통신 디버그 버튼 */
@@ -1910,29 +1806,6 @@
             color: var(--danger);
             border: 1px solid rgba(239, 68, 68, 0.25);
         }
-
-        /* 🪟 대형 패널 더블클릭 독립 팝업창 분리 헤더 스타일 */
-        .card-header.popout-enabled {
-            cursor: pointer !important;
-            user-select: none;
-            transition: background 0.15s ease, border-color 0.15s ease;
-        }
-        .card-header.popout-enabled:hover {
-            background: rgba(56, 189, 248, 0.05);
-        }
-        .popout-hint-icon {
-            display: inline-block;
-            font-size: 11px;
-            color: #64748b;
-            margin-left: 6px;
-            transition: color 0.15s ease, transform 0.15s ease;
-            vertical-align: middle;
-            font-style: normal;
-        }
-        .card-header.popout-enabled:hover .popout-hint-icon {
-            color: #38bdf8;
-            transform: translate(1.5px, -1.5px);
-        }
     </style>
 </head>
 
@@ -1950,32 +1823,32 @@
                 <span id="header-comm-status-text">포트 미연결 (OFF)</span>
             </div>
             <div class="rtc-panel">
-                <!-- 💻 PC 로컬 시각 -->
-                <div class="rtc-clock-box" style="text-align: right;">
-                    <div class="rtc-clock-header pc" style="justify-content: flex-end;">
+                <!-- 💻 PC 로컬 시간 -->
+                <div class="clock-col clock-pc" style="text-align: right;">
+                    <div style="font-size: 9.5px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
                         <span>💻 PC 시각</span>
-                        <span id="rtc-date" style="color: #64748b; font-weight: normal; font-size: 9.5px; font-family: 'Fira Code', monospace;">--.--.--</span>
+                        <span id="rtc-date">2026년 09월 19일</span>
                     </div>
-                    <div id="rtc-time" class="rtc-clock-digits">00:00:00</div>
+                    <div id="rtc-time">08:50:00</div>
                 </div>
 
-                <!-- 세로 구분선 -->
-                <div class="rtc-divider"></div>
+                <!-- 구분선 -->
+                <div style="width: 1px; height: 26px; background: rgba(255,255,255,0.12);"></div>
 
-                <!-- ⏱️ 보드 DS3231 RTC 시각 -->
-                <div class="rtc-clock-box" style="text-align: left;">
-                    <div class="rtc-clock-header board">
+                <!-- ⏱️ 보드 DS3231 RTC 시간 -->
+                <div class="clock-col clock-board" style="text-align: left;">
+                    <div style="font-size: 9.5px; color: #c084fc; font-weight: 600; display: flex; align-items: center; gap: 4px;">
                         <span>⏱️ 보드 RTC</span>
-                        <span id="board-rtc-date" style="color: #a855f7; font-weight: normal; font-size: 9.5px; font-family: 'Fira Code', monospace;">--.--.--</span>
+                        <span id="board-rtc-date">--/--/--</span>
                         <span id="board-rtc-diff-badge" class="rtc-diff-badge">대기</span>
                     </div>
-                    <div id="board-rtc-time" class="rtc-clock-digits">--:--:--</div>
+                    <div id="board-rtc-time">--:--:--</div>
                 </div>
 
                 <!-- 🔄 시간 동기화 버튼 -->
                 <button type="button" id="btn-sync-rtc" class="btn-sync-rtc" title="현재 PC 시각을 보드 DS3231 RTC에 즉시 동기화" onclick="syncPcTimeToBoardRtc()">
                     <span class="sync-icon">🔄</span>
-                    <span>동기화</span>
+                    <span>시간 동기화</span>
                 </button>
             </div>
             <button class="btn-seq-ctrl" id="btn-open-seq-modal">⚡ 시퀀스 제어 매니저</button>
@@ -2001,10 +1874,10 @@
         <div class="left-panel">
 
             <!-- 1. 온도 센서 측정 현황 (4열 배치) -->
-            <div class="card" id="card-panel-tc" style="flex: initial; min-height: 0;">
-                <div class="card-header popout-enabled" ondblclick="openPanelPopout('tc')" title="💡 더블클릭 시 별도 독립 팝업창으로 분리 띄우기 (Ctrl + 마우스 휠 줌 지원)">
+            <div class="card" style="flex: initial; min-height: 0;">
+                <div class="card-header">
                     <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-                        <div class="card-title">온도 센서 측정 현황 (TC 스캐너 매핑) <span class="popout-hint-icon" title="더블클릭 시 별도 창으로 분리 확대">↗</span></div>
+                        <div class="card-title">온도 센서 측정 현황 (TC 스캐너 매핑)</div>
                         <div id="tc-cjc-badge" style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(59, 130, 246, 0.12)); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(6, 182, 212, 0.45); color: #67e8f9; box-shadow: 0 0 12px rgba(6, 182, 212, 0.25); letter-spacing: 0.2px;">
                             <span>🌡️ 보드 내부 상온 (CJC):</span>
                             <span id="tc-cjc-val" style="color: #38bdf8; font-family: 'Outfit', 'Courier New', monospace; font-size: 12.5px; font-weight: 900;">--.-°C</span>
@@ -2086,9 +1959,9 @@
             </div>
 
             <!-- 2. 독립 아날로그 입력 (ADC 독립 계측 8채널) -->
-            <div class="card" id="card-panel-adc" style="flex: initial; min-height: 0;">
-                <div class="card-header popout-enabled" ondblclick="openPanelPopout('adc')" title="💡 더블클릭 시 별도 독립 팝업창으로 분리 띄우기 (Ctrl + 마우스 휠 줌 지원)">
-                    <div class="card-title">아날로그 입력 수신 현황 (ADS1115 ADC 독립 계측) <span class="popout-hint-icon" title="더블클릭 시 별도 창으로 분리 확대">↗</span></div>
+            <div class="card" style="flex: initial; min-height: 0;">
+                <div class="card-header">
+                    <div class="card-title">아날로그 입력 수신 현황 (ADS1115 ADC 독립 계측)</div>
                     <div class="card-badge">ADC 8-CH (독립 센서)</div>
                 </div>
                 <div class="card-body" style="padding-bottom: 6px;">
@@ -2126,9 +1999,9 @@
             </div>
 
             <!-- 3. 시리얼 통신 장치 현황 (BOP 보드 내부 연동 장치 계측) -->
-            <div class="card" id="card-panel-serial" style="flex: initial; min-height: 0;">
-                <div class="card-header popout-enabled" ondblclick="openPanelPopout('serial')" title="💡 더블클릭 시 별도 독립 팝업창으로 분리 띄우기 (Ctrl + 마우스 휠 줌 지원)">
-                    <div class="card-title">보드 연동 시리얼 장치 계측 현황 (Internal Sub-Serial) <span class="popout-hint-icon" title="더블클릭 시 별도 창으로 분리 확대">↗</span></div>
+            <div class="card" style="flex: initial; min-height: 0;">
+                <div class="card-header">
+                    <div class="card-title">보드 연동 시리얼 장치 계측 현황 (Internal Sub-Serial)</div>
                     <div class="card-badge" title="BOP 제어보드가 수집 후 PC(RS-422/Ethernet)로 일괄 전송">BOP Board Link</div>
                 </div>
                 <div class="card-body" style="padding-bottom: 6px;">
@@ -2191,9 +2064,9 @@
 
 
             <!-- 4. 디지털 입력 (DI 8채널) -->
-            <div class="card" id="card-panel-di" style="flex: initial; min-height: 0; overflow: visible;">
-                <div class="card-header popout-enabled" ondblclick="openPanelPopout('di')" title="💡 더블클릭 시 별도 독립 팝업창으로 분리 띄우기 (Ctrl + 마우스 휠 줌 지원)">
-                    <div class="card-title">디지털 입력 상태 (DI 8채널) <span class="popout-hint-icon" title="더블클릭 시 별도 창으로 분리 확대">↗</span></div>
+            <div class="card" style="flex: initial; min-height: 0; overflow: visible;">
+                <div class="card-header">
+                    <div class="card-title">디지털 입력 상태 (DI 8채널)</div>
                     <div class="card-badge">Discrete Inputs</div>
                 </div>
                 <div class="card-body" style="overflow: visible !important; padding-bottom: 6px;">
@@ -2209,9 +2082,9 @@
         <div class="right-panel">
 
             <!-- 1. 아날로그 출력 & 피드백 센서 매칭 (DAC 11채널 + Matched Sensors) -->
-            <div class="card" id="card-panel-dac" style="flex: initial; min-height: 0;">
-                <div class="card-header popout-enabled" ondblclick="openPanelPopout('dac')" title="💡 더블클릭 시 별도 독립 팝업창으로 분리 띄우기 (Ctrl + 마우스 휠 줌 지원)">
-                    <div class="card-title accent">아날로그 제어 출력 & 피드백 센서 연동 (DAC60516 11채널) <span class="popout-hint-icon" title="더블클릭 시 별도 창으로 분리 확대">↗</span></div>
+            <div class="card" style="flex: initial; min-height: 0;">
+                <div class="card-header">
+                    <div class="card-title accent">아날로그 제어 출력 & 피드백 센서 연동 (DAC60516 11채널)</div>
                     <div class="card-badge">DAC 11-CH / PID Closed-Loop</div>
                 </div>
                 <div class="card-body" style="padding-bottom: 6px;">
@@ -2251,9 +2124,9 @@
             </div>
 
             <!-- 2. 디지털 출력 (DO 20채널) -->
-            <div class="card" id="card-panel-do" style="flex: initial; min-height: 0; overflow: visible;">
-                <div class="card-header popout-enabled" ondblclick="openPanelPopout('do')" title="💡 더블클릭 시 별도 독립 팝업창으로 분리 띄우기 (Ctrl + 마우스 휠 줌 지원)">
-                    <div class="card-title accent">디지털 릴레이 및 밸브 출력 (DO 20채널) <span class="popout-hint-icon" title="더블클릭 시 별도 창으로 분리 확대">↗</span></div>
+            <div class="card" style="flex: initial; min-height: 0; overflow: visible;">
+                <div class="card-header">
+                    <div class="card-title accent">디지털 릴레이 및 밸브 출력 (DO 20채널)</div>
                     <div class="card-badge">Coils / Outputs</div>
                 </div>
                 <div class="card-body"
@@ -2327,7 +2200,7 @@
 
     <!-- [MODAL] DAC 아날로그 제어 및 PID 목표값 설정 팝업 -->
     <div class="modal-overlay" id="dac-modal-overlay">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 480px;">
             <button class="modal-close-btn" id="btn-close-dac-modal">&times;</button>
             <div class="modal-title" id="dac-modal-title">아날로그 제어 & PID 설정</div>
 
@@ -2379,91 +2252,9 @@
                             id="dac-modal-pv-display">486.67 LPM</div>
                     </div>
                 </div>
-
-                <!-- 🎛️ 실시간 PID 게인 설정 (Kp, Ki, Kd) 카드 -->
-                <div style="margin-top: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 8px 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 10.5px; font-weight: 700; color: #38bdf8;">⚙️ dsPIC33CK 보드 내장 PID 게인 (실시간 주입)</span>
-                        <button type="button" onclick="saveDacPidGainsManual()" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #e0f2fe; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer;">게인만 갱신</button>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
-                        <div>
-                            <label style="font-size: 9.5px; color: #94a3b8; display: block; margin-bottom: 2px;">비례 (Kp)</label>
-                            <input type="number" id="dac-pid-kp-input" step="0.05" min="0.01" max="50.0" value="3.80" style="width: 100%; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: center;">
-                        </div>
-                        <div>
-                            <label style="font-size: 9.5px; color: #94a3b8; display: block; margin-bottom: 2px;">적분 (Ki)</label>
-                            <input type="number" id="dac-pid-ki-input" step="0.01" min="0.00" max="10.0" value="0.35" style="width: 100%; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: center;">
-                        </div>
-                        <div>
-                            <label style="font-size: 9.5px; color: #94a3b8; display: block; margin-bottom: 2px;">미분 (Kd)</label>
-                            <input type="number" id="dac-pid-kd-input" step="0.05" min="0.00" max="20.0" value="0.50" style="width: 100%; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; text-align: center;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 🪄 [오토튜닝 마법사] 아코디언/패널 -->
-                <div style="margin-top: 10px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; padding: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-size: 14px;">🪄</span>
-                            <span style="font-size: 11px; font-weight: 800; color: #c084fc;">원클릭 PID 오토튜닝 마법사</span>
-                        </div>
-                        <span id="autotune-badge" style="font-size: 9.5px; font-weight: 700; color: #94a3b8; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">준비됨</span>
-                    </div>
-
-                    <div style="font-size: 9.5px; color: #cbd5e1; margin-top: 6px; line-height: 1.4;">
-                        릴레이 한계 진동(Astrom-Hagglund)을 구동하여 배관·펌프 고유 진동주기(Tu)와 진폭(A)을 실측 후 최적 Ziegler-Nichols 게인을 자동 합성합니다.
-                    </div>
-
-                    <!-- 프로그레스 바 -->
-                    <div style="margin-top: 8px;">
-                        <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #a78bfa; margin-bottom: 3px;">
-                            <span id="autotune-status-text">상태: 대기 중</span>
-                            <span id="autotune-percent-text">0 %</span>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.5); height: 6px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
-                            <div id="autotune-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #ec4899); transition: width 0.3s ease;"></div>
-                        </div>
-                    </div>
-
-                    <!-- 계측 메트릭 현황 -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-top: 8px; text-align: center;">
-                        <div style="background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size: 8.5px; color: #94a3b8;">스텝 폭 (d)</div>
-                            <div style="font-size: 10px; font-weight: 700; color: #e0e7ff;" id="autotune-metric-d">17.5 %</div>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size: 8.5px; color: #94a3b8;">측정 진폭 (A)</div>
-                            <div style="font-size: 10px; font-weight: 700; color: #38bdf8;" id="autotune-metric-a">-- ℃</div>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size: 8.5px; color: #94a3b8;">한계주기 (Tu)</div>
-                            <div style="font-size: 10px; font-weight: 700; color: #fde047;" id="autotune-metric-tu">-- 초</div>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size: 8.5px; color: #94a3b8;">한계게인 (Ku)</div>
-                            <div style="font-size: 10px; font-weight: 700; color: #34d399;" id="autotune-metric-ku">--</div>
-                        </div>
-                    </div>
-
-                    <!-- 오토튜닝 조작 버튼 그룹 -->
-                    <div style="display: flex; gap: 6px; margin-top: 8px;">
-                        <button type="button" id="btn-start-autotune" onclick="startPidAutoTuningFromModal()" style="flex: 2; background: linear-gradient(135deg, #8b5cf6, #6d28d9); border: 1px solid #c084fc; color: #fff; font-size: 10.5px; font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
-                            🪄 오토튜닝 시작
-                        </button>
-                        <button type="button" id="btn-stop-autotune" onclick="stopPidAutoTuning(true)" style="flex: 1; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; font-size: 10.5px; font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer; display: none;">
-                            ◼ 중단
-                        </button>
-                        <button type="button" id="btn-apply-autotune" onclick="applyAutoTunedGainsFromModal()" style="flex: 2; background: linear-gradient(135deg, #10b981, #047857); border: 1px solid #34d399; color: #fff; font-size: 10.5px; font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer; display: none;">
-                            💾 도출 게인 펌웨어 주입
-                        </button>
-                    </div>
-                </div>
-
                 <button class="btn-action"
                     style="margin-top: 12px; width: 100%; background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;"
-                    id="btn-save-sp-command" onclick="saveDacSpCommand()">🎯 목표 설정값(SP) 적용 및 PID 추종 개시</button>
+                    id="btn-save-sp-command">🎯 목표 설정값(SP) 적용 및 PID 추종 개시</button>
             </div>
 
             <!-- 🔓 수동 직결 출력 제어 섹션 (LINK OFF) -->
@@ -2491,7 +2282,7 @@
                             id="dac-modal-volt-display">0.000 V</div>
                     </div>
                 </div>
-                <button class="btn-action" style="margin-top: 12px; width: 100%;" id="btn-send-dac-command" onclick="sendDacControlCommand()">수동 제어 명령 송출
+                <button class="btn-action" style="margin-top: 12px; width: 100%;" id="btn-send-dac-command">수동 제어 명령 송출
                     (Write Register)</button>
             </div>
 
@@ -2975,25 +2766,6 @@
                 isLinked: true
             }
         ];
-        window.dacChannels = dacChannels;
-
-        // 🎛️ DAC 11채널 독립 Closed-Loop PID 상태 관리 객체 (Anti-Windup Clamping & Rate Limiting)
-        const dacPidStates = Array.from({ length: 11 }, () => ({
-            integral: 0,        // 누적 적분항 (-0.25 ~ +0.25 Anti-Windup Clamping)
-            lastError: 0,       // 직전 정규화 오차
-            lastTime: Date.now(),
-            lastSentVal: -1,    // 물리 Modbus 전송 캐시
-            lastSentTime: 0     // 마지막 물리 전송 시각
-        }));
-
-        // PID 상태 리셋 헬퍼 (수동 전환 시 범프리스 전환)
-        function resetDacPidState(index) {
-            if (dacPidStates[index]) {
-                dacPidStates[index].integral = 0;
-                dacPidStates[index].lastError = 0;
-                dacPidStates[index].lastTime = Date.now();
-            }
-        }
 
         // 🔗 피드백 센서 데이터 룩업 헬퍼
         function getFeedbackSensorData(dacItem) {
@@ -3051,7 +2823,6 @@
 
             return { raw: "-", volt: "-", physVal: 0, physTxt: "-", unit: "" };
         }
-        window.getFeedbackSensorData = getFeedbackSensorData;
 
         // 5. 디지털 출력 (DO 20채널 - 10kW/6kW 실채널 목록 매핑 완료)
         const doChannels = [
@@ -3567,8 +3338,6 @@
                     if (voltEl && voltEl.innerHTML !== voltTxt) voltEl.innerHTML = voltTxt;
                     const pctEl = document.getElementById(`dac-pct-${index}`);
                     if (pctEl && pctEl.innerHTML !== percentTxt) pctEl.innerHTML = percentTxt;
-                    const linkBtnEl = document.getElementById(`dac-link-btn-${index}`);
-                    if (linkBtnEl && linkBtnEl.innerHTML !== linkBtnHtml) linkBtnEl.innerHTML = linkBtnHtml;
 
                     const fbRawEl = document.getElementById(`dac-fb-raw-${index}`);
                     if (fbRawEl && fbRawEl.textContent != fbData.raw) fbRawEl.textContent = fbData.raw;
@@ -3812,803 +3581,6 @@
                     container.classList.add('power-off');
                 }
             }
-
-            // 🪟 [실시간 동기화] 열려있는 독립 팝업 패널 창 실시간 미러링 (0ms 딜레이)
-            syncPopoutWindows();
-        }
-
-        // ==========================================================================
-        // 🪟 [대형 패널 독립 팝업창 분리 및 Ctrl + 마우스휠 줌(Zoom) 엔진]
-        // ==========================================================================
-        window.panelPopouts = window.panelPopouts || {};
-
-        const PANEL_POPOUT_CONFIG = {
-            tc: { title: "온도 센서 측정 현황 (TC 스캐너 매핑)", elementId: "card-panel-tc", width: 1240, height: 800 },
-            adc: { title: "아날로그 입력 수신 현황 (ADS1115 ADC 독립 계측)", elementId: "card-panel-adc", width: 1120, height: 600 },
-            serial: { title: "보드 연동 시리얼 장치 계측 현황 (Internal Sub-Serial)", elementId: "card-panel-serial", width: 1120, height: 680 },
-            di: { title: "디지털 입력 상태 (DI 8채널)", elementId: "card-panel-di", width: 1050, height: 480 },
-            dac: { title: "아날로그 제어 출력 & 피드백 센서 연동 (DAC60516 11채널)", elementId: "card-panel-dac", width: 1240, height: 800 },
-            do: { title: "디지털 릴레이 및 밸브 출력 (DO 20채널)", elementId: "card-panel-do", width: 1120, height: 650 }
-        };
-
-        function openPanelPopout(panelKey) {
-            const cfg = PANEL_POPOUT_CONFIG[panelKey];
-            if (!cfg) return;
-
-            // 이미 열려있는 창이 있으면 포커스
-            const existingWin = window.panelPopouts[panelKey];
-            if (existingWin && !existingWin.closed) {
-                existingWin.focus();
-                return;
-            }
-
-            const popWin = window.open('', `popout_${panelKey}`, `width=${cfg.width},height=${cfg.height},menubar=no,toolbar=no,location=no,status=no,resizable=yes`);
-            if (!popWin) {
-                alert("[팝업 차단 알림] 브라우저의 팝업 차단을 해제해 주십시오.");
-                return;
-            }
-
-            window.panelPopouts[panelKey] = popWin;
-
-            // 메인 창의 모든 스타일과 링크 추출
-            const styleNodes = document.querySelectorAll('style, link[rel="stylesheet"]');
-            let stylesHtml = '';
-            styleNodes.forEach(node => {
-                stylesHtml += node.outerHTML + '\n';
-            });
-
-            // 원본 카드 복제 및 초기 HTML 사전 구성 (창 오픈 시 텅 빈 검은 화면 현상 원천 방지!)
-            const srcCard = document.getElementById(cfg.elementId);
-            let initialCardHtml = '';
-            if (srcCard) {
-                const clone = srcCard.cloneNode(true);
-                clone.id = `${cfg.elementId}-popout-clone`;
-                clone.style.margin = '0';
-                clone.style.flex = '1';
-                clone.style.boxShadow = 'none';
-                clone.style.width = '100%';
-                const cloneHeader = clone.querySelector('.card-header');
-                if (cloneHeader) {
-                    cloneHeader.removeAttribute('ondblclick');
-                    cloneHeader.style.cursor = 'default';
-                    const hint = cloneHeader.querySelector('.popout-hint-icon');
-                    if (hint) hint.remove();
-                }
-                initialCardHtml = clone.outerHTML;
-            }
-
-            // DAC 모달 HTML 복제 추출 (팝업창 내부에서도 완벽하게 단독 모달 제어 가능하도록)
-            const dacModalEl = document.getElementById('dac-modal-overlay');
-            const dacModalHtml = dacModalEl ? dacModalEl.outerHTML : '';
-
-            // 팝업 창 전용 HTML 빌드
-            const popHtml = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${cfg.title} - 독립 모니터링 및 제어 뷰어</title>
-    ${stylesHtml}
-    <style>
-        html, body {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #070c18 !important;
-            color: #e2e8f0;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            position: relative;
-        }
-        body {
-            display: flex !important;
-            flex-direction: column !important;
-        }
-        #popout-toolbar {
-            height: 46px;
-            background: rgba(13, 20, 36, 0.96);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 0 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-            z-index: 1000;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
-            -webkit-app-region: drag;
-            flex-shrink: 0;
-        }
-        .popout-no-drag {
-            -webkit-app-region: no-drag !important;
-        }
-        .popout-tool-btn {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.12s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            -webkit-app-region: no-drag !important;
-        }
-        .popout-tool-btn:hover {
-            background: rgba(56, 189, 248, 0.25);
-            border-color: #38bdf8;
-            color: #38bdf8;
-        }
-        .popout-tool-btn.close-btn {
-            background: rgba(239, 68, 68, 0.18);
-            border-color: rgba(239, 68, 68, 0.35);
-            color: #f87171;
-            margin-left: 6px;
-        }
-        .popout-tool-btn.close-btn:hover {
-            background: #ef4444 !important;
-            border-color: #dc2626 !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-        }
-        #popout-viewport {
-            flex: 1;
-            overflow: auto;
-            padding: 16px;
-            box-sizing: border-box;
-            background: radial-gradient(circle at top right, rgba(30, 58, 138, 0.15), transparent 70%), #070c18;
-            display: flex;
-            flex-direction: column;
-        }
-        #popout-zoom-container {
-            transform-origin: top left;
-            transition: transform 0.08s ease-out;
-            width: 100%;
-            min-height: 100%;
-        }
-        .card {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            min-height: auto !important;
-        }
-        /* 스크롤바 세련되게 */
-        #popout-viewport::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        #popout-viewport::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-        }
-        #popout-viewport::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 4px;
-        }
-        #popout-viewport::-webkit-scrollbar-thumb:hover {
-            background: rgba(56, 189, 248, 0.4);
-        }
-        /* 팝업 창 내 모달 활성화 스타일 (화면 전체 덮기) */
-        .modal-overlay {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background: rgba(3, 5, 12, 0.8) !important;
-            backdrop-filter: blur(10px) !important;
-            display: none !important;
-            align-items: center !important;
-            justify-content: center !important;
-            z-index: 999999 !important;
-        }
-        .modal-overlay.active {
-            display: flex !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-        }
-        .modal-content {
-            box-shadow: 0 0 60px rgba(59, 130, 246, 0.4) !important;
-        }
-    </style>
-</head>
-<body>
-    <div id="popout-toolbar">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16px; cursor: move;">📌</span>
-            <span style="font-size: 13px; font-weight: 800; color: #f8fafc; letter-spacing: -0.2px; cursor: move;">${cfg.title}</span>
-            <span class="popout-no-drag" style="font-size: 9.5px; font-weight: 700; color: #34d399; background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); padding: 2px 8px; border-radius: 12px; display: flex; align-items: center; gap: 5px;">
-                <span style="display: inline-block; width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 6px #10b981;"></span>
-                LIVE SYNC & CONTROL
-            </span>
-        </div>
-        <div class="popout-no-drag" style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 10px; color: #94a3b8;">💡 Ctrl + 마우스휠 줌</span>
-            <button class="popout-tool-btn" id="btn-zoom-out" style="width: 28px; height: 26px; font-size: 13px; font-weight: 800;" title="축소 (Ctrl + 휠다운)">−</button>
-            <span id="popout-zoom-text" style="font-size: 11px; font-weight: 800; color: #38bdf8; font-family: 'Fira Code', monospace; min-width: 44px; text-align: center;">100%</span>
-            <button class="popout-tool-btn" id="btn-zoom-in" style="width: 28px; height: 26px; font-size: 13px; font-weight: 800;" title="확대 (Ctrl + 휠업)">+</button>
-            <button class="popout-tool-btn" id="btn-zoom-reset" style="padding: 0 8px; height: 26px; font-size: 10px; font-weight: 700;" title="100% 배율 복귀">⟲ 100%</button>
-            <button class="popout-tool-btn close-btn" onclick="window.close()" style="width: 28px; height: 26px; font-size: 12px; font-weight: 800;" title="창 닫기">✕</button>
-        </div>
-    </div>
-    <div id="popout-viewport">
-        <div id="popout-zoom-container">
-            ${initialCardHtml}
-        </div>
-    </div>
-    <!-- 🎛️ 팝업 창 독립 DAC 제어 모달 컨테이너 -->
-    ${dacModalHtml}
-</body>
-</html>`;
-
-            popWin.document.open();
-            popWin.document.write(popHtml);
-            popWin.document.close();
-
-            initPopoutZoomAndInteraction(popWin, panelKey);
-            setTimeout(() => {
-                initPopoutZoomAndInteraction(popWin, panelKey);
-                syncPopoutWindows();
-            }, 60);
-
-            log(`🪟 [패널 분리 & 제어 연동] "${cfg.title}" 패널이 독립 팝업창으로 분리되었습니다. (DO/DAC 출력 제어 지원)`);
-        }
-
-        function initPopoutZoomAndInteraction(popWin, panelKey) {
-            const popDoc = popWin.document;
-            if (!popDoc) return;
-
-            let currentScale = 1.0;
-
-            function applyZoom(newScale) {
-                currentScale = Math.max(0.5, Math.min(3.0, Math.round(newScale * 100) / 100));
-                const container = popDoc.getElementById('popout-zoom-container');
-                const text = popDoc.getElementById('popout-zoom-text');
-                if (container) {
-                    container.style.transform = `scale(${currentScale})`;
-                    container.style.width = currentScale > 1.0 ? `${100 / currentScale}%` : '100%';
-                }
-                if (text) {
-                    text.innerText = `${Math.round(currentScale * 100)}%`;
-                }
-            }
-
-            // Ctrl + 마우스 휠 리스너
-            popWin.addEventListener('wheel', (e) => {
-                if (e.ctrlKey) {
-                    e.preventDefault();
-                    const delta = e.deltaY < 0 ? 0.12 : -0.12;
-                    applyZoom(currentScale + delta);
-                }
-            }, { passive: false });
-
-            // 키보드 줌 단축키 (Ctrl + +, Ctrl + -, Ctrl + 0)
-            popWin.addEventListener('keydown', (e) => {
-                if (e.ctrlKey) {
-                    if (e.key === '=' || e.key === '+') {
-                        e.preventDefault();
-                        applyZoom(currentScale + 0.15);
-                    } else if (e.key === '-' || e.key === '_') {
-                        e.preventDefault();
-                        applyZoom(currentScale - 0.15);
-                    } else if (e.key === '0') {
-                        e.preventDefault();
-                        applyZoom(1.0);
-                    }
-                }
-            });
-
-            // 줌 툴바 버튼 이벤트
-            const btnIn = popDoc.getElementById('btn-zoom-in');
-            const btnOut = popDoc.getElementById('btn-zoom-out');
-            const btnReset = popDoc.getElementById('btn-zoom-reset');
-            if (btnIn) btnIn.onclick = () => applyZoom(currentScale + 0.15);
-            if (btnOut) btnOut.onclick = () => applyZoom(currentScale - 0.15);
-            if (btnReset) btnReset.onclick = () => applyZoom(1.0);
-
-            // =========================================================================
-            // ⚡ [팝업 창 전역 브릿지 함수 등록] - 복제된 인라인 onclick 및 팝업창 내부 조작 직결
-            // =========================================================================
-            popWin.activeDacIndex = null;
-
-            // [1] DO 제어 직결 바인딩
-            popWin.toggleVirtualCoil = (idx) => {
-                if (typeof toggleVirtualCoil === 'function') {
-                    toggleVirtualCoil(idx);
-                } else if (window.toggleVirtualCoil) {
-                    window.toggleVirtualCoil(idx);
-                }
-                syncPopoutWindows();
-            };
-            popWin.toggleDO = popWin.toggleVirtualCoil;
-            popWin.toggleMCSW = () => {
-                if (typeof toggleMCSW === 'function') {
-                    toggleMCSW();
-                } else if (window.toggleMCSW) {
-                    window.toggleMCSW();
-                }
-                syncPopoutWindows();
-            };
-
-            // [2] DAC 링크 토글 직결 바인딩
-            popWin.toggleDacLink = (idx) => {
-                if (typeof toggleDacLink === 'function') {
-                    toggleDacLink(idx);
-                } else if (window.toggleDacLink) {
-                    window.toggleDacLink(idx);
-                }
-                syncPopoutWindows();
-            };
-
-            // [3] DAC 제어 모달 오픈 (팝업 창 화면 바로 위에서 표시)
-            popWin.openDacControlModal = (index, forceSpMode = false) => {
-                try {
-                    popWin.activeDacIndex = index;
-                    const item = dacChannels[index];
-                    if (!item || !item.is6kW) {
-                        alert(`[안전 경고] ${item ? item.name : ''} 채널은 10kW 전용 사양입니다.`);
-                        return;
-                    }
-                    if (forceSpMode) {
-                        item.isLinked = true;
-                    }
-
-                    const doc = popWin.document;
-                    const nameEl = doc.getElementById('dac-modal-device-name');
-                    const netEl = doc.getElementById('dac-modal-device-net');
-                    if (nameEl) nameEl.innerText = item.name;
-                    if (netEl) netEl.innerText = `${item.net} ↔ 피드백: ${item.feedbackDesc} (${item.feedbackNet})`;
-
-                    popWin.updateDacModalModeUI();
-
-                    const overlay = doc.getElementById('dac-modal-overlay');
-                    if (overlay) overlay.classList.add('active');
-                } catch(err) {
-                    console.error("[openDacControlModal error]", err);
-                }
-            };
-
-            // [4] DAC 모달 UI 갱신 (LINK / 수동 모드 상태별 UI 전환)
-            popWin.updateDacModalModeUI = () => {
-                try {
-                    const doc = popWin.document;
-                    const idx = popWin.activeDacIndex;
-                    if (idx === null || idx === undefined) return;
-                    const item = dacChannels[idx];
-                    if (!item) return;
-
-                    const linkBtn = doc.getElementById('dac-modal-link-toggle-btn');
-                    const pidSec = doc.getElementById('dac-modal-pid-section');
-                    const manualSec = doc.getElementById('dac-modal-manual-section');
-
-                    if (item.isLinked) {
-                        if (linkBtn) {
-                            linkBtn.className = "btn-link-toggle active-link";
-                            linkBtn.innerHTML = "🔗 PID LINK ON";
-                        }
-                        if (pidSec) pidSec.style.display = "block";
-                        if (manualSec) manualSec.style.display = "none";
-
-                        const fbNameEl = doc.getElementById('dac-modal-fb-sensor-name');
-                        if (fbNameEl) fbNameEl.innerText = `피드백: ${item.feedbackDesc} (${item.feedbackNet})`;
-
-                        const spDisp = doc.getElementById('dac-modal-sp-val-display');
-                        const spUnit = doc.getElementById('dac-modal-sp-unit-display');
-                        if (spDisp) spDisp.innerText = item.targetSp.toFixed(1);
-                        if (spUnit) spUnit.innerText = item.unit;
-
-                        const spSlider = doc.getElementById('dac-sp-slider');
-                        if (spSlider) {
-                            spSlider.min = item.minVal;
-                            spSlider.max = item.maxVal;
-                            spSlider.step = item.maxVal > 50 ? 1 : 0.1;
-                            spSlider.value = item.targetSp;
-                        }
-                        const spInput = doc.getElementById('dac-sp-input');
-                        if (spInput) spInput.value = item.targetSp;
-
-                        try {
-                            const fbData = getFeedbackSensorData(item);
-                            const pvEl = doc.getElementById('dac-modal-pv-display');
-                            if (pvEl && fbData) pvEl.innerText = fbData.physTxt;
-                        } catch(e) {}
-
-                        const gains = (typeof dacPidGains !== 'undefined' && dacPidGains[idx]) ? dacPidGains[idx] : { kp: 3.8, ki: 0.35, kd: 0.5 };
-                        const kpIn = doc.getElementById('dac-pid-kp-input');
-                        const kiIn = doc.getElementById('dac-pid-ki-input');
-                        const kdIn = doc.getElementById('dac-pid-kd-input');
-                        if (kpIn) kpIn.value = gains.kp.toFixed(2);
-                        if (kiIn) kiIn.value = gains.ki.toFixed(2);
-                        if (kdIn) kdIn.value = gains.kd.toFixed(2);
-                    } else {
-                        if (linkBtn) {
-                            linkBtn.className = "btn-link-toggle manual-link";
-                            linkBtn.innerHTML = "🔓 수동 모드";
-                        }
-                        if (pidSec) pidSec.style.display = "none";
-                        if (manualSec) manualSec.style.display = "block";
-
-                        const slider = doc.getElementById('dac-slider');
-                        const rawIn = doc.getElementById('dac-raw-input');
-                        if (slider) slider.value = item.val;
-                        if (rawIn) rawIn.value = item.val;
-
-                        const volt = (item.val * 5.0) / 65535;
-                        const pct = (item.val / 65535) * 100;
-                        const voltEl = doc.getElementById('dac-modal-volt-display');
-                        const pctEl = doc.getElementById('dac-modal-percent-display');
-                        if (voltEl) voltEl.innerText = volt.toFixed(2);
-                        if (pctEl) pctEl.innerText = pct.toFixed(1);
-                    }
-                } catch(err) {
-                    console.error("[updateDacModalModeUI error]", err);
-                }
-            };
-
-            popWin.toggleDacLinkInModal = () => {
-                const idx = popWin.activeDacIndex;
-                if (idx !== null && idx !== undefined) {
-                    if (typeof toggleDacLink === 'function') toggleDacLink(idx);
-                    popWin.updateDacModalModeUI();
-                    syncPopoutWindows();
-                }
-            };
-
-            popWin.closeDacModal = () => {
-                const doc = popWin.document;
-                const overlay = doc.getElementById('dac-modal-overlay');
-                if (overlay) overlay.classList.remove('active');
-                popWin.activeDacIndex = null;
-            };
-
-            popWin.updateDacSpSlider = (val) => {
-                const num = parseFloat(val) || 0;
-                const doc = popWin.document;
-                const disp = doc.getElementById('dac-modal-sp-val-display');
-                const input = doc.getElementById('dac-sp-input');
-                if (disp) disp.innerText = num.toFixed(1);
-                if (input) input.value = num;
-            };
-
-            popWin.updateDacSpInput = (val) => {
-                const num = parseFloat(val) || 0;
-                const doc = popWin.document;
-                const disp = doc.getElementById('dac-modal-sp-val-display');
-                const slider = doc.getElementById('dac-sp-slider');
-                if (disp) disp.innerText = num.toFixed(1);
-                if (slider) slider.value = num;
-            };
-
-            // 팝업 모달에서 [🎯 목표 설정값(SP) 적용 및 PID 추종 개시] 클릭 시
-            popWin.saveDacSpCommand = () => {
-                const idx = popWin.activeDacIndex;
-                if (idx === null || idx === undefined) return;
-                const doc = popWin.document;
-                const spInput = doc.getElementById('dac-sp-input');
-                const spVal = parseFloat(spInput ? spInput.value : 0) || 0;
-
-                // 스코프 변수 및 전역 객체 동기화
-                activeDacIndex = idx;
-                window.activeDacIndex = idx;
-                window._activeDacIndex = idx;
-
-                // 모달 내 게인 파라미터 획득
-                const kpIn = doc.getElementById('dac-pid-kp-input');
-                const kiIn = doc.getElementById('dac-pid-ki-input');
-                const kdIn = doc.getElementById('dac-pid-kd-input');
-                const kp = parseFloat(kpIn ? kpIn.value : 3.8) || 3.8;
-                const ki = parseFloat(kiIn ? kiIn.value : 0.35) || 0.35;
-                const kd = parseFloat(kdIn ? kdIn.value : 0.5) || 0.5;
-
-                // 메인 창 DOM 컨트롤에도 미러링
-                const mainSpInput = document.getElementById('dac-sp-input');
-                const mainKp = document.getElementById('dac-pid-kp-input');
-                const mainKi = document.getElementById('dac-pid-ki-input');
-                const mainKd = document.getElementById('dac-pid-kd-input');
-                if (mainSpInput) mainSpInput.value = spVal;
-                if (mainKp) mainKp.value = kp;
-                if (mainKi) mainKi.value = ki;
-                if (mainKd) mainKd.value = kd;
-
-                if (typeof saveDacPidGainsManual === 'function') {
-                    saveDacPidGainsManual(false, idx, { kp, ki, kd });
-                }
-
-                if (typeof saveDacSpCommand === 'function') {
-                    saveDacSpCommand(idx, spVal);
-                }
-
-                popWin.closeDacModal();
-                syncPopoutWindows();
-            };
-
-            // 팝업 모달에서 수동 슬라이더 조작
-            popWin.updateDacSliderRange = (raw) => {
-                const r = parseInt(raw) || 0;
-                const doc = popWin.document;
-                const rawIn = doc.getElementById('dac-input-raw') || doc.getElementById('dac-raw-input');
-                if (rawIn) rawIn.value = r;
-                const v = (r * 5.0) / 65535;
-                const p = (r / 65535) * 100;
-                const voltEl = doc.getElementById('dac-modal-volt-display');
-                const pctEl = doc.getElementById('dac-slider-pct-display') || doc.getElementById('dac-modal-percent-display');
-                if (voltEl) voltEl.innerText = `${v.toFixed(3)} V`;
-                if (pctEl) pctEl.innerText = p.toFixed(2);
-            };
-
-            popWin.updateDacRawInput = (raw) => {
-                const r = Math.max(0, Math.min(65535, parseInt(raw) || 0));
-                const doc = popWin.document;
-                const slider = doc.getElementById('dac-control-slider') || doc.getElementById('dac-slider');
-                if (slider) slider.value = r;
-                popWin.updateDacSliderRange(r);
-            };
-
-            // 팝업 모달에서 [수동 제어 명령 송출 (Write Register)] 클릭 시
-            popWin.sendDacControlCommand = () => {
-                const idx = popWin.activeDacIndex;
-                if (idx === null || idx === undefined) return;
-                const doc = popWin.document;
-                const rawInput = doc.getElementById('dac-input-raw') || doc.getElementById('dac-raw-input') || doc.getElementById('dac-control-slider');
-                const rawVal = parseInt(rawInput ? rawInput.value : 0) || 0;
-
-                activeDacIndex = idx;
-                window.activeDacIndex = idx;
-                window._activeDacIndex = idx;
-
-                const mainRawInput = document.getElementById('dac-input-raw');
-                const mainSlider = document.getElementById('dac-control-slider');
-                if (mainRawInput) mainRawInput.value = rawVal;
-                if (mainSlider) mainSlider.value = rawVal;
-
-                if (typeof sendDacControlCommand === 'function') {
-                    sendDacControlCommand(idx, rawVal);
-                }
-                popWin.closeDacModal();
-                syncPopoutWindows();
-            };
-
-            popWin.saveDacPidGainsManual = (showAlert = true) => {
-                const idx = popWin.activeDacIndex;
-                if (idx === null || idx === undefined) return;
-                const doc = popWin.document;
-                activeDacIndex = idx;
-                window.activeDacIndex = idx;
-                window._activeDacIndex = idx;
-
-                const kpIn = doc.getElementById('dac-pid-kp-input');
-                const kiIn = doc.getElementById('dac-pid-ki-input');
-                const kdIn = doc.getElementById('dac-pid-kd-input');
-                const kp = parseFloat(kpIn ? kpIn.value : 3.8) || 3.8;
-                const ki = parseFloat(kiIn ? kiIn.value : 0.35) || 0.35;
-                const kd = parseFloat(kdIn ? kdIn.value : 0.5) || 0.5;
-
-                const mainKp = document.getElementById('dac-pid-kp-input');
-                const mainKi = document.getElementById('dac-pid-ki-input');
-                const mainKd = document.getElementById('dac-pid-kd-input');
-                if (mainKp) mainKp.value = kp;
-                if (mainKi) mainKi.value = ki;
-                if (mainKd) mainKd.value = kd;
-
-                if (typeof saveDacPidGainsManual === 'function') {
-                    saveDacPidGainsManual(showAlert, idx, { kp, ki, kd });
-                }
-            };
-
-            popWin.startPidAutoTuningFromModal = () => {
-                const idx = popWin.activeDacIndex;
-                if (idx === null || idx === undefined) return;
-                activeDacIndex = idx;
-                window.activeDacIndex = idx;
-                window._activeDacIndex = idx;
-                if (typeof startPidAutoTuningFromModal === 'function') {
-                    startPidAutoTuningFromModal();
-                }
-            };
-
-            popWin.stopPidAutoTuning = (canceled = false) => {
-                if (typeof stopPidAutoTuning === 'function') {
-                    stopPidAutoTuning(canceled);
-                }
-            };
-
-            popWin.applyAutoTunedGainsFromModal = () => {
-                activeDacIndex = popWin.activeDacIndex;
-                window.activeDacIndex = popWin.activeDacIndex;
-                window._activeDacIndex = popWin.activeDacIndex;
-                if (typeof applyAutoTunedGainsFromModal === 'function') {
-                    applyAutoTunedGainsFromModal();
-                }
-                syncPopoutWindows();
-            };
-
-            // =========================================================================
-            // 🎮 팝업 창 내부 클릭 인터랙션 이벤트 위임 (DO / DAC / MODAL)
-            // =========================================================================
-            popDoc.addEventListener('click', (e) => {
-                // [1] DO 릴레이 버튼 클릭 (.do-btn, #mc-btn 등)
-                const doBtn = e.target.closest('.do-btn');
-                if (doBtn) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const doCard = doBtn.closest('[id^="do-card-"]');
-                    if (doCard) {
-                        const idx = parseInt(doCard.id.replace('do-card-', ''));
-                        if (!isNaN(idx)) {
-                            popWin.toggleVirtualCoil(idx);
-                        }
-                    }
-                    return;
-                }
-
-                // [2] DAC 링크 토글 버튼 클릭 (.btn-link-toggle) - 테이블 내부
-                const linkBtn = e.target.closest('.btn-link-toggle');
-                if (linkBtn && !linkBtn.closest('#dac-modal-overlay')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const mainRow = linkBtn.closest('[id^="dac-row-"]');
-                    if (mainRow) {
-                        const idx = parseInt(mainRow.id.replace('dac-row-', ''));
-                        if (!isNaN(idx)) {
-                            popWin.toggleDacLink(idx);
-                        }
-                    }
-                    return;
-                }
-
-                // [3] DAC 목표치 칩 (.sp-chip) 클릭 -> 모달 SP 모드로 오픈
-                const spChip = e.target.closest('.sp-chip');
-                if (spChip) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const fbRow = spChip.closest('[id^="dac-fb-row-"]');
-                    if (fbRow) {
-                        const idx = parseInt(fbRow.id.replace('dac-fb-row-', ''));
-                        if (!isNaN(idx)) {
-                            popWin.openDacControlModal(idx, true);
-                        }
-                    }
-                    return;
-                }
-
-                // [4] DAC 행 클릭 -> 모달 오픈
-                const dacMainRow = e.target.closest('.dac-main-row');
-                if (dacMainRow) {
-                    if (e.target.closest('.btn-link-toggle') || e.target.closest('.sp-chip')) return;
-                    const idx = parseInt(dacMainRow.id.replace('dac-row-', ''));
-                    if (!isNaN(idx)) {
-                        popWin.openDacControlModal(idx, false);
-                    }
-                    return;
-                }
-                const dacFbRow = e.target.closest('.dac-fb-row');
-                if (dacFbRow) {
-                    if (e.target.closest('.sp-chip')) return;
-                    const idx = parseInt(dacFbRow.id.replace('dac-fb-row-', ''));
-                    if (!isNaN(idx)) {
-                        popWin.openDacControlModal(idx, true);
-                    }
-                    return;
-                }
-
-                // [5] 모달 닫기 버튼 (&times;) 또는 오버레이 외부 클릭
-                if (e.target.closest('#btn-close-dac-modal') || e.target.id === 'dac-modal-overlay') {
-                    popWin.closeDacModal();
-                    return;
-                }
-
-                // [6] 모달 내 목표값(SP) 적용 및 PID 추종 개시 버튼 (#btn-save-sp-command)
-                if (e.target.closest('#btn-save-sp-command')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.saveDacSpCommand();
-                    return;
-                }
-
-                // [7] 모달 내 수동 제어 명령 송출 버튼 (#btn-send-dac-command)
-                if (e.target.closest('#btn-send-dac-command')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.sendDacControlCommand();
-                    return;
-                }
-
-                // [8] 모달 내 PID LINK ON / 수동 모드 토글 버튼 (#dac-modal-link-toggle-btn)
-                if (e.target.closest('#dac-modal-link-toggle-btn')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.toggleDacLinkInModal();
-                    return;
-                }
-
-                // [9] 모달 내 실시간 게인만 갱신 버튼
-                if (e.target.closest('button[onclick*="saveDacPidGainsManual"]')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.saveDacPidGainsManual(true);
-                    return;
-                }
-
-                // [10] 모달 내 원클릭 오토튜닝 관련 버튼들
-                if (e.target.closest('#btn-start-autotune')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.startPidAutoTuningFromModal();
-                    return;
-                }
-                if (e.target.closest('#btn-stop-autotune')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.stopPidAutoTuning(true);
-                    return;
-                }
-                if (e.target.closest('#btn-apply-autotune')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    popWin.applyAutoTunedGainsFromModal();
-                    return;
-                }
-            });
-
-            // 🎛️ [슬라이더 및 인풋 실시간 양방향 연동]
-            popDoc.addEventListener('input', (e) => {
-                if (e.target.id === 'dac-sp-slider') {
-                    popWin.updateDacSpSlider(e.target.value);
-                } else if (e.target.id === 'dac-sp-input') {
-                    popWin.updateDacSpInput(e.target.value);
-                } else if (e.target.id === 'dac-control-slider' || e.target.id === 'dac-slider') {
-                    popWin.updateDacSliderRange(e.target.value);
-                } else if (e.target.id === 'dac-input-raw' || e.target.id === 'dac-raw-input') {
-                    popWin.updateDacRawInput(e.target.value);
-                }
-            });
-        }
-
-        // 실시간 동기화: 메인 창의 최신 렌더링 상태를 열려있는 팝업창으로 0ms 미러링
-        function syncPopoutWindows() {
-            if (!window.panelPopouts) return;
-            for (const [key, popWin] of Object.entries(window.panelPopouts)) {
-                if (!popWin || popWin.closed) continue;
-                const cfg = PANEL_POPOUT_CONFIG[key];
-                if (!cfg) continue;
-                const srcCard = document.getElementById(cfg.elementId);
-                const popDoc = popWin.document;
-                const container = popDoc ? popDoc.getElementById('popout-zoom-container') : null;
-                if (srcCard && container) {
-                    try {
-                        const clone = srcCard.cloneNode(true);
-                        clone.id = `${cfg.elementId}-popout-clone`;
-                        clone.style.margin = '0';
-                        clone.style.flex = '1';
-                        clone.style.boxShadow = 'none';
-                        clone.style.width = '100%';
-
-                        const cloneHeader = clone.querySelector('.card-header');
-                        if (cloneHeader) {
-                            cloneHeader.removeAttribute('ondblclick');
-                            cloneHeader.style.cursor = 'default';
-                            const hint = cloneHeader.querySelector('.popout-hint-icon');
-                            if (hint) hint.remove();
-                        }
-
-                        container.innerHTML = '';
-                        container.appendChild(clone);
-
-                        // 🎛️ 팝업 창 안에서 DAC 모달이 열려 있는 경우 실시간 PV 센서 계측값도 모달에 즉시 동기화
-                        if (popWin.activeDacIndex !== null && popWin.activeDacIndex !== undefined) {
-                            const activeItem = (typeof dacChannels !== 'undefined') ? dacChannels[popWin.activeDacIndex] : null;
-                            if (activeItem && typeof getFeedbackSensorData === 'function') {
-                                const fb = getFeedbackSensorData(activeItem);
-                                const pvEl = popDoc.getElementById('dac-modal-pv-display');
-                                if (pvEl && fb) pvEl.innerText = fb.physTxt;
-                            }
-                        }
-                    } catch(err) {
-                        console.warn(`[syncPopoutWindows] error for ${key}:`, err);
-                    }
-                }
-            }
         }
 
         // 🔴 BroadcastChannel 기반 현대적 크로스-윈도우 매크로 수집 브릿지
@@ -4819,11 +3791,6 @@
         const modalOverlay = document.getElementById('debug-modal-overlay');
         const dacModalOverlay = document.getElementById('dac-modal-overlay');
         let activeDacIndex = null;
-        Object.defineProperty(window, 'activeDacIndex', {
-            get() { return activeDacIndex; },
-            set(val) { activeDacIndex = val; },
-            configurable: true
-        });
         let isPortConnected = false;
         let socket = null;
         window.socket = null;
@@ -5241,8 +4208,17 @@
                         const lo = parseInt(tokens[4 + (i * 2)], 16);
                         const regVal = (hi << 8) | lo;
 
-                        // 1. TC 온도 채널 (0 ~ 31: CH1 ~ CH32) -> 실측 온도 환산
-                        if (i < 32 && i < tcChannels.length) {
+                        // 1. 레지스터 31번: 보드 내부 냉접점 상온 (CJC) 판독 및 배지 표출
+                        if (i === 31) {
+                            if (regVal !== 0x7FFF && regVal !== 0x9999 && regVal > 0) {
+                                const cjcDeg = regVal / 10.0;
+                                window.boardCjcTemp = cjcDeg;
+                                const cjcElem = document.getElementById('tc-cjc-val');
+                                if (cjcElem) cjcElem.textContent = `${cjcDeg.toFixed(1)}°C`;
+                            }
+                        }
+                        // 2. TC 온도 채널 (0 ~ 30: CH1 ~ CH31) -> 실측 온도 환산
+                        else if (i < 31 && i < tcChannels.length) {
                             const isTType = (i < 20);
                             const tempDeg = regVal / 10.0;
                             const curCjc = window.boardCjcTemp || null;
@@ -5259,23 +4235,6 @@
                                 // 🎯 정상 계측 센서: 즉시 온도 갱신
                                 tcChannels[i].val = tempDeg;
                                 tcChannels[i].missingCount = 0;
-
-                                // 🪄 [PID 오토튜닝 실시간 피드백 틱 연동]
-                                if (window.autoTuneSession && window.autoTuneSession.active) {
-                                    const autotuneDac = dacChannels[window.autoTuneSession.dacIndex];
-                                    if (autotuneDac && autotuneDac.feedbackNet === tcChannels[i].net) {
-                                        processAutoTuningSensorTick(window.autoTuneSession.dacIndex, tempDeg);
-                                    }
-                                }
-
-                                // 모달이 열려있고 해당 센서가 피드백 센서인 경우 PV 실시간 갱신
-                                if (activeDacIndex !== null) {
-                                    const openDac = dacChannels[activeDacIndex];
-                                    if (openDac && openDac.feedbackNet === tcChannels[i].net) {
-                                        const pvEl = document.getElementById('dac-modal-pv-display');
-                                        if (pvEl) pvEl.innerText = `${tempDeg.toFixed(2)} ℃`;
-                                    }
-                                }
                             } else {
                                 // 🎯 미결선/빈 채널 또는 단선: 깔끔한 가로바('--') 고정
                                 tcChannels[i].missingCount = (tcChannels[i].missingCount || 0) + 1;
@@ -5284,19 +4243,10 @@
                                 }
                             }
                         }
-                        // 2. ADC 아날로그 입력 채널 (32 ~ 47)
+                        // 3. ADC 아날로그 입력 채널 (32 ~ 47)
                         else if (i >= 32 && i < 32 + adcChannels.length) {
                             const adcIdx = i - 32;
                             adcChannels[adcIdx].raw = regVal;
-                        }
-                        // 2.5. 레지스터 48번: 보드 내부 냉접점 상온 (CJC) 판독 및 배지 표출
-                        else if (i === 48) {
-                            if (regVal !== 0x7FFF && regVal !== 0x9999 && regVal > 0) {
-                                const cjcDeg = regVal / 10.0;
-                                window.boardCjcTemp = cjcDeg;
-                                const cjcElem = document.getElementById('tc-cjc-val');
-                                if (cjcElem) cjcElem.textContent = `${cjcDeg.toFixed(1)}°C`;
-                            }
                         }
                         // 3.5. DS3231 RTC 실시간 시각 계측 판독 (50 ~ 55)
                         else if (i >= 50 && i <= 55) {
@@ -5475,15 +4425,6 @@
 
                 const fbData = getFeedbackSensorData(item);
                 document.getElementById('dac-modal-pv-display').innerText = fbData.physTxt;
-
-                // 🎛️ 실시간 PID 게인 입력 필드 동기화
-                const gains = dacPidGains[activeDacIndex] || { kp: 3.8, ki: 0.35, kd: 0.5 };
-                const kpInput = document.getElementById('dac-pid-kp-input');
-                const kiInput = document.getElementById('dac-pid-ki-input');
-                const kdInput = document.getElementById('dac-pid-kd-input');
-                if (kpInput) kpInput.value = gains.kp.toFixed(2);
-                if (kiInput) kiInput.value = gains.ki.toFixed(2);
-                if (kdInput) kdInput.value = gains.kd.toFixed(2);
             } else {
                 linkBtn.className = "btn-link-toggle manual-link";
                 linkBtn.innerHTML = "🔓 MANUAL (수동)";
@@ -5502,286 +4443,9 @@
             updateDacModalModeUI();
         }
 
-        // 🎛️ dsPIC33CK MCU 펌웨어 내장형 Closed-Loop PID Holding Register 매핑
-        // Holding 40013~40020 (모드 및 SP), 40051~40062 (Kp, Ki, Kd)
-        const PID_FIRMWARE_REG_MAP = {
-            6: { modeReg: 16, spReg: 17, kpReg: 59, kiReg: 60, kdReg: 61, defaultKp: 3.8, defaultKi: 0.35, defaultKd: 0.5, name: "AOG 회수라인 응축수 펌프", net: "AO_P341" },
-            7: { modeReg: 12, spReg: 13, kpReg: 50, kiReg: 51, kdReg: 52, defaultKp: 3.8, defaultKi: 0.35, defaultKd: 0.5, name: "Anode 냉각수 순환 물펌프", net: "AO_P351" },
-            8: { modeReg: 14, spReg: 15, kpReg: 53, kiReg: 54, kdReg: 55, defaultKp: 3.8, defaultKi: 0.35, defaultKd: 0.5, name: "STACK 1 냉각수 공급 펌프", net: "AO_P370" },
-            9: { modeReg: 18, spReg: 19, kpReg: 56, kiReg: 57, kdReg: 58, defaultKp: 3.8, defaultKi: 0.35, defaultKd: 0.5, name: "STACK 2 냉각수 공급 펌프", net: "AO_P375" }
-        };
-
-        // 로컬 게인 캐시 (단위: 실수 float)
-        const dacPidGains = {
-            6: { kp: 3.8, ki: 0.35, kd: 0.5 },
-            7: { kp: 3.8, ki: 0.35, kd: 0.5 },
-            8: { kp: 3.8, ki: 0.35, kd: 0.5 },
-            9: { kp: 3.8, ki: 0.35, kd: 0.5 }
-        };
-        window.dacPidGains = dacPidGains;
-
-        function sendModbusWriteHoldingReg(regAddr, val) {
-            const clamped = Math.max(0, Math.min(65535, Math.round(val)));
-            const requestFrame = buildModbusRTUFrame(1, 6, regAddr, clamped);
-            if (commMode === "websocket" && socket && socket.readyState === WebSocket.OPEN && isPortConnected) {
-                socket.send(jsonStr({
-                    type: "WRITE_PORT",
-                    hex: requestFrame
-                }));
-            }
-        }
-
-        // 🎛️ 사용자가 모달에서 수동으로 입력한 PID 게인을 dsPIC33CK 보드에 주입
-        function saveDacPidGainsManual(showAlert = true, targetIndex = null, directGains = null) {
-            const idx = (targetIndex !== null && targetIndex !== undefined) ? targetIndex : activeDacIndex;
-            if (idx === null || idx === undefined) return;
-            activeDacIndex = idx;
-            const item = dacChannels[idx];
-            if (!item) return;
-            const fwPid = PID_FIRMWARE_REG_MAP[idx];
-            const kp = directGains?.kp ?? (parseFloat(document.getElementById('dac-pid-kp-input')?.value) || 3.8);
-            const ki = directGains?.ki ?? (parseFloat(document.getElementById('dac-pid-ki-input')?.value) || 0.35);
-            const kd = directGains?.kd ?? (parseFloat(document.getElementById('dac-pid-kd-input')?.value) || 0.5);
-
-            dacPidGains[idx] = { kp, ki, kd };
-
-            if (fwPid) {
-                // 100배 정수 스케일링으로 전송 (예: 3.80 -> 380)
-                sendModbusWriteHoldingReg(fwPid.kpReg, Math.round(kp * 100));
-                sendModbusWriteHoldingReg(fwPid.kiReg, Math.round(ki * 100));
-                sendModbusWriteHoldingReg(fwPid.kdReg, Math.round(kd * 100));
-                log(`⚡ [dsPIC33CK 게인 주입] ${item.name} -> Kp=${kp.toFixed(2)}, Ki=${ki.toFixed(2)}, Kd=${kd.toFixed(2)} (Holding Reg ${fwPid.kpReg}~${fwPid.kdReg})`);
-                if (showAlert) {
-                    alert(`[게인 주입 완료] ${item.name}\nKp=${kp.toFixed(2)}, Ki=${ki.toFixed(2)}, Kd=${kd.toFixed(2)} 파라미터가 dsPIC33CK 제어보드 레지스터에 즉시 주입되었습니다.`);
-                }
-            }
-        }
-
-        // 🪄 [원클릭 PID 오토튜닝 상태 머신 및 알고리즘 엔진]
-        window.autoTuneSession = {
-            active: false,
-            dacIndex: null,
-            targetSp: 0,
-            relayHigh: 32768, // 50%
-            relayLow: 9830,   // 15%
-            stepD: 0.175,     // (50 - 15) / 2 = 17.5% -> 0.175
-            currentRelayState: false, // true: High, false: Low
-            startTime: 0,
-            crossings: [],
-            peaks: [],
-            lastPv: null,
-            lastDirection: 0,
-            tunedKp: 0,
-            tunedKi: 0,
-            tunedKd: 0
-        };
-
-        function startPidAutoTuningFromModal() {
-            if (activeDacIndex === null) return;
-            const item = dacChannels[activeDacIndex];
-            const fwPid = PID_FIRMWARE_REG_MAP[activeDacIndex];
-            if (!fwPid) {
-                alert("[오토튜닝 오류] 본 채널은 펌웨어 PID 매핑이 없습니다.");
-                return;
-            }
-
-            if (!confirm(`[원클릭 PID 오토튜닝 시작]\n${item.name} (${item.net}) 채널의 릴레이 한계 진동 시험을 시작하시겠습니까?\n\n- 목표 SP: ${item.targetSp}${item.unit}\n- 릴레이 진동: 15% ~ 50% 스위칭\n- 안전을 위해 작업자가 감시 상태를 유지하십시오.`)) {
-                return;
-            }
-
-            window.autoTuneSession = {
-                active: true,
-                dacIndex: activeDacIndex,
-                targetSp: item.targetSp,
-                relayHigh: 32768, // 50%
-                relayLow: 9830,   // 15%
-                stepD: 0.175,
-                currentRelayState: false,
-                startTime: Date.now(),
-                crossings: [],
-                peaks: [],
-                lastPv: null,
-                lastDirection: 0,
-                tunedKp: 0,
-                tunedKi: 0,
-                tunedKd: 0
-            };
-
-            // 펌웨어 PID 모드를 잠시 수동으로 전환하여 UI가 릴레이 제어 신호를 직접 주입
-            sendModbusWriteHoldingReg(fwPid.modeReg, 0);
-
-            // UI 갱신
-            document.getElementById('autotune-badge').innerText = "진행 중";
-            document.getElementById('autotune-badge').style.color = "#fde047";
-            document.getElementById('autotune-badge').style.borderColor = "#fde047";
-            document.getElementById('autotune-status-text').innerText = "상태: 릴레이 한계 진동 유도 중...";
-            document.getElementById('autotune-percent-text').innerText = "10 %";
-            document.getElementById('autotune-progress-bar').style.width = "10%";
-
-            document.getElementById('btn-start-autotune').style.display = "none";
-            document.getElementById('btn-stop-autotune').style.display = "block";
-            document.getElementById('btn-apply-autotune').style.display = "none";
-
-            log(`🪄 [PID 오토튜닝 개시] ${item.name} -> 릴레이 한계 진동 시험 시작 (목표 SP: ${item.targetSp}${item.unit})`);
-        }
-
-        function stopPidAutoTuning(canceled = false) {
-            if (!window.autoTuneSession.active) return;
-            const dacIdx = window.autoTuneSession.dacIndex;
-            window.autoTuneSession.active = false;
-
-            document.getElementById('btn-start-autotune').style.display = "block";
-            document.getElementById('btn-stop-autotune').style.display = "none";
-
-            if (canceled) {
-                document.getElementById('autotune-badge').innerText = "중단됨";
-                document.getElementById('autotune-badge').style.color = "#f87171";
-                document.getElementById('autotune-badge').style.borderColor = "#ef4444";
-                document.getElementById('autotune-status-text').innerText = "상태: 작업자에 의해 중단됨";
-                document.getElementById('autotune-progress-bar').style.width = "0%";
-                document.getElementById('autotune-percent-text').innerText = "0 %";
-                log(`🛑 [PID 오토튜닝 중단] 사용자에 의해 오토튜닝이 취소되었습니다.`);
-            }
-
-            // 원복: 안전하게 AUTO 모드 복귀
-            if (dacIdx !== null && dacChannels[dacIdx].isLinked) {
-                const fwPid = PID_FIRMWARE_REG_MAP[dacIdx];
-                if (fwPid) {
-                    sendModbusWriteHoldingReg(fwPid.modeReg, 1);
-                }
-            }
-        }
-
-        function processAutoTuningSensorTick(dacIdx, currentPv) {
-            if (!window.autoTuneSession.active || window.autoTuneSession.dacIndex !== dacIdx) return;
-
-            const sp = window.autoTuneSession.targetSp;
-            const now = Date.now();
-
-            // 1. 역동작 냉각 릴레이 스위칭: PV > SP -> 냉각 필요 (High: 50%), PV <= SP -> Low (15%)
-            const desiredRelayState = (currentPv > sp);
-            if (desiredRelayState !== window.autoTuneSession.currentRelayState || window.autoTuneSession.crossings.length === 0) {
-                window.autoTuneSession.currentRelayState = desiredRelayState;
-                const dacRaw = desiredRelayState ? window.autoTuneSession.relayHigh : window.autoTuneSession.relayLow;
-                
-                sendModbusWriteHoldingReg(dacIdx, dacRaw);
-                dacChannels[dacIdx].val = dacRaw;
-
-                window.autoTuneSession.crossings.push({ time: now, pv: currentPv, dir: desiredRelayState ? 1 : -1 });
-            }
-
-            // 2. 극점(Peak / Valley) 감지
-            if (window.autoTuneSession.lastPv !== null) {
-                const diff = currentPv - window.autoTuneSession.lastPv;
-                const dir = diff > 0.05 ? 1 : (diff < -0.05 ? -1 : window.autoTuneSession.lastDirection);
-                if (window.autoTuneSession.lastDirection !== 0 && dir !== window.autoTuneSession.lastDirection) {
-                    window.autoTuneSession.peaks.push({ time: now, pv: window.autoTuneSession.lastPv, type: window.autoTuneSession.lastDirection > 0 ? "peak" : "valley" });
-                }
-                window.autoTuneSession.lastDirection = dir;
-            }
-            window.autoTuneSession.lastPv = currentPv;
-
-            // 3. 프로그레스 갱신
-            const numCross = window.autoTuneSession.crossings.length;
-            const pct = Math.min(95, Math.round((numCross / 6) * 100));
-            const pctEl = document.getElementById('autotune-percent-text');
-            const barEl = document.getElementById('autotune-progress-bar');
-            const statEl = document.getElementById('autotune-status-text');
-            if (pctEl) pctEl.innerText = `${pct} %`;
-            if (barEl) barEl.style.width = `${pct}%`;
-            if (statEl) statEl.innerText = `상태: 진동 관측 중 (${numCross}/6 사이클)`;
-
-            // 4. 6회 교차 및 피크 4회 감지 시 파라미터 자동 합성
-            if (numCross >= 6 && window.autoTuneSession.peaks.length >= 4) {
-                const cLen = window.autoTuneSession.crossings.length;
-                const tDiffs = [];
-                for (let i = cLen - 1; i >= cLen - 4; i--) {
-                    if (i >= 2) {
-                        tDiffs.push((window.autoTuneSession.crossings[i].time - window.autoTuneSession.crossings[i - 2].time) / 1000.0);
-                    }
-                }
-                const Tu = Math.max(2.0, tDiffs.reduce((a, b) => a + b, 0) / tDiffs.length);
-
-                const recentPeaks = window.autoTuneSession.peaks.slice(-4);
-                const maxVal = Math.max(...recentPeaks.map(p => p.pv));
-                const minVal = Math.min(...recentPeaks.map(p => p.pv));
-                const A = Math.max(0.5, (maxVal - minVal) / 2.0);
-
-                const d = window.autoTuneSession.stepD; // 0.175
-                const Ku = (4.0 * d * 100.0) / (Math.PI * A);
-
-                // Ziegler-Nichols 정밀 PID 게인 산출
-                const Kp = Math.max(0.5, Math.min(25.0, 0.6 * Ku));
-                const Ti = Math.max(1.0, 0.5 * Tu);
-                const Td = 0.125 * Tu;
-                const Ki = Math.max(0.01, Math.min(5.0, Kp / Ti));
-                const Kd = Math.max(0.01, Math.min(10.0, Kp * Td));
-
-                window.autoTuneSession.tunedKp = Kp;
-                window.autoTuneSession.tunedKi = Ki;
-                window.autoTuneSession.tunedKd = Kd;
-
-                // UI 표출 업데이트
-                const mA = document.getElementById('autotune-metric-a');
-                const mTu = document.getElementById('autotune-metric-tu');
-                const mKu = document.getElementById('autotune-metric-ku');
-                if (mA) mA.innerText = `${A.toFixed(2)} ℃`;
-                if (mTu) mTu.innerText = `${Tu.toFixed(1)} 초`;
-                if (mKu) mKu.innerText = Ku.toFixed(2);
-
-                const kpIn = document.getElementById('dac-pid-kp-input');
-                const kiIn = document.getElementById('dac-pid-ki-input');
-                const kdIn = document.getElementById('dac-pid-kd-input');
-                if (kpIn) kpIn.value = Kp.toFixed(2);
-                if (kiIn) kiIn.value = Ki.toFixed(2);
-                if (kdIn) kdIn.value = Kd.toFixed(2);
-
-                const bBadge = document.getElementById('autotune-badge');
-                if (bBadge) {
-                    bBadge.innerText = "도출 완료";
-                    bBadge.style.color = "#34d399";
-                    bBadge.style.borderColor = "#10b981";
-                }
-                if (statEl) statEl.innerText = "상태: 최적 PID 파라미터 도출 완료!";
-                if (pctEl) pctEl.innerText = "100 %";
-                if (barEl) barEl.style.width = "100%";
-
-                const bStop = document.getElementById('btn-stop-autotune');
-                const bApply = document.getElementById('btn-apply-autotune');
-                if (bStop) bStop.style.display = "none";
-                if (bApply) bApply.style.display = "block";
-
-                log(`✨ [PID 오토튜닝 완료] 진폭 A=${A.toFixed(2)}℃, 주기 Tu=${Tu.toFixed(1)}초 -> 최적 게인: Kp=${Kp.toFixed(2)}, Ki=${Ki.toFixed(2)}, Kd=${Kd.toFixed(2)}`);
-                stopPidAutoTuning(false);
-            }
-        }
-
-        function applyAutoTunedGainsFromModal() {
-            saveDacPidGainsManual(true);
-            const bApply = document.getElementById('btn-apply-autotune');
-            const bStart = document.getElementById('btn-start-autotune');
-            const bBadge = document.getElementById('autotune-badge');
-            if (bApply) bApply.style.display = "none";
-            if (bStart) bStart.style.display = "block";
-            if (bBadge) bBadge.innerText = "적용됨";
-        }
-
         function toggleDacLink(index) {
             const item = dacChannels[index];
             item.isLinked = !item.isLinked;
-
-            // ⚡ dsPIC33CK 펌웨어 내장형 PID 연동: 레지스터 40012~40019로 모드 및 목표치 즉각 전송!
-            const fwPid = PID_FIRMWARE_REG_MAP[index];
-            if (fwPid) {
-                if (item.isLinked) {
-                    sendModbusWriteHoldingReg(fwPid.modeReg, 1); // 1: AUTO 모드 활성화
-                    sendModbusWriteHoldingReg(fwPid.spReg, Math.round(item.targetSp * 10)); // 0.1도 단위 목표치
-                    log(`⚡ [MCU 펌웨어 PID 연동] ${item.name} -> AUTO 모드 활성화 (목표 SP: ${item.targetSp}℃, 펌웨어 Reg ${fwPid.modeReg}=1, Reg ${fwPid.spReg}=${Math.round(item.targetSp * 10)})`);
-                } else {
-                    sendModbusWriteHoldingReg(fwPid.modeReg, 0); // 0: 수동 모드 전환
-                    log(`⚡ [MCU 펌웨어 PID 연동] ${item.name} -> 수동 모드 전환 (펌웨어 Reg ${fwPid.modeReg}=0)`);
-                }
-            }
 
             window.activePidRegistry = window.activePidRegistry || {};
             if (item.isLinked) {
@@ -5794,7 +4458,6 @@
                 log(`🔗 [PID 링크 연동] ${item.name} (${item.net}) ↔ ${item.feedbackDesc} (${item.feedbackNet}) Closed-Loop 제어 활성화 (목표 SP: ${item.targetSp}${item.unit})`);
             } else {
                 delete window.activePidRegistry[item.net];
-                resetDacPidState(index);
                 log(`🔓 [PID 링크 해제] ${item.name} (${item.net}) 단독 수동 직결 출력 제어 모드로 전환`);
             }
 
@@ -5813,23 +4476,12 @@
             document.getElementById('dac-sp-slider').value = num;
         }
 
-        function saveDacSpCommand(targetIndex = null, directSpVal = null) {
-            const idx = (targetIndex !== null && targetIndex !== undefined) ? targetIndex : activeDacIndex;
-            if (idx === null || idx === undefined) return;
-            activeDacIndex = idx;
-            const item = dacChannels[idx];
-            if (!item) return;
-
-            let spVal = (directSpVal !== null && directSpVal !== undefined)
-                ? parseFloat(directSpVal)
-                : parseFloat(document.getElementById('dac-sp-input')?.value || item.targetSp);
-            if (isNaN(spVal)) spVal = item.targetSp || 0;
-
+        function saveDacSpCommand() {
+            if (activeDacIndex === null) return;
+            const item = dacChannels[activeDacIndex];
+            const spVal = parseFloat(document.getElementById('dac-sp-input').value) || 0;
             item.targetSp = spVal;
             item.isLinked = true;
-
-            // 게인도 함께 보드에 동기화
-            saveDacPidGainsManual(false, idx);
 
             window.activePidRegistry = window.activePidRegistry || {};
             window.activePidRegistry[item.net] = {
@@ -5841,17 +4493,8 @@
 
             log(`🎯 [PID SP 설정] ${item.name} (${item.net}) 목표값(SP) 적용 -> ${item.targetSp} ${item.unit}`);
 
-            // ⚡ dsPIC33CK 펌웨어 내장형 PID 연동: 목표치 및 AUTO 모드 보장 송출
-            const fwPid = PID_FIRMWARE_REG_MAP[idx];
-            if (fwPid) {
-                sendModbusWriteHoldingReg(fwPid.modeReg, 1);
-                sendModbusWriteHoldingReg(fwPid.spReg, Math.round(item.targetSp * 10));
-                log(`⚡ [MCU 펌웨어 PID 연동] ${item.name} -> 목표 SP 갱신 (펌웨어 Reg ${fwPid.spReg}=${Math.round(item.targetSp * 10)})`);
-            }
-
             // 피드백 하이라이트
             highlightFeedbackSensor(item.feedbackNet);
-            resetDacPidState(idx);
 
             renderAll();
             closeDacModal();
@@ -5886,24 +4529,13 @@
             document.getElementById('dac-modal-volt-display').innerText = `${volt.toFixed(3)} V`;
         }
 
-        function sendDacControlCommand(targetIndex = null, directRaw = null) {
-            const idx = (targetIndex !== null && targetIndex !== undefined) ? targetIndex : activeDacIndex;
-            if (idx === null || idx === undefined) return;
-            activeDacIndex = idx;
+        function sendDacControlCommand() {
+            if (activeDacIndex === null) return;
 
-            const raw = (directRaw !== null && directRaw !== undefined)
-                ? parseInt(directRaw)
-                : (parseInt(document.getElementById('dac-control-slider')?.value) || 0);
-            const targetDac = dacChannels[idx];
-            if (!targetDac) return;
+            const raw = parseInt(document.getElementById('dac-control-slider').value) || 0;
+            const targetDac = dacChannels[activeDacIndex];
             targetDac.val = raw;
             targetDac.isLinked = false; // 수동 슬라이더 조작 시 링크 해제하고 직접 제어
-
-            // ⚡ dsPIC33CK 펌웨어 내장형 PID 연동: 수동 조작 시 펌웨어 제어 모드도 수동(0)으로 전환
-            const fwPid = PID_FIRMWARE_REG_MAP[idx];
-            if (fwPid) {
-                sendModbusWriteHoldingReg(fwPid.modeReg, 0);
-            }
 
             if (window.activePidRegistry) {
                 delete window.activePidRegistry[targetDac.net];
@@ -5922,7 +4554,7 @@
             renderAll();
 
             // 표준 Modbus RTU 0x06 (Holding Register activeDacIndex) 쓰기 프레임 조립 (실제 CRC16 부착)
-            const requestFrame = buildModbusRTUFrame(1, 6, idx, raw);
+            const requestFrame = buildModbusRTUFrame(1, 6, activeDacIndex, raw);
 
             log(`TX -> [${requestFrame}] (DAC [${targetDac.name}] 수동 직접 제어 송출)`);
 
@@ -6310,133 +4942,36 @@
         // 실시간 클록 업데이트 및 PID Closed-Loop 링크 채널 실시간 수렴 연동
         setInterval(() => {
             const now = new Date();
-            const yr = now.getFullYear();
-            const mo = String(now.getMonth() + 1).padStart(2, '0');
-            const da = String(now.getDate()).padStart(2, '0');
-            const ho = String(now.getHours()).padStart(2, '0');
-            const mi = String(now.getMinutes()).padStart(2, '0');
-            const se = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('rtc-date').innerText = `${now.getFullYear()}년 ${(now.getMonth() + 1).toString().padStart(2, '0')}월 ${now.getDate().toString().padStart(2, '0')}일`;
+            document.getElementById('rtc-time').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
 
-            const pcDateEl = document.getElementById('rtc-date');
-            if (pcDateEl) pcDateEl.innerText = `${yr}.${mo}.${da}`;
-            const pcTimeEl = document.getElementById('rtc-time');
-            if (pcTimeEl) pcTimeEl.innerText = `${ho}:${mi}:${se}`;
-
-            // 🔄 [11채널 전수 Closed-Loop PID 폐루프 자동 추종 엔진]
+            // 🔄 PID Closed-Loop 링크 채널 실시간 수렴 시뮬레이션
             let needRender = false;
-            const nowTs = Date.now();
-
-            dacChannels.forEach((dac, dacIdx) => {
+            dacChannels.forEach(dac => {
                 if (dac.isLinked && dac.is6kW) {
                     needRender = true;
-                    const pid = dacPidStates[dacIdx];
-                    const dt = Math.max(0.1, Math.min(2.0, (nowTs - (pid.lastTime || nowTs)) / 1000.0));
-                    pid.lastTime = nowTs;
-
-                    const fbData = getFeedbackSensorData(dac);
-                    const pv = fbData.physVal;
-                    const sp = dac.targetSp;
-                    const span = Math.max(1.0, (dac.maxVal - dac.minVal) || 100);
-
-                    // 1. 장치 특성별 제어 방향(Action Direction) 분기
-                    // - 냉각 계통 (열전대 TC 기반 펌프): PV > SP 시 펌프 증속 냉각 촉진 (Reverse/Cooling Action)
-                    // - 공급 계통 (ADC 블로어/MFC, SERIAL 유량계): PV < SP 시 출력 증속 공급 증대 (Direct/Supplying Action)
-                    const isCoolingDevice = (dac.feedbackType === "TC");
-                    let rawError = isCoolingDevice ? (pv - sp) : (sp - pv);
-                    let normError = rawError / span; // -1.0 ~ +1.0 정규화
-
-                    // 2. 게인 파라미터 분기
-                    let Kp = isCoolingDevice ? 3.8 : 2.2;
-                    let Ki = isCoolingDevice ? 0.35 : 0.25;
-                    let Kd = isCoolingDevice ? 0.5 : 0.2;
-
-                    // 3. 비례항(P)
-                    let P = Kp * normError;
-
-                    // 4. 적분항(I) & 안티 와인드업(Anti-Windup Clamping)
-                    if (isCoolingDevice && pv <= sp) {
-                        // 목표 온도 이하로 냉각된 경우 적분항 즉각 리셋 (오버쿨링/결빙 방지)
-                        pid.integral = 0;
-                    } else {
-                        pid.integral += normError * Ki * dt;
-                        // 적분 누적치를 ±0.25 (±25%) 범위로 엄격히 제한
-                        pid.integral = Math.max(-0.25, Math.min(0.25, pid.integral));
-                    }
-                    let I = pid.integral;
-
-                    // 5. 미분항(D)
-                    let dErr = (normError - (pid.lastError || normError)) / dt;
-                    let D = Kd * dErr;
-                    pid.lastError = normError;
-
-                    // 6. 조작량(MV) 계산 및 컷오프(Cutoff) 처리
-                    let mv = 0;
-                    if (isCoolingDevice) {
-                        if (pv <= sp) {
-                            // 냉각 컷오프: 현재 온도가 목표치 이하이면 펌프 완전 정지 (0.0V / 0.0%)
-                            mv = 0.0;
-                        } else {
-                            // 현재 온도가 목표치보다 높을 때 편차에 비례하여 증속 가동 (최소 0.05 ~ 최대 1.0)
-                            mv = Math.max(0.05, Math.min(1.0, P + I + D));
+                    if (dac.feedbackType === "ADC") {
+                        const adc = adcChannels.find(a => a.net === dac.feedbackNet);
+                        if (adc) {
+                            let targetV = 0;
+                            if (adc.minV === 1) {
+                                targetV = ((dac.targetSp - adc.minReal) / (adc.maxReal - adc.minReal)) * 4.0 + 1.0;
+                            } else {
+                                targetV = ((dac.targetSp - adc.minReal) / (adc.maxReal - adc.minReal)) * 5.0;
+                            }
+                            const targetRaw = Math.round((targetV / 5.0) * 65535);
+                            adc.raw = Math.max(0, Math.min(65535, Math.round(adc.raw + (targetRaw - adc.raw) * 0.25)));
+                            dac.val = Math.max(0, Math.min(65535, Math.round(dac.val + (targetRaw - dac.val) * 0.2)));
                         }
-                    } else {
-                        // 공급 장치: 베이스 출력(0.2) + PID 보정
-                        let baseMv = (sp / span);
-                        mv = Math.max(0.0, Math.min(1.0, baseMv + P + I + D));
-                    }
-
-                    // 7. 16비트 DAC RAW 값 변환 (0 ~ 65535)
-                    const targetRaw = Math.round(mv * 65535);
-                    // 부드러운 하드웨어 추종을 위한 지수 이동 필터 (Smoothing)
-                    dac.val = Math.max(0, Math.min(65535, Math.round(dac.val + (targetRaw - dac.val) * 0.45)));
-
-                    // 8. 실제 물리 Modbus RTU 0x06 Write 프레임 자동 송출
-                    // 💡 [펌웨어 내장형 PID 채널 분기]: MCU 펌웨어가 자체 폐루프로 제어 중인 채널은 중복 송출을 방지하여 통신 버스 최적화!
-                    const isFirmwarePid = (isCoolingDevice && isPortConnected);
-                    if (!isFirmwarePid && commMode === "websocket" && socket && socket.readyState === WebSocket.OPEN && isPortConnected) {
-                        const rawDiff = Math.abs(dac.val - pid.lastSentVal);
-                        const timeDiff = nowTs - pid.lastSentTime;
-                        if (rawDiff >= 130 || timeDiff >= 1200) {
-                            const reqFrame = buildModbusRTUFrame(1, 6, dacIdx, dac.val);
-                            socket.send(jsonStr({
-                                type: "WRITE_PORT",
-                                hex: reqFrame
-                            }));
-                            pid.lastSentVal = dac.val;
-                            pid.lastSentTime = nowTs;
+                    } else if (dac.feedbackType === "TC") {
+                        const tc = tcChannels.find(t => t.net === dac.feedbackNet);
+                        if (tc) {
+                            tc.val += (dac.targetSp - tc.val) * 0.15;
                         }
-                    }
-
-                    // 9. 오프라인 모의/시뮬레이션 환경에서의 센서 1차 지연 피드백 수렴
-                    if (!isPortConnected) {
-                        if (dac.feedbackType === "TC") {
-                            const tc = tcChannels.find(t => t.net === dac.feedbackNet);
-                            if (tc && tc.val !== null && tc.val !== undefined) {
-                                if (mv > 0.01) {
-                                    // 펌프 가동 시 냉각 촉진: 목표 온도로 점진 수렴
-                                    tc.val += (sp - tc.val) * (0.06 + mv * 0.12);
-                                } else {
-                                    // 펌프 정지 시 상온(약 28.0℃)으로 서서히 자연 복귀
-                                    tc.val += (28.0 - tc.val) * 0.02;
-                                }
-                            }
-                        } else if (dac.feedbackType === "ADC") {
-                            const adc = adcChannels.find(a => a.net === dac.feedbackNet);
-                            if (adc) {
-                                let targetV = 0;
-                                if (adc.minV === 1) {
-                                    targetV = ((sp - adc.minReal) / (adc.maxReal - adc.minReal)) * 4.0 + 1.0;
-                                } else {
-                                    targetV = ((sp - adc.minReal) / (adc.maxReal - adc.minReal)) * 5.0;
-                                }
-                                const targetAdcRaw = Math.round((targetV / 5.0) * 65535);
-                                adc.raw = Math.max(0, Math.min(65535, Math.round(adc.raw + (targetAdcRaw - adc.raw) * 0.25)));
-                            }
-                        } else if (dac.feedbackType === "SERIAL") {
-                            const dev = serialDevices.find(s => s.net === dac.feedbackNet);
-                            if (dev && dev.data) {
-                                dev.data.flowRate += (sp - dev.data.flowRate) * 0.2;
-                            }
+                    } else if (dac.feedbackType === "SERIAL") {
+                        const dev = serialDevices.find(s => s.net === dac.feedbackNet);
+                        if (dev && dev.data) {
+                            dev.data.flowRate += (dac.targetSp - dev.data.flowRate) * 0.2;
                         }
                     }
                 }
@@ -7166,26 +5701,6 @@
                 }
             }
         })();
-
-        // 👑 [관제 대시보드 종료 시 분리 팝업창 정리 및 백그라운드 브릿지 자동 종료]
-        window.addEventListener('beforeunload', () => {
-            if (!window.opener) {
-                // 1. 메인 창에 종속된 모든 분리 팝업창 일괄 정리
-                if (window.panelPopouts) {
-                    for (const popWin of Object.values(window.panelPopouts)) {
-                        if (popWin && !popWin.closed) {
-                            try { popWin.close(); } catch(e) {}
-                        }
-                    }
-                }
-                // 2. 백그라운드 파이썬 브릿지 프로세스로 즉각 종료 명령 송출
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    try {
-                        socket.send(JSON.stringify({ type: "SHUTDOWN_BRIDGE" }));
-                    } catch(e) {}
-                }
-            }
-        });
 
         // 부팅 시 렌더링 가동
         renderAll();

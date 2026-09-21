@@ -6,7 +6,8 @@ echo ========================================================
 echo.
 
 cd /d "%~dp0H2_Firmware.X"
-"D:\Program files\MPLABX\gnuBins\GnuWin32\bin\make.exe" -f nbproject/Makefile-default.mk
+"D:\Program files\Microchip\gnuBins\GnuWin32\bin\make.exe" -f nbproject/Makefile-default.mk
+
 
 if %ERRORLEVEL% equ 0 (
     copy /y "dist\default\production\H2_Firmware.X.production.hex" "..\H2_Control_Board.hex" > nul

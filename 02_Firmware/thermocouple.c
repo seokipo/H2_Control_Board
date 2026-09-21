@@ -77,8 +77,9 @@ static const TC_Mapping_t tc_map[TC_MAX_CHANNELS] = {
     [TC_CH15_STACK1_COOL_RET]={2, 1,  0}, // MUX2, S2 (주소1)
     [TC_CH16_STACK2_COOL_RET]={2, 0,  0}, // MUX2, S1 (주소0)
     [TC_CH17_WASTE_HEAT_IN] = {3, 15, 0}, // MUX3 (IC306/308), S16 (주소15)
-    [TC_CH18_WASTE_HEAT_OUT]= {3, 14, 0}, // MUX3, S15 (주소14)
-    [TC_CH19_SYSTEM_INTERNAL]={3, 13, 0}, // MUX3, S14 (주소13)
+    [TC_CH18_WASTE_HEAT_OUT]= {3, 6,  0}, // MUX3, S7 (주소6)
+    [TC_CH19_SYSTEM_INTERNAL]={3, 4,  0}, // MUX3, S5 (주소4)
+    [TC_CH20_RESERVED]       = {0, 0,  0}, // 예비 채널 (미연결)
 
     /* --- K-Type 온도 센서 (CH21 ~ CH32) --- */
     [TC_CH21_REF_BN]        = {1, 13, 1}, // MUX1, S14 (주소13)
@@ -172,6 +173,10 @@ bool TC_SelectChannel(TC_Channel_t channel)
     }
 
     const TC_Mapping_t *map = &tc_map[channel];
+    if (map->mux_en == 0)
+    {
+        return false; // 예비 채널은 MUX 스위칭 스킵
+    }
 
     // [1] 모든 MUX 즉시 비활성화 (Break-before-make: 잔류 전하 방전 및 채널 간 간섭 차단)
     TC_EN1_LAT = 0;
@@ -249,6 +254,11 @@ bool TC_TriggerConversion(TC_Channel_t channel)
 
 float TC_ReadTemperatureOnly(TC_Channel_t channel)
 {
+    if (channel >= TC_MAX_CHANNELS || tc_map[channel].mux_en == 0)
+    {
+        return -999.0f; // 예비 채널 또는 범위 초과 -> 즉시 가로바(--)
+    }
+
     // [1] MAX31856 하드웨어 Fault Status Register (0x0F) 판독
     uint8_t sr = MAX31856_ReadRegister(MAX31856_REG_SR);
     // Bit 0: OPEN (1 = 센서 미체결 / 단선 오류)

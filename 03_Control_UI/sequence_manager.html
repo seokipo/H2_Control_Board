@@ -1064,20 +1064,34 @@
                     const sp = st.setpoint !== undefined ? Number(st.setpoint) : 5.0;
                     const durationSec = st.duration_seconds !== undefined ? Math.max(0, Number(st.duration_seconds)) : 6;
                     
+                    const isCooling = (targetDac === "AO_P341" || targetDac === "AO_P351" || targetDac === "AO_P370" || targetDac === "AO_P375" || feedbackSensor.startsWith("CH"));
                     let elapsed = 0;
-                    let currentPv = sp * 0.55; // 시작 PV값
+                    let currentPv = isCooling ? (sp + 8.8) : (sp * 0.55); // 냉각은 과온에서 시작, 공급은 미달에서 시작
 
                     // 💡 [모드 1]: 0초 = 비차단 백그라운드 상시 유지 모드 (출력 유지하며 다음 스텝으로 즉시 이동)
                     if (durationSec === 0) {
                         stopBackgroundPidLoop(targetDac); // 기존 동일 DAC 루프 갱신
 
-                        seqLog(` 🎛️ [PID 백그라운드 가동] ${feedbackSensor} ➔ ${targetDac} (목표 SP: ${sp} | 백그라운드 유지 ➔ 다음 스텝 즉시 계속)`);
+                        seqLog(` 🎛️ [PID 백그라운드 가동] ${feedbackSensor} ➔ ${targetDac} (목표 SP: ${sp} | ${isCooling ? '냉각 폐루프' : '공급 폐루프'} 유지 ➔ 다음 스텝 즉시 계속)`);
 
                         const bgTimer = setInterval(() => {
                             elapsed += 0.2;
-                            const error = sp - currentPv;
-                            currentPv += error * 0.18 + (Math.random() - 0.5) * 0.04;
-                            let mvPct = Math.min(100, Math.max(0, 45 + (sp - currentPv) * 18 + (Math.random() - 0.5) * 1.5));
+                            let mvPct = 0;
+                            if (isCooling) {
+                                if (currentPv <= sp) {
+                                    mvPct = 0;
+                                    currentPv += (sp - currentPv) * 0.05; // 목표치 부근 미세 유지
+                                } else {
+                                    const error = currentPv - sp;
+                                    currentPv -= error * 0.15;
+                                    mvPct = Math.min(100, Math.max(5, 20 + error * 7 + (Math.random() - 0.5) * 1.5));
+                                }
+                            } else {
+                                const error = sp - currentPv;
+                                currentPv += error * 0.18 + (Math.random() - 0.5) * 0.04;
+                                mvPct = Math.min(100, Math.max(0, 45 + (sp - currentPv) * 18 + (Math.random() - 0.5) * 1.5));
+                            }
+
                             let mvRaw = Math.round((mvPct / 100) * 65535);
                             let mvVolt = (mvPct / 100) * 5.0;
 
@@ -1109,15 +1123,28 @@
 
                     // 💡 [모드 2]: 지정 시간 블로킹 수렴 모드 (durationSec 초 동안 유지 후 다음 스텝 진행)
                     activePidInfo = { target_dac: targetDac, feedback_sensor: feedbackSensor, setpoint: sp };
-                    seqLog(` 🎛️ [PID 제어 가동] ${feedbackSensor} ➔ ${targetDac} (목표 SP: ${sp} | 유지: ${durationSec}초)`);
+                    seqLog(` 🎛️ [PID 제어 가동] ${feedbackSensor} ➔ ${targetDac} (목표 SP: ${sp} | ${isCooling ? '냉각 폐루프' : '공급 폐루프'} 유지: ${durationSec}초)`);
 
                     pidSubTimer = setInterval(() => {
                         if (!isSimulating || isSimPaused) return;
                         elapsed += 0.2;
 
-                        const error = sp - currentPv;
-                        currentPv += error * 0.18 + (Math.random() - 0.5) * 0.04;
-                        let mvPct = Math.min(100, Math.max(0, 45 + (sp - currentPv) * 18 + (Math.random() - 0.5) * 1.5));
+                        let mvPct = 0;
+                        if (isCooling) {
+                            if (currentPv <= sp) {
+                                mvPct = 0;
+                                currentPv += (sp - currentPv) * 0.05;
+                            } else {
+                                const error = currentPv - sp;
+                                currentPv -= error * 0.15;
+                                mvPct = Math.min(100, Math.max(5, 20 + error * 7 + (Math.random() - 0.5) * 1.5));
+                            }
+                        } else {
+                            const error = sp - currentPv;
+                            currentPv += error * 0.18 + (Math.random() - 0.5) * 0.04;
+                            mvPct = Math.min(100, Math.max(0, 45 + (sp - currentPv) * 18 + (Math.random() - 0.5) * 1.5));
+                        }
+
                         let mvRaw = Math.round((mvPct / 100) * 65535);
                         let mvVolt = (mvPct / 100) * 5.0;
 

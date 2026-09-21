@@ -333,6 +333,33 @@
         const packetBatchQueue = [];
         let batchRenderScheduled = false;
 
+        // 👑 [특허급 스마트 스크롤 락 엔진] 사용자가 마우스로 스크롤바를 잡거나 위를 볼 때 자동 스크롤 100% 동결
+        let isMouseDown = false;
+        let isUserScrolledUp = false;
+
+        window.addEventListener('mousedown', () => {
+            isMouseDown = true;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            checkScrollPosition();
+            // 마우스를 놓았을 때 바닥에 가까우면 자동 스크롤 즉각 재개
+            if (chkAutoScroll.checked && !isUserScrolledUp) {
+                consoleEl.scrollTop = 999999;
+            }
+        });
+
+        function checkScrollPosition() {
+            const distanceFromBottom = consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight;
+            isUserScrolledUp = (distanceFromBottom > 35);
+        }
+
+        consoleEl.addEventListener('scroll', checkScrollPosition, { passive: true });
+        consoleEl.addEventListener('wheel', () => {
+            setTimeout(checkScrollPosition, 50);
+        }, { passive: true });
+
         function queuePacketLog(type, hex, desc) {
             const now = new Date();
             const timeStr = `[${now.toLocaleTimeString()}]`;
@@ -368,13 +395,15 @@
 
                         consoleEl.appendChild(frag);
 
-                        // 🎯 [핵심 최적화] 최대 60줄 링버퍼 유지 (DOM 과부하 및 메모리 누수 원천 차단)
-                        while (consoleEl.children.length > 60) {
-                            consoleEl.removeChild(consoleEl.firstChild);
+                        // 🎯 사용자가 스크롤바를 잡고 있거나 위쪽 로그를 검토 중일 때는 DOM 삭제를 유예하여 덜컥거림 원천 차단
+                        if (!isMouseDown && !isUserScrolledUp) {
+                            while (consoleEl.children.length > 80) {
+                                consoleEl.removeChild(consoleEl.firstChild);
+                            }
                         }
 
-                        // 🎯 [핵심 최적화] scrollHeight 읽기 제거: 999999 직접 대입으로 Forced Reflow 완전 제거
-                        if (chkAutoScroll.checked) {
+                        // 🎯 마우스로 잡고 있지 않고, 바닥 부근일 때만 부드럽게 자동 스크롤 수행
+                        if (chkAutoScroll.checked && !isMouseDown && !isUserScrolledUp) {
                             consoleEl.scrollTop = 999999;
                         }
                     }
@@ -382,6 +411,7 @@
                 });
             }
         }
+
 
         // 1. BroadcastChannel을 통한 단일 고속 패킷 동기화 파이프라인
         const channel = new BroadcastChannel('bop_packet_streamer_channel');

@@ -42,14 +42,20 @@
  * ========================================================================== */
 typedef struct {
     // 16비트 아날로그 입력 레지스터 (3XXXX 영역, Read-Only)
-    // 0~30: thermocouple 다채널 측정 온도 (T/K타입 31개 채널)
+    // 0~31: thermocouple 다채널 측정 온도 (CH1~CH32 총 32개 채널)
     // 32~47: ads1115 ADC 아날로그 입력 값 16개
+    // 48: MAX31856 보드 냉접점(CJC) 상온
+    // 50~55: DS3231 RTC 날짜/시간
+    // 56~62: M701 7-in-1 복합 가스 및 환경 센서 계측치
     uint16_t input_regs[80];
 
     // 16비트 아날로그 홀딩 레지스터 (4XXXX 영역, Read/Write)
     // 0~11: dac60516 12개 출력 채널 전압 설정량 (0 ~ 65535 스케일)
-    // 12~19: 온도 및 압력 루프 제어 설정값들
-    uint16_t holding_regs[40];
+    // 12~19: 온도 및 압력 루프 제어 설정값들 (Mode, SP)
+    // 20~39: DO 디지털 릴레이/솔밸브 출력 설정 (index 0~19)
+    // 40~46: DS3231 RTC 시간 동기화 설정 (Year, Month, Date, Hour, Min, Sec, Trigger)
+    // 50~61: Closed-Loop PID 동적 게인 주입 (Kp, Ki, Kd, 값/100.0 스케일)
+    uint16_t holding_regs[80];
 
     // 1비트 디지털 코일 레지스터 (0XXXX 영역, Read/Write)
     // 0~31: pin_map.h의 히터 및 MV/SV 디지털 출력 상태값
@@ -60,9 +66,75 @@ typedef struct {
     uint8_t discrete_inputs[2]; // 16개 비트 상태
 } Modbus_Registers_t;
 
+/* ==========================================================================
+ * 4. Closed-Loop PID 제어 Holding Register 매핑 상수 (40013 ~ 40020)
+ * ========================================================================== */
+#define REG_HOLD_PID_ANODE_MODE     12  // Anode 냉각수 순환 펌프(AO_P351, DAC ch7) 제어 모드 (0: 수동, 1: AUTO)
+#define REG_HOLD_PID_ANODE_SP       13  // Anode 냉각수 목표 온도 SP (0.1도 단위 부호화 정수, 30.0도 -> 300)
+#define REG_HOLD_PID_STACK1_MODE    14  // STACK 1 냉각수 공급 펌프(AO_P370, DAC ch8) 제어 모드 (0: 수동, 1: AUTO)
+#define REG_HOLD_PID_STACK1_SP      15  // STACK 1 냉각수 목표 온도 SP (0.1도 단위 부호화 정수, 24.0도 -> 240)
+#define REG_HOLD_PID_AOG_MODE       16  // AOG 응축수 펌프(AO_P341, DAC ch6) 제어 모드 (0: 수동, 1: AUTO)
+#define REG_HOLD_PID_AOG_SP         17  // AOG 응축수 목표 온도 SP (0.1도 단위 부호화 정수, 29.0도 -> 290)
+#define REG_HOLD_PID_STACK2_MODE    18  // STACK 2 냉각수 공급 펌프(AO_P375, DAC ch9) 제어 모드 (10kW 전용)
+#define REG_HOLD_PID_STACK2_SP      19  // STACK 2 냉각수 목표 온도 SP (10kW 전용)
+
+/* ==========================================================================
+ * 5. Closed-Loop PID 실시간 게인 Holding Register 매핑 상수 (40051 ~ 40062)
+ *    값 스케일: 100배 정수 (예: Kp=3.80 -> 380, Ki=0.35 -> 35, Kd=0.50 -> 50)
+ * ========================================================================== */
+#define REG_HOLD_PID_ANODE_KP       50  // Anode 냉각수 Kp (Holding 40051)
+#define REG_HOLD_PID_ANODE_KI       51  // Anode 냉각수 Ki (Holding 40052)
+#define REG_HOLD_PID_ANODE_KD       52  // Anode 냉각수 Kd (Holding 40053)
+
+#define REG_HOLD_PID_STACK1_KP      53  // STACK 1 냉각수 Kp (Holding 40054)
+#define REG_HOLD_PID_STACK1_KI      54  // STACK 1 냉각수 Ki (Holding 40055)
+#define REG_HOLD_PID_STACK1_KD      55  // STACK 1 냉각수 Kd (Holding 40056)
+
+#define REG_HOLD_PID_STACK2_KP      56  // STACK 2 냉각수 Kp (Holding 40057)
+#define REG_HOLD_PID_STACK2_KI      57  // STACK 2 냉각수 Ki (Holding 40058)
+#define REG_HOLD_PID_STACK2_KD      58  // STACK 2 냉각수 Kd (Holding 40059)
+
+#define REG_HOLD_PID_AOG_KP         59  // AOG 응축수 Kp (Holding 40060)
+#define REG_HOLD_PID_AOG_KI         60  // AOG 응축수 Ki (Holding 40061)
+#define REG_HOLD_PID_AOG_KD         61  // AOG 응축수 Kd (Holding 40062)
+
+/* ==========================================================================
+ * 5. DS3231 RTC Input / Holding Register 매핑 상수
+ * ========================================================================== */
+// Input Registers (Read-Only: 30051 ~ 30056)
+#define REG_IN_RTC_YEAR         50  // 년도 (예: 2026)
+#define REG_IN_RTC_MONTH        51  // 월 (1~12)
+#define REG_IN_RTC_DATE         52  // 일 (1~31)
+#define REG_IN_RTC_HOUR         53  // 시 (0~23)
+#define REG_IN_RTC_MIN          54  // 분 (0~59)
+#define REG_IN_RTC_SEC          55  // 초 (0~59)
+
+// Holding Registers (Read/Write: 40041 ~ 40047)
+#define REG_HOLD_RTC_YEAR       40  // 설정 년도 (2026 또는 26)
+#define REG_HOLD_RTC_MONTH      41  // 설정 월 (1~12)
+#define REG_HOLD_RTC_DATE       42  // 설정 일 (1~31)
+#define REG_HOLD_RTC_HOUR       43  // 설정 시 (0~23)
+#define REG_HOLD_RTC_MIN        44  // 설정 분 (0~59)
+#define REG_HOLD_RTC_SEC        45  // 설정 초 (0~59)
+#define REG_HOLD_RTC_TRIGGER    46  // 1 기입 시 RTC_SetTime() 즉각 수행 후 0으로 자동 복귀
+
+/* ==========================================================================
+ * 5. M701 복합 가스/환경 센서 Input Register 매핑 상수 (30057 ~ 30064)
+ * ========================================================================== */
+#define REG_IN_M701_ECO2        56  // eCO2 농도 (ppm, 400~5000)
+#define REG_IN_M701_ECH2O       57  // eCH2O 포름알데히드 (ug/m3)
+#define REG_IN_M701_TVOC        58  // TVOC 농도 (ug/m3)
+#define REG_IN_M701_PM25        59  // PM2.5 초미세먼지 (ug/m3)
+#define REG_IN_M701_PM10        60  // PM10 미세먼지 (ug/m3)
+#define REG_IN_M701_TEMP        61  // 온도 (0.1도 단위 부호화 정수, 25.4도 -> 254)
+#define REG_IN_M701_HUMI        62  // 습도 (0.1% 단위, 50.2% -> 502)
+#define REG_IN_M701_STATUS      63  // 센서 통신 상태 플래그 (1: 정상 수신)
+
 #include "dac60516.h"
+#include "rtc.h"
 
 extern Modbus_Registers_t modbus_db;
+
 extern const DAC60516_OutputChannel_t dac_channel_map[12];
 
 /* ==========================================================================

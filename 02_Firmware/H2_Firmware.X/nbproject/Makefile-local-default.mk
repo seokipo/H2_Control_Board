@@ -34,4 +34,5 @@ MP_CC_DIR="D:\Program files\MPLABX\bin"
 MP_AS_DIR="D:\Program files\MPLABX\bin"
 MP_LD_DIR="D:\Program files\MPLABX\bin"
 MP_AR_DIR="D:\Program files\MPLABX\bin"
-DFP_DIR=D:/Program files/MPLABX/packs/Microchip/dsPIC33CK-MP_DFP/1.15.423
+DFP_DIR=D:/Program files/Microchip/packs/Microchip/dsPIC33CK-MP_DFP/1.15.423
+

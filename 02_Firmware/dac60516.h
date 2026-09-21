@@ -38,10 +38,11 @@
 #define DAC60516_REG_DAC5       0x15    // OUT5 (AO_P370 - STACK 1 냉각수 공급)
 #define DAC60516_REG_DAC6       0x16    // OUT6 (AO_P380 - 개질수 펌프)
 #define DAC60516_REG_DAC7       0x17    // OUT7 (AO_AB221 - 개질기 버너 에어블로어)
-#define DAC60516_REG_DAC8       0x18    // OUT8 (AO_MFC111 - BNG 유량 제어)
-#define DAC60516_REG_DAC9       0x19    // OUT9 (AO_MFC121 - PNG 유량 제어)
-#define DAC60516_REG_DAC10      0x1A    // OUT10 (AO_P351 - Anode 냉각 물펌프)
-#define DAC60516_REG_DAC11      0x1B    // OUT11 (AO_SPARE1 - 스페어 아날로그 출력)
+#define DAC60516_REG_DAC8       0x18    // OUT8 (회로도 미연결 NC / Open)
+#define DAC60516_REG_DAC9       0x19    // OUT9 (AO_MFC111 - BNG 유량 제어)
+#define DAC60516_REG_DAC10      0x1A    // OUT10 (AO_MFC121 - PNG 유량 제어)
+#define DAC60516_REG_DAC11      0x1B    // OUT11 (AO_P351 - Anode 냉각 물펌프)
+#define DAC60516_REG_DAC12      0x1C    // OUT12 (AO_SPARE1 - 스페어 아날로그 출력)
 
 /* ==========================================================================
  * 2. 12개 아날로그 출력 채널 매핑 리스트
@@ -55,10 +56,10 @@ typedef enum {
     AO_P370_STACK1_COOL_PUMP,      // STACK 1 냉각수 공급 (OUT5 - AO_P370)
     AO_P380_WATER_PUMP,            // 개질수 펌프 (OUT6 - AO_P380)
     AO_AB221_BURNER_BLOWER,        // 개질기 버너 에어블로어 (OUT7 - AO_AB221)
-    AO_MFC111_BNG_FLOW,            // BNG 유량 제어 신호 (OUT8 - AO_MFC111)
-    AO_MFC121_PNG_FLOW,            // PNG 유량 제어 신호 (OUT9 - AO_MFC121)
-    AO_P351_ANODE_COOL_PUMP,       // Anode(RG) 냉각용 물펌프 (OUT10 - AO_P351)
-    AO_SPARE1,                     // 스페어 아날로그 출력 (OUT11 - AO_SPARE1)
+    AO_MFC111_BNG_FLOW,            // BNG 유량 제어 신호 (OUT9 - AO_MFC111)
+    AO_MFC121_PNG_FLOW,            // PNG 유량 제어 신호 (OUT10 - AO_MFC121)
+    AO_P351_ANODE_COOL_PUMP,       // Anode(RG) 냉각용 물펌프 (OUT11 - AO_P351)
+    AO_SPARE1,                     // 스페어 아날로그 출력 (OUT12 - AO_SPARE1)
     
     AO_MAX_CHANNELS
 } DAC60516_OutputChannel_t;

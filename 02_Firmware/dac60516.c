@@ -75,10 +75,10 @@ static uint8_t GetRegisterAddress(DAC60516_OutputChannel_t channel)
         case AO_P370_STACK1_COOL_PUMP:return DAC60516_REG_DAC5;  // 0x15
         case AO_P380_WATER_PUMP:      return DAC60516_REG_DAC6;  // 0x16
         case AO_AB221_BURNER_BLOWER:  return DAC60516_REG_DAC7;  // 0x17
-        case AO_MFC111_BNG_FLOW:      return DAC60516_REG_DAC8;  // 0x18
-        case AO_MFC121_PNG_FLOW:      return DAC60516_REG_DAC9;  // 0x19
-        case AO_P351_ANODE_COOL_PUMP: return DAC60516_REG_DAC10; // 0x1A
-        case AO_SPARE1:               return DAC60516_REG_DAC11; // 0x1B
+        case AO_MFC111_BNG_FLOW:      return DAC60516_REG_DAC9;  // 0x19 (OUT9)
+        case AO_MFC121_PNG_FLOW:      return DAC60516_REG_DAC10; // 0x1A (OUT10)
+        case AO_P351_ANODE_COOL_PUMP: return DAC60516_REG_DAC11; // 0x1B (OUT11)
+        case AO_SPARE1:               return DAC60516_REG_DAC12; // 0x1C (OUT12)
         default:                      return DAC60516_REG_NOOP;
     }
 }

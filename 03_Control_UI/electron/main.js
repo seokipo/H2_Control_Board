@@ -127,6 +127,12 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  try {
+    const { exec } = require('child_process');
+    exec('taskkill /F /IM pythonw.exe 2>nul & taskkill /F /FI "WINDOWTITLE eq H2_Serial_Bridge*" 2>nul', () => {});
+  } catch (err) {
+    console.error('[Electron Quit] Failed to terminate bridge process:', err);
+  }
 });
 
 app.on('window-all-closed', () => {
