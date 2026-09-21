@@ -457,11 +457,63 @@ async def handler(websocket, path=None):
                     "comm_mode": COMM_MODE
                 }))
 
+            elif req_type == "OPEN_TCP":
+                COMM_MODE = "TCP"
+                tcp_host = req.get("host", "192.168.0.100")
+                tcp_port = int(req.get("port", 502))
+                print(f"[PORT CONTROL] Attempting to connect Modbus TCP to {tcp_host}:{tcp_port}...")
+
+                if serial_port and serial_port.is_open:
+                    try:
+                        serial_port.close()
+                    except:
+                        pass
+                    serial_port = None
+
+                if tcp_writer:
+                    try:
+                        tcp_writer.close()
+                    except:
+                        pass
+                    tcp_writer = None
+                    tcp_reader = None
+
+                try:
+                    tcp_reader, tcp_writer = await asyncio.wait_for(
+                        asyncio.open_connection(tcp_host, tcp_port),
+                        timeout=2.0
+                    )
+                    tcp_connected = True
+                    mock_active = False
+                    print(f"[PORT CONTROL] Successfully connected to Modbus TCP {tcp_host}:{tcp_port}.")
+                    await broadcast({
+                        "type": "PORT_STATUS",
+                        "status": "OPENED",
+                        "msg": f"🌐 이더넷(Modbus TCP) 연결 성공 ({tcp_host}:{tcp_port})",
+                        "port": f"ETH ({tcp_host}:{tcp_port})"
+                    })
+                    await broadcast({
+                        "type": "PORTS_LIST",
+                        "ports": get_available_ports(),
+                        "current_port": f"ETH ({tcp_host}:{tcp_port})",
+                        "is_open": True,
+                        "comm_mode": "TCP"
+                    })
+                except Exception as ex:
+                    print(f"[PORT CONTROL] Failed to connect Modbus TCP {tcp_host}:{tcp_port} - {ex}")
+                    tcp_connected = False
+                    await broadcast({
+                        "type": "PORT_STATUS",
+                        "status": "CLOSED",
+                        "msg": f"❌ 이더넷 연결 실패 ({tcp_host}:{tcp_port}): {ex}. 보드 전원/랜선/IP를 확인하세요."
+                    })
+
             elif req_type == "OPEN_PORT":
                 port = req.get("port", "COM3")
                 baud = int(req.get("baud", 19200))
                 COMM_MODE = "SERIAL"
                 print(f"[PORT CONTROL] Attempting to open serial {port} at {baud}bps...")
+
                 
                 try:
                     if serial_port and serial_port.is_open:
@@ -489,8 +541,17 @@ async def handler(websocket, path=None):
                 if COMM_MODE == "SERIAL" and serial_port and serial_port.is_open:
                     serial_port.close()
                     serial_port = None
+                if COMM_MODE == "TCP" and tcp_writer:
+                    try:
+                        tcp_writer.close()
+                    except:
+                        pass
+                    tcp_writer = None
+                    tcp_reader = None
+                    tcp_connected = False
                 mock_active = False
                 await broadcast({"type": "PORT_STATUS", "status": "CLOSED"})
+
 
             elif req_type == "WRITE_PORT":
                 # UI에서 내려온 0x05 / 0x06 제어 명령
