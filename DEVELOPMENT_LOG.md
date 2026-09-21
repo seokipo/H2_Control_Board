@@ -1,5 +1,26 @@
 # 📝 H2_Control_Board 개발 일지 (DEVELOPMENT_LOG)
 
+## 📅 2026-09-21: W5500 하드웨어 이더넷(ETH1) Modbus TCP 통신 활성화 및 관제 시스템 전환 완료 🎉🌐⚡
+> 👑 **[RS-422 시리얼 동글 없는 100Mbps 이더넷 원격 관제 실현! W5500 Socket 0 Modbus TCP 서버(Port 502) 탑재 및 PC 브릿지 전환 완성] ⭐️⭐️⭐️⭐️⭐️**  
+> 1. **개발 배경 및 사용자 요구사항**:
+>    - 사용자의 요청("지금껏 PC와 RS-422 시리얼로 연결했는데, 공유기 랜선을 꽂아 이더넷 통신으로 관제하고 싶다")에 따라, 하드웨어 회로도([Ethernet.SchDoc](file:///d:/Work/H2_Control_Board/01_Hardware/Ethernet.SchDoc))의 W5500 칩셋과 RJ-45 포트(`ETH1` / `J200`)를 정식 개통.
+> 2. **세부 구현 내역**:
+>    - **dsPIC33CK 펌웨어 (`02_Firmware/ethernet.c`, `ethernet.h`, `main.c`)**:
+>      - SPI2 통신 속도를 고속 2.0MHz(`SPI2BRGL = 0`)로 최적화하고 다중 바이트 읽기/쓰기(`ETH_WriteBuf`, `ETH_ReadBuf`) 탑재.
+>      - W5500 Socket 0번을 표준 Modbus TCP(Port 502, IP: `192.168.0.100`) 서버 모드로 기동하는 유한 상태 머신(FSM) 및 `ETH_ModbusTCP_Task()` 구현.
+>      - 7바이트 MBAP 헤더 파싱 후 0x01(코일), 0x03(홀딩), 0x04(입력 32ch TC/16ch ADC), 0x05, 0x06, 0x10 표준 PDU 응답 생성.
+>      - `main.c` 메인 루프에 등록하여 기존 RS-422 Modbus RTU와 Modbus TCP를 동시 지원하는 **하이브리드 듀얼 통신 서빙** 완성.
+>      - `XC16 v2.10` 컴파일러로 0 에러 클린 빌드 및 `H2_Control_Board.hex` 생성 완료.
+>    - **PC 통신 브릿지 (`03_Control_UI/serial_bridge.py`)**:
+>      - 기본 통신 모드를 `TCP` 모드(`192.168.0.100:502`)로 전환하고, 패킷 분할(Fragmentation)을 원천 방지하는 2단계 MBAP 완독 스트림 엔진 탑재.
+>      - 기존 UI 화면과의 100% 무결점 호환을 위해 수신 PDU를 RTU 호환 프레임으로 투명 중계(Transparent Relay).
+>    - **관제 UI 및 원클릭 런처 (`03_Control_UI/index.html`, `실행_이더넷통합관제.bat`)**:
+>      - 상단 통신 상태바에 `🌐 이더넷(TCP): ETH (192.168.0.100:502) [초고속 연동]` 식별 태그 표출.
+>      - 더블클릭 한 번으로 백그라운드 무창 VBScript 데몬 기동 및 브라우저를 띄우는 `실행_이더넷통합관제.bat` 배치 파일 생성.
+> 3. **신규 프로그래밍 용어 등재**: `PROGRAMMING_TERMS.md`에 628번 'W5500 하드웨어 TCP/IP 스택 및 Modbus TCP MBAP 프로토콜' 추가 등재 완료.
+
+---
+
 ## 📅 2026-09-21: MAX31856 오토 컨버전 모드(Auto-Conversion)와 원샷 모드(1-Shot) 기술 분석 및 아키텍처 비교 📚🔍🌡️
 > 👑 **[데이터시트 기반 CMODE=1(자동 변환) vs CMODE=0(원샷 모드) 특성 분석 및 32채널 MUX 환경 적합성 확증] ⭐️⭐️⭐️⭐️⭐️**  
 > 1. **기술 검토 배경 및 사용자 질의**:

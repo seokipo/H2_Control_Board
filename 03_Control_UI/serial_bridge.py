@@ -8,6 +8,7 @@ import sys
 import random
 import os
 import datetime
+import argparse
 from sequence_engine import SequenceEngine
 
 def get_available_ports():
@@ -35,14 +36,22 @@ def get_available_ports():
     return ports
 
 
-# 전역 상태 관리
+# ==============================================================================
+# 전역 통신 상태 및 파라미터 관리
+# ==============================================================================
+COMM_MODE = "TCP" # "TCP" (이더넷) 또는 "SERIAL" (RS-422)
+tcp_host = "192.168.0.100"
+tcp_port = 502
+tcp_reader = None
+tcp_writer = None
+tcp_connected = False
+
 mock_active = False
 serial_port = None
-tcp_host = None
-tcp_port = None
 write_lock = asyncio.Lock()
 last_write_time = 0.0
 force_holding_read = False # 제어 쓰기 직후 0x03 즉각 우선 폴링 플래그
+trans_id_counter = 0
 
 # 연결된 모든 웹소켓 클라이언트 (브로드캐스트용)
 CONNECTED_CLIENTS = set()
@@ -59,6 +68,11 @@ async def check_auto_shutdown():
             if serial_port and serial_port.is_open:
                 try:
                     serial_port.close()
+                except Exception:
+                    pass
+            if tcp_writer:
+                try:
+                    tcp_writer.close()
                 except Exception:
                     pass
             os._exit(0)
@@ -102,6 +116,24 @@ def build_modbus_frame(slave_id: int, func_code: int, addr: int, val_or_qty: int
     crc = modbus_crc16(packet)
     return packet + bytes([crc & 0xFF, (crc >> 8) & 0xFF])
 
+def build_modbus_tcp_frame(t_id: int, unit_id: int, func_code: int, addr: int, val_or_qty: int) -> bytes:
+    """표준 Modbus TCP 요청 프레임 생성 (MBAP 7B + PDU 5B = 12B)"""
+    mbap = bytes([
+        (t_id >> 8) & 0xFF,
+        t_id & 0xFF,
+        0x00, 0x00,       # Protocol ID: 0 (Modbus)
+        0x00, 0x06,       # Length: 6 bytes (Unit ID 1B + PDU 5B)
+        unit_id & 0xFF    # Unit ID (1)
+    ])
+    pdu = bytes([
+        func_code & 0xFF,
+        (addr >> 8) & 0xFF,
+        addr & 0xFF,
+        (val_or_qty >> 8) & 0xFF,
+        val_or_qty & 0xFF
+    ])
+    return mbap + pdu
+
 async def broadcast(payload: dict):
     """모든 연결된 웹소켓 클라이언트에게 동일 데이터 브로드캐스트 전송"""
     if not CONNECTED_CLIENTS:
@@ -117,12 +149,7 @@ async def broadcast(payload: dict):
         CONNECTED_CLIENTS.discard(ws)
 
 async def read_serial_response(sp: serial.Serial, timeout_ms: int = 420, expected_len: int = 0) -> bytes:
-    """
-    👑 [길이 인지형 초정밀 1:1 수신 엔진]
-    - Modbus RTU 헤더(국번, FC, 바이트 수)를 실시간 감지하여 기대 전체 패킷 길이를 동적 산출.
-    - 패킷이 온전히 도착(len >= expected_len)하는 순간 0.1ms 만에 즉시 반환하여 응답 속도 극대화.
-    - 패킷이 도착할 때까지 최대 timeout_ms(기본 500ms) 동안 여유 있게 대기하여 조기 포기 및 연속 TX 누락 원천 차단.
-    """
+    """길이 인지형 초정밀 시리얼 1:1 수신 엔진"""
     start_time = time.time()
     deadline = start_time + (timeout_ms / 1000.0)
     rx_bytes = b""
@@ -131,80 +158,180 @@ async def read_serial_response(sp: serial.Serial, timeout_ms: int = 420, expecte
     while time.time() < deadline:
         if sp.in_waiting > 0:
             rx_bytes += sp.read(sp.in_waiting)
-            
-            # 헤더를 분석하여 기대 전체 패킷 길이(expected_len) 동적 결정
             if expected_len == 0 and len(rx_bytes) >= 3:
-                slave_id = rx_bytes[0]
                 fc = rx_bytes[1]
-                
-                # [1] 예외 응답 (Error Exception: MSB 1): 국번(1) + FC(1) + 에러코드(1) + CRC(2) = 5바이트
                 if fc & 0x80:
                     expected_len = 5
-                # [2] 0x01, 0x02, 0x03, 0x04 읽기 응답: 국번(1) + FC(1) + 바이트수(1) + 데이터(N) + CRC(2) = 5 + N
                 elif fc in (0x01, 0x02, 0x03, 0x04):
                     byte_count = rx_bytes[2]
                     expected_len = 5 + byte_count
-                # [3] 0x05, 0x06, 0x10 쓰기 에코백 응답: 항상 8바이트
                 elif fc in (0x05, 0x06, 0x10):
                     expected_len = 8
 
-            # 기대 길이에 완전히 도달했으면 즉각 수신 완료!
             if expected_len > 0 and len(rx_bytes) >= expected_len:
                 return rx_bytes
 
-            # 아직 길이를 확정하지 못했거나 가변 패킷인 경우, 30ms 묵음 대기
             quiet_deadline = time.time() + 0.03
         else:
             if quiet_deadline and time.time() >= quiet_deadline and len(rx_bytes) > 0:
-                # 더 이상 바이트가 안 들어오고 묵음 시간 경과 시 프레임 완결로 판정
                 return rx_bytes
             await asyncio.sleep(0.005)
 
     return rx_bytes
 
+# ==============================================================================
+# 🌐 이더넷(Modbus TCP) 전용 워커 엔진
+# ==============================================================================
+async def global_tcp_worker():
+    """
+    🌐 [W5500 Modbus TCP 초고속 1:1 핑퐁 워커]
+    - W5500 제어보드(192.168.0.100:502)와 소켓 연결 유지
+    - 0x04(센서 64개)와 0x03(출력 40개)을 초고속 100~150ms 주기로 폴링
+    - 수신된 Modbus TCP PDU를 UI 호환 RTU 바이트 스트림으로 변환 브로드캐스트
+    """
+    global tcp_reader, tcp_writer, tcp_connected, mock_active, last_write_time, write_lock, force_holding_read, trans_id_counter
+    poll_cycle = 0
+
+    while True:
+        try:
+            if COMM_MODE != "TCP":
+                await asyncio.sleep(0.5)
+                continue
+
+            # [1] TCP 소켓 연결 수립
+            if tcp_writer is None or tcp_writer.is_closing():
+                try:
+                    print(f"[TCP] Connecting to H2 Control Board ({tcp_host}:{tcp_port})...")
+                    tcp_reader, tcp_writer = await asyncio.wait_for(
+                        asyncio.open_connection(tcp_host, tcp_port),
+                        timeout=2.0
+                    )
+                    tcp_connected = True
+                    print(f"[TCP] 🎉 Connected to H2 Control Board ({tcp_host}:{tcp_port})!")
+                    await broadcast({
+                        "type": "PORT_STATUS",
+                        "status": "OPENED",
+                        "msg": f"🌐 이더넷 연결 성공 ({tcp_host}:{tcp_port})",
+                        "port": f"ETH ({tcp_host})"
+                    })
+                except Exception as conn_err:
+                    tcp_connected = False
+                    tcp_writer = None
+                    tcp_reader = None
+                    # 연결 실패 시 1.5초 후 재시도
+                    await asyncio.sleep(1.5)
+                    continue
+
+            # [2] 사용자 제어 명령 직후에는 폴링 일시 대기
+            if time.time() - last_write_time < 0.1:
+                await asyncio.sleep(0.02)
+                continue
+
+            # [3] Modbus TCP 질의 송수신
+            async with write_lock:
+                try:
+                    trans_id_counter = (trans_id_counter + 1) & 0xFFFF
+                    t_id = trans_id_counter
+
+                    if force_holding_read or (poll_cycle % 4 == 3):
+                        req = build_modbus_tcp_frame(t_id, 1, 3, 0, 40) # 0x03 Read Holding Regs (40개)
+                        desc = "0x03 Read Holding Regs (출력 상태)"
+                        force_holding_read = False
+                    else:
+                        req = build_modbus_tcp_frame(t_id, 1, 4, 0, 64) # 0x04 Read Input Regs (64개)
+                        desc = "0x04 Read Input Regs (센서 계측 + M701)"
+
+                    poll_cycle = (poll_cycle + 1) % 4
+
+                    # TCP 프레임 전송
+                    tcp_writer.write(req)
+                    await tcp_writer.drain()
+
+                    # [4] Modbus TCP 응답 수신 (MBAP 헤더 6바이트 + 바디)
+                    hdr = await asyncio.wait_for(tcp_reader.readexactly(6), timeout=0.6)
+                    mbap_len = (hdr[4] << 8) | hdr[5]
+                    body = await asyncio.wait_for(tcp_reader.readexactly(mbap_len), timeout=0.6)
+
+                    # unit_id = body[0], pdu = body[1:]
+                    pdu = body[1:]
+                    # UI 호환을 위해 RTU 포맷으로 변환: [Slave 1] + [PDU] + [CRC16]
+                    rtu_payload = bytes([1]) + pdu
+                    crc = modbus_crc16(rtu_payload)
+                    rtu_full = rtu_payload + bytes([crc & 0xFF, (crc >> 8) & 0xFF])
+
+                    # UI 및 패킷 스트리머로 브로드캐스트
+                    tx_hex = rtu_payload[:6].hex().upper()
+                    tx_formatted = " ".join([tx_hex[i:i+2] for i in range(0, len(tx_hex), 2)])
+                    await broadcast({
+                        "type": "SERIAL_TX",
+                        "hex": tx_formatted,
+                        "desc": desc
+                    })
+
+                    rx_hex = rtu_full.hex().upper()
+                    rx_formatted = " ".join([rx_hex[i:i+2] for i in range(0, len(rx_hex), 2)])
+                    await broadcast({
+                        "type": "SERIAL_RX",
+                        "hex": rx_formatted
+                    })
+
+                except (asyncio.TimeoutError, ConnectionResetError, BrokenPipeError) as net_err:
+                    print(f"[TCP NET ERROR] {net_err}")
+                    if tcp_writer:
+                        try:
+                            tcp_writer.close()
+                        except:
+                            pass
+                    tcp_writer = None
+                    tcp_reader = None
+                    tcp_connected = False
+                    await asyncio.sleep(1.0)
+                    continue
+
+            # 이더넷 초고속 주기 (약 80~100ms)
+            await asyncio.sleep(0.08)
+
+        except Exception as e:
+            print(f"[TCP WORKER ERROR] {e}")
+            await asyncio.sleep(0.2)
+
+
+# ==============================================================================
+# 🔌 시리얼(RS-422) 전용 워커 엔진
+# ==============================================================================
 async def global_serial_worker():
-    """
-    👑 [가중치 비대칭 1:1 핑퐁 스마트 폴링 엔진 (Weighted Asymmetric Smart Polling Engine)]
-    - 실시간으로 계속 변화하는 0x04 센서 계측값(117바이트)은 매 턴(3회 연속) 고속 갱신 (약 300~350ms 주기).
-    - 상태가 드물게 변하는 0x03 출력 레지스터(85바이트)는 4턴에 1회(약 1.5초 주기) 경량 확인하여 보드 CPU 과부하 원천 방지.
-    - ⚡ 사용자가 화면에서 DO/AO 제어 명령(Write)을 내리면 force_holding_read 플래그가 발동하여
-      다음 폴링 턴에서 즉각 0x03을 최우선으로 질의하여 0.1초 만에 하드웨어 확정 상태 반영!
-    - 보드가 비트뱅잉 송출 후 메인 루프를 안전하게 완수할 수 있는 220ms/200ms 마진 부여로 타임아웃 0% 달성!
-    """
+    """시리얼 모드 전용 1:1 Ping-Pong 워커"""
     global serial_port, mock_active, last_write_time, write_lock, force_holding_read
     poll_cycle = 0
 
     while True:
         try:
+            if COMM_MODE != "SERIAL":
+                await asyncio.sleep(0.5)
+                continue
+
             if serial_port and serial_port.is_open:
-                # [1] 사용자 제어 명령(Write) 직후 0.25초간은 자동 폴링을 양보하여 즉시 터치감 확보
                 if time.time() - last_write_time < 0.25:
                     await asyncio.sleep(0.05)
                     continue
 
-                # [2] 물리 보드로 1:1 Ping-Pong Modbus 질의 송출 및 응답 수신
                 async with write_lock:
                     try:
-                        # 버퍼 잔류 쓰레기 비우기
                         if serial_port.in_waiting > 0:
                             serial_port.reset_input_buffer()
 
-                        # 👑 [가중치 비대칭 스케줄러]
-                        # 쓰기 명령 직후이거나 4턴에 1번(poll_cycle % 4 == 3)은 0x03(출력), 그 외 3턴은 0x04(센서)
                         if force_holding_read or (poll_cycle % 4 == 3):
-                            req = build_modbus_frame(1, 3, 0, 40) # 0x03 Read Holding Regs (출력 40개)
+                            req = build_modbus_frame(1, 3, 0, 40)
                             desc = "0x03 Read Holding Regs (출력 상태)"
-                            expected_len = 85 # 5 + 80
+                            expected_len = 85
                             force_holding_read = False
                         else:
-                            req = build_modbus_frame(1, 4, 0, 64) # 0x04 Read Input Regs (기존 센서 56개 + M701 복합센서 8개 = 총 64개)
+                            req = build_modbus_frame(1, 4, 0, 64)
                             desc = "0x04 Read Input Regs (센서 계측 + M701)"
-                            expected_len = 133 # 5 + 128 (64 * 2)
-
+                            expected_len = 133
 
                         poll_cycle = (poll_cycle + 1) % 4
 
-                        # TX 송출 및 모든 클라이언트에 브로드캐스트
                         serial_port.write(req)
                         tx_hex = req.hex().upper()
                         tx_formatted = " ".join([tx_hex[i:i+2] for i in range(0, len(tx_hex), 2)])
@@ -214,7 +341,6 @@ async def global_serial_worker():
                             "desc": desc
                         })
 
-                        # 👑 보드의 응답 완독 대기 (1:1 Ping-Pong, 최대 500ms)
                         rx_data = await read_serial_response(serial_port, timeout_ms=500, expected_len=expected_len)
                         if rx_data:
                             rx_hex = rx_data.hex().upper()
@@ -223,29 +349,23 @@ async def global_serial_worker():
                                 "type": "SERIAL_RX",
                                 "hex": rx_formatted
                             })
-                            # 정상 수신 후 MCU가 메인 루프(센서 MUX/ADC 계측)를 완수하고 수신 대기로 복귀할 안전 턴어라운드 마진
                             turnaround_delay = 0.22 if expected_len > 100 else 0.20
                         else:
-                            # ⚠️ 타임아웃 발생 시 화면에 침묵하지 않고 명확하게 통지하여 1:1 시각적 싱크 보존
                             await broadcast({
                                 "type": "SERIAL_TIMEOUT",
                                 "desc": f"{desc} 보드 응답 시간 초과 (500ms)"
                             })
-                            print(f"[POLL TIMEOUT] {desc} - 보드 응답 없음 (500ms 경과)")
-                            # 👑 [연쇄 타임아웃 차단] 타임아웃 후 송수신 버퍼 완전 리셋 및 위상 안정화 회복 딜레이(350ms)
                             try:
                                 serial_port.reset_input_buffer()
                                 serial_port.reset_output_buffer()
                             except:
                                 pass
-                            turnaround_delay = 0.35 # 0.15초 -> 0.35초로 확대하여 보드 루프 복귀 후 완벽 재동기화 보장!
+                            turnaround_delay = 0.35
 
                     except Exception as poll_err:
                         print(f"[POLL ERROR] {poll_err}")
                         turnaround_delay = 0.25
 
-                # 👑 [적응형 턴어라운드 딜레이]
-                # 보드가 다음 수신 준비를 100% 완료할 수 있도록 안정적인 유휴 시간 보장
                 await asyncio.sleep(turnaround_delay)
 
             elif mock_active:
@@ -276,16 +396,20 @@ async def global_serial_worker():
                     }
                 }
                 await broadcast(mock_packet)
-
             else:
                 await asyncio.sleep(0.2)
 
         except Exception as e:
-            print(f"[WORKER ERROR] {e}")
+            print(f"[SERIAL WORKER ERROR] {e}")
             await asyncio.sleep(0.3)
 
+
+# ==============================================================================
+# 🌐 WebSocket 클라이언트 요청 핸들러
+# ==============================================================================
 async def handler(websocket, path=None):
-    global serial_port, mock_active, tcp_host, tcp_port, last_write_time, write_lock, force_holding_read, shutdown_timer_task, has_client_connected_ever
+    global serial_port, mock_active, tcp_host, tcp_port, tcp_writer, tcp_reader, tcp_connected, COMM_MODE
+    global last_write_time, write_lock, force_holding_read, shutdown_timer_task, has_client_connected_ever, trans_id_counter
     has_client_connected_ever = True
     if shutdown_timer_task and not shutdown_timer_task.done():
         shutdown_timer_task.cancel()
@@ -294,7 +418,6 @@ async def handler(websocket, path=None):
     client_addr = getattr(websocket, 'remote_address', 'unknown')
     print(f"[WS CLIENT] Connected from: {client_addr} (Total: {len(CONNECTED_CLIENTS)})")
     
-    # 시퀀스 엔진 상태 통지 콜백 연동 (모든 클라이언트에 브로드캐스트)
     async def send_to_all(data_str):
         try:
             payload = json.loads(data_str)
@@ -304,17 +427,19 @@ async def handler(websocket, path=None):
 
     seq_engine.set_broadcast_callback(send_to_all)
     
-    # 🔌 클라이언트 최초 접속 시 현재 시스템의 실제 사용 가능한 시리얼 포트 목록 및 연결 상태 즉각 전송
+    # 클라이언트 초기 상태 전송
     try:
-        cur_port = serial_port.port if (serial_port and serial_port.is_open) else None
+        cur_port = f"ETH ({tcp_host}:{tcp_port})" if COMM_MODE == "TCP" else (serial_port.port if (serial_port and serial_port.is_open) else None)
+        is_open = tcp_connected if COMM_MODE == "TCP" else bool(serial_port and serial_port.is_open)
         await websocket.send(json.dumps({
             "type": "PORTS_LIST",
             "ports": get_available_ports(),
             "current_port": cur_port,
-            "is_open": bool(serial_port and serial_port.is_open)
+            "is_open": is_open,
+            "comm_mode": COMM_MODE
         }))
     except Exception as ex:
-        print(f"[WS CLIENT INIT] Port list push failed: {ex}")
+        print(f"[WS CLIENT INIT] Init push failed: {ex}")
 
     try:
         async for message in websocket:
@@ -322,50 +447,34 @@ async def handler(websocket, path=None):
             req_type = req.get("type")
             
             if req_type in ["GET_PORTS", "REFRESH_PORTS", "SCAN_PORTS"]:
-                cur_port = serial_port.port if (serial_port and serial_port.is_open) else None
+                cur_port = f"ETH ({tcp_host}:{tcp_port})" if COMM_MODE == "TCP" else (serial_port.port if (serial_port and serial_port.is_open) else None)
+                is_open = tcp_connected if COMM_MODE == "TCP" else bool(serial_port and serial_port.is_open)
                 await websocket.send(json.dumps({
                     "type": "PORTS_LIST",
                     "ports": get_available_ports(),
                     "current_port": cur_port,
-                    "is_open": bool(serial_port and serial_port.is_open)
+                    "is_open": is_open,
+                    "comm_mode": COMM_MODE
                 }))
 
             elif req_type == "OPEN_PORT":
                 port = req.get("port", "COM3")
                 baud = int(req.get("baud", 19200))
-                parity_char = req.get("parity", "N")[0].upper()
-                stopbits = float(req.get("stop", 1))
-                
-                parity_map = {"N": serial.PARITY_NONE, "E": serial.PARITY_EVEN, "O": serial.PARITY_ODD}
-                parity = parity_map.get(parity_char, serial.PARITY_NONE)
-                
+                COMM_MODE = "SERIAL"
                 print(f"[PORT CONTROL] Attempting to open serial {port} at {baud}bps...")
                 
                 try:
                     if serial_port and serial_port.is_open:
                         serial_port.close()
                     
-                    serial_port = serial.Serial(
-                        port=port,
-                        baudrate=baud,
-                        parity=parity,
-                        stopbits=stopbits,
-                        timeout=0.1
-                    )
+                    serial_port = serial.Serial(port=port, baudrate=baud, timeout=0.1)
                     mock_active = False
                     print(f"[PORT CONTROL] Successfully opened serial {port}.")
                     await broadcast({
                         "type": "PORT_STATUS",
                         "status": "OPENED",
-                        "msg": f"{port} 열기 성공 (물리 장비 연동 활성화)",
+                        "msg": f"{port} 열기 성공 (시리얼 연동 활성화)",
                         "port": port
-                    })
-                    # 전체 클라이언트에 포트 상태 갱신 통지
-                    await broadcast({
-                        "type": "PORTS_LIST",
-                        "ports": get_available_ports(),
-                        "current_port": port,
-                        "is_open": True
                     })
                 except Exception as ex:
                     print(f"[PORT CONTROL] Failed to open {port}: {ex}")
@@ -373,67 +482,63 @@ async def handler(websocket, path=None):
                     await broadcast({
                         "type": "PORT_STATUS",
                         "status": "MOCK_ACTIVE",
-                        "msg": f"{port} 포트 연결 실패 ({ex}). 시뮬레이터(가상) 모드로 자동 전환됩니다."
+                        "msg": f"{port} 포트 연결 실패 ({ex}). 가상 모드로 전환됩니다."
                     })
-                    await broadcast({
-                        "type": "PORTS_LIST",
-                        "ports": get_available_ports(),
-                        "current_port": None,
-                        "is_open": False
-                    })
-                    
+
             elif req_type == "CLOSE_PORT":
-                if serial_port and serial_port.is_open:
+                if COMM_MODE == "SERIAL" and serial_port and serial_port.is_open:
                     serial_port.close()
                     serial_port = None
                 mock_active = False
-                print("[PORT CONTROL] Port connection closed.")
-                await broadcast({
-                    "type": "PORT_STATUS",
-                    "status": "CLOSED"
-                })
-                await broadcast({
-                    "type": "PORTS_LIST",
-                    "ports": get_available_ports(),
-                    "current_port": None,
-                    "is_open": False
-                })
-                
+                await broadcast({"type": "PORT_STATUS", "status": "CLOSED"})
+
             elif req_type == "WRITE_PORT":
+                # UI에서 내려온 0x05 / 0x06 제어 명령
                 hex_str = req.get("hex", "").replace(" ", "")
                 if hex_str:
                     last_write_time = time.time()
-                    force_holding_read = True # 👑 제어 쓰기 즉시 0x03 우선 폴링 트리거
-                    if serial_port and serial_port.is_open:
+                    force_holding_read = True
+
+                    if COMM_MODE == "TCP" and tcp_writer and not tcp_writer.is_closing():
                         async with write_lock:
-                            # 턴어라운드 안전 윈도우 (보드가 송신 직후 수신 모드로 복귀할 시간 확보)
-                            await asyncio.sleep(0.015)
                             try:
-                                serial_port.reset_input_buffer()
-                            except:
-                                pass
+                                rtu_bytes = bytes.fromhex(hex_str)
+                                # RTU: [Slave 1B][FC 1B][Addr 2B][Val 2B][CRC 2B] -> TCP PDU: [FC][Addr][Val]
+                                if len(rtu_bytes) >= 6:
+                                    fc = rtu_bytes[1]
+                                    addr = (rtu_bytes[2] << 8) | rtu_bytes[3]
+                                    val = (rtu_bytes[4] << 8) | rtu_bytes[5]
+                                    trans_id_counter = (trans_id_counter + 1) & 0xFFFF
+                                    tcp_pkt = build_modbus_tcp_frame(trans_id_counter, 1, fc, addr, val)
+                                    tcp_writer.write(tcp_pkt)
+                                    await tcp_writer.drain()
 
+                                    # ACK 응답 수신
+                                    hdr = await asyncio.wait_for(tcp_reader.readexactly(6), timeout=0.5)
+                                    mbap_len = (hdr[4] << 8) | hdr[5]
+                                    body = await asyncio.wait_for(tcp_reader.readexactly(mbap_len), timeout=0.5)
+                                    
+                                    pdu = body[1:]
+                                    rtu_ack = bytes([1]) + pdu
+                                    crc = modbus_crc16(rtu_ack)
+                                    rtu_ack_full = rtu_ack + bytes([crc & 0xFF, (crc >> 8) & 0xFF])
+
+                                    ack_hex = rtu_ack_full.hex().upper()
+                                    ack_formatted = " ".join([ack_hex[i:i+2] for i in range(0, len(ack_hex), 2)])
+                                    await broadcast({
+                                        "type": "SERIAL_RX",
+                                        "hex": ack_formatted
+                                    })
+                                    print(f"[TCP -> WS] ACK: {ack_formatted}")
+                            except Exception as tcp_wr_err:
+                                print(f"[TCP WRITE ERROR] {tcp_wr_err}")
+
+                    elif COMM_MODE == "SERIAL" and serial_port and serial_port.is_open:
+                        async with write_lock:
+                            await asyncio.sleep(0.015)
                             byte_data = bytes.fromhex(hex_str)
-                            tx_formatted = " ".join([hex_str[i:i+2] for i in range(0, len(hex_str), 2)])
-                            
-                            # 1차 송출
                             serial_port.write(byte_data)
-                            await broadcast({
-                                "type": "SERIAL_TX",
-                                "hex": tx_formatted,
-                                "desc": "0x06/0x05 Write Command (출력 제어)"
-                            })
-                            print(f"[WS -> SERIAL] Written: {tx_formatted}")
-
-                            # 👑 보드로부터의 응답 ACK 완독 대기 (1:1 수신 동기화, 최대 350ms, 8바이트)
                             ack_data = await read_serial_response(serial_port, timeout_ms=350, expected_len=8)
-                            
-                            # 만약 순간 글리치로 ACK 미도착 시 1회 스마트 자동 재시도
-                            if not ack_data:
-                                await asyncio.sleep(0.02)
-                                serial_port.write(byte_data)
-                                ack_data = await read_serial_response(serial_port, timeout_ms=350, expected_len=8)
-
                             if ack_data:
                                 ack_hex = ack_data.hex().upper()
                                 ack_formatted = " ".join([ack_hex[i:i+2] for i in range(0, len(ack_hex), 2)])
@@ -441,73 +546,44 @@ async def handler(websocket, path=None):
                                     "type": "SERIAL_RX",
                                     "hex": ack_formatted
                                 })
-                                print(f"[SERIAL -> WS] ACK: {ack_formatted}")
-                    else:
-                        await broadcast({
-                            "type": "SERIAL_RX",
-                            "hex": req.get("hex")
-                        })
 
-            # ⏰ DS3231 RTC 시간 동기화 커맨드 핸들링 (PC -> 보드 RTC)
-            elif req_type == "SYNC_RTC":
-                year = int(req.get("year", 2026))
-                month = int(req.get("month", 1))
-                date = int(req.get("date", 1))
-                hour = int(req.get("hour", 0))
-                minute = int(req.get("minute", 0))
-                second = int(req.get("second", 0))
+            elif req_type == "RTC_SYNC":
+                # RTC 시간 동기화 명령
+                year = int(req.get("year", datetime.datetime.now().year))
+                month = int(req.get("month", datetime.datetime.now().month))
+                date = int(req.get("date", datetime.datetime.now().day))
+                hour = int(req.get("hour", datetime.datetime.now().hour))
+                minute = int(req.get("minute", datetime.datetime.now().minute))
+                second = int(req.get("second", datetime.datetime.now().second))
 
-                # 40~46번지 FC 0x10 프레임 조립 (Slave 1, FC 16, Start 40, Qty 7, Bytes 14)
-                data_bytes = bytearray()
-                for val in [year, month, date, hour, minute, second, 1]:
-                    data_bytes.append((val >> 8) & 0xFF)
-                    data_bytes.append(val & 0xFF)
+                rtc_regs = [
+                    (40, year), (41, month), (42, date),
+                    (43, hour), (44, minute), (45, second),
+                    (46, 1) # Trigger
+                ]
 
-                hdr = bytearray([1, 16, 0, 40, 0, 7, 14]) + data_bytes
-                crc = modbus_crc16(hdr)
-                frame = bytes(hdr + bytearray([crc & 0xFF, (crc >> 8) & 0xFF]))
-
-                last_write_time = time.time()
-                force_holding_read = True
-                tx_formatted = " ".join([f"{b:02X}" for b in frame])
-
-                if serial_port and serial_port.is_open:
-                    async with write_lock:
+                async with write_lock:
+                    for reg_addr, val in rtc_regs:
+                        if COMM_MODE == "TCP" and tcp_writer:
+                            trans_id_counter = (trans_id_counter + 1) & 0xFFFF
+                            tcp_pkt = build_modbus_tcp_frame(trans_id_counter, 1, 6, reg_addr, val)
+                            tcp_writer.write(tcp_pkt)
+                            await tcp_writer.drain()
+                            hdr = await asyncio.wait_for(tcp_reader.readexactly(6), timeout=0.3)
+                            mlen = (hdr[4] << 8) | hdr[5]
+                            await tcp_reader.readexactly(mlen)
+                        elif COMM_MODE == "SERIAL" and serial_port and serial_port.is_open:
+                            pkt = build_modbus_frame(1, 6, reg_addr, val)
+                            serial_port.write(pkt)
+                            await read_serial_response(serial_port, timeout_ms=250, expected_len=8)
                         await asyncio.sleep(0.015)
-                        try:
-                            serial_port.reset_input_buffer()
-                        except:
-                            pass
-                        serial_port.write(frame)
-                        await broadcast({
-                            "type": "SERIAL_TX",
-                            "hex": tx_formatted,
-                            "desc": f"0x10 Write RTC Sync ({year:04d}-{month:02d}-{date:02d} {hour:02d}:{minute:02d}:{second:02d})"
-                        })
-                        print(f"[WS -> SERIAL] RTC SYNC TX: {tx_formatted}")
 
-                        ack_data = await read_serial_response(serial_port, timeout_ms=400, expected_len=8)
-                        if not ack_data:
-                            await asyncio.sleep(0.02)
-                            serial_port.write(frame)
-                            ack_data = await read_serial_response(serial_port, timeout_ms=400, expected_len=8)
-
-                        if ack_data:
-                            ack_formatted = " ".join([f"{b:02X}" for b in ack_data])
-                            await broadcast({
-                                "type": "SERIAL_RX",
-                                "hex": ack_formatted
-                            })
-                            print(f"[SERIAL -> WS] RTC SYNC ACK: {ack_formatted}")
-
-                print(f"[RTC SYNC] Synced time {year:04d}-{month:02d}-{date:02d} {hour:02d}:{minute:02d}:{second:02d} dispatched to board.")
                 await broadcast({
                     "type": "RTC_SYNC_ACK",
                     "status": "SUCCESS",
                     "time": f"{year:04d}-{month:02d}-{date:02d} {hour:02d}:{minute:02d}:{second:02d}"
                 })
 
-            # 🤖 시퀀스 레시피 제어 커맨드 핸들링
             elif req_type == "GET_RECIPES":
                 await websocket.send(json.dumps({
                     "type": "RECIPE_LIST",
@@ -515,8 +591,7 @@ async def handler(websocket, path=None):
                 }))
 
             elif req_type == "START_SEQUENCE":
-                recipe_id = req.get("recipe_id")
-                seq_engine.start_recipe(recipe_id)
+                seq_engine.start_recipe(req.get("recipe_id"))
 
             elif req_type == "PAUSE_SEQUENCE":
                 seq_engine.pause_recipe()
@@ -529,28 +604,43 @@ async def handler(websocket, path=None):
 
             elif req_type == "RESET_ALL_OUTPUTS":
                 seq_engine.stop_recipe("RESET_ALL")
-                if serial_port and serial_port.is_open:
-                    async with write_lock:
-                        try:
-                            # 1. 모든 DAC (0~11번지) 0V 리셋
-                            for dac_idx in range(12):
+                async with write_lock:
+                    try:
+                        for dac_idx in range(12):
+                            if COMM_MODE == "TCP" and tcp_writer:
+                                trans_id_counter = (trans_id_counter + 1) & 0xFFFF
+                                pkt = build_modbus_tcp_frame(trans_id_counter, 1, 6, dac_idx, 0)
+                                tcp_writer.write(pkt)
+                                await tcp_writer.drain()
+                                hdr = await tcp_reader.readexactly(6)
+                                mlen = (hdr[4] << 8) | hdr[5]
+                                await tcp_reader.readexactly(mlen)
+                            elif COMM_MODE == "SERIAL" and serial_port and serial_port.is_open:
                                 pkt = build_modbus_frame(1, 6, dac_idx, 0)
                                 serial_port.write(pkt)
                                 await asyncio.sleep(0.015)
-                            # 2. 부하 DO 릴레이 (20~39번지) 닫힘, 단 DO_MC_SW(인덱스 14)는 ON(1) 유지
-                            for do_idx in range(20):
-                                reg_addr = 20 + do_idx
-                                val = 1 if do_idx == 14 else 0
+                        
+                        for do_idx in range(20):
+                            reg_addr = 20 + do_idx
+                            val = 1 if do_idx == 14 else 0
+                            if COMM_MODE == "TCP" and tcp_writer:
+                                trans_id_counter = (trans_id_counter + 1) & 0xFFFF
+                                pkt = build_modbus_tcp_frame(trans_id_counter, 1, 6, reg_addr, val)
+                                tcp_writer.write(pkt)
+                                await tcp_writer.drain()
+                                hdr = await tcp_reader.readexactly(6)
+                                mlen = (hdr[4] << 8) | hdr[5]
+                                await tcp_reader.readexactly(mlen)
+                            elif COMM_MODE == "SERIAL" and serial_port and serial_port.is_open:
                                 pkt = build_modbus_frame(1, 6, reg_addr, val)
                                 serial_port.write(pkt)
                                 await asyncio.sleep(0.015)
-                        except Exception as reset_ex:
-                            print(f"[RESET ERROR] Failed to send hardware reset: {reset_ex}")
+                    except Exception as reset_ex:
+                        print(f"[RESET ERROR] {reset_ex}")
 
-                print("[SAFETY EMERGENCY] ALL OUTPUTS RESET DISPATCHED")
                 await broadcast({
                     "type": "SYSTEM_RESET_ACK",
-                    "msg": "🚨 메인 전원(DO_MC_SW: ON) 보존 & 모든 부하 릴레이(DO 19채널 닫힘, DAC 11채널 0V) 초기화 완료!"
+                    "msg": "🚨 메인 전원(DO_MC_SW: ON) 보존 & 모든 부하 릴레이 초기화 완료!"
                 })
 
             elif req_type == "SAVE_SEQUENCE_RECIPE":
@@ -563,7 +653,6 @@ async def handler(websocket, path=None):
                         recipes_list = list(seq_engine.recipes.values())
                         with open(recipe_path, "w", encoding="utf-8") as f:
                             json.dump(recipes_list, f, indent=2, ensure_ascii=False)
-                        print(f"[RECIPE BUILDER] New recipe saved successfully: {recipe_id}")
                         await broadcast({
                             "type": "SAVE_RECIPE_SUCCESS",
                             "recipe_id": recipe_id,
@@ -582,7 +671,6 @@ async def handler(websocket, path=None):
                         recipes_list = list(seq_engine.recipes.values())
                         with open(recipe_path, "w", encoding="utf-8") as f:
                             json.dump(recipes_list, f, indent=2, ensure_ascii=False)
-                        print(f"[RECIPE BUILDER] Recipe deleted: {del_recipe_id}")
                         await broadcast({
                             "type": "DELETE_RECIPE_SUCCESS",
                             "recipe_id": del_recipe_id,
@@ -593,15 +681,19 @@ async def handler(websocket, path=None):
                         print(f"[RECIPE BUILDER ERROR] Failed to delete recipe: {ex}")
 
             elif req_type == "UPDATE_TELEMETRY":
-                telemetry = req.get("data", {})
-                seq_engine.update_sensor_data(telemetry)
+                seq_engine.update_sensor_data(req.get("data", {}))
 
             elif req_type == "SHUTDOWN_BRIDGE":
                 print("[SHUTDOWN] 관제 UI 창 닫힘 감지. 백그라운드 브릿지를 안전하게 즉각 종료합니다.")
                 if serial_port and serial_port.is_open:
                     try:
                         serial_port.close()
-                    except Exception:
+                    except:
+                        pass
+                if tcp_writer:
+                    try:
+                        tcp_writer.close()
+                    except:
                         pass
                 os._exit(0)
 
@@ -615,18 +707,34 @@ async def handler(websocket, path=None):
                 shutdown_timer_task = asyncio.create_task(check_auto_shutdown())
 
 async def main():
+    global COMM_MODE, tcp_host, tcp_port
+
+    parser = argparse.ArgumentParser(description="H2 Control Board Modbus Bridge")
+    parser.add_argument("--mode", choices=["TCP", "SERIAL"], default="TCP", help="Communication Mode (TCP or SERIAL)")
+    parser.add_argument("--ip", default="192.168.0.100", help="W5500 Board IP address")
+    parser.add_argument("--port", type=int, default=502, help="Modbus TCP Port")
+    args, unknown = parser.parse_known_args()
+
+    COMM_MODE = args.mode
+    tcp_host = args.ip
+    tcp_port = args.port
+
     print("==================================================")
-    print(" RS-422 Modbus RTU Singleton Ping-Pong Bridge")
+    print(f" H2 Control Board Bridge [MODE: {COMM_MODE}]")
+    if COMM_MODE == "TCP":
+        print(f" Target Board IP: {tcp_host}:{tcp_port} (W5500 ETH1)")
+    else:
+        print(" Mode: RS-422 Serial RTU")
     print(" Websocket Server listening on ws://localhost:8888")
     print("==================================================")
     
-    # 👑 단독 시리얼 마스터 워커 루프 백그라운드 상시 가동
+    # 🌐 이더넷 워커 및 시리얼 워커 백그라운드 등록
+    asyncio.create_task(global_tcp_worker())
     asyncio.create_task(global_serial_worker())
-    # 👑 초기 유휴 방지 워치독 가동 (부팅 후 아무도 안 오면 45초 후 자동 종료)
     asyncio.create_task(initial_idle_watchdog())
     
     async with websockets.serve(handler, "localhost", 8888):
-        await asyncio.Future()  # run forever
+        await asyncio.Future()
 
 if __name__ == "__main__":
     try:

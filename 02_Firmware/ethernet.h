@@ -73,4 +73,33 @@ void ETH_WriteReg(ETH_Unit_t unit, uint16_t reg_addr, uint8_t control_phase, uin
  */
 uint8_t ETH_ReadReg(ETH_Unit_t unit, uint16_t reg_addr, uint8_t control_phase);
 
+/**
+ * @brief W5500 버퍼 다중 바이트 쓰기
+ */
+void ETH_WriteBuf(ETH_Unit_t unit, uint16_t reg_addr, uint8_t control_phase, const uint8_t *buf, uint16_t len);
+
+/**
+ * @brief W5500 버퍼 다중 바이트 읽기
+ */
+void ETH_ReadBuf(ETH_Unit_t unit, uint16_t reg_addr, uint8_t control_phase, uint8_t *buf, uint16_t len);
+
+/* ==========================================================================
+ * 2. Modbus TCP 서버 API (W5500 Socket 0)
+ * ========================================================================== */
+
+#define MODBUS_TCP_PORT 502 // 표준 Modbus TCP 포트
+
+/**
+ * @brief W5500 Socket 0을 Modbus TCP 서버 모드로 초기화
+ * @param port 바인딩할 TCP 포트 (기본 502)
+ */
+void ETH_ModbusTCP_Init(uint16_t port);
+
+/**
+ * @brief W5500 Socket 0 상태 머신 및 Modbus TCP 패킷 수신/응답 주기적 처리 태스크
+ * @note main.c의 메인 루프에서 주기적으로 호출
+ */
+void ETH_ModbusTCP_Task(void);
+
 #endif /* ETHERNET_H */
+

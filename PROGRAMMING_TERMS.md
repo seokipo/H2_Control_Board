@@ -2446,6 +2446,16 @@ VS Code 환경에서 Git 버전 관리 시스템의 메타데이터를 소스 �
    - **R/S-Type (Pt-Rh vs Pt)**: -50℃ ~ +1600℃ (연구용 및 표준 고정밀 초고온로용)
    - **B-Type (Pt-Rh 30% vs Pt-Rh 6%)**: 0℃ ~ +1800℃ (상온에서는 기전력이 거의 나오지 않아 용해로 전용)
 
+### 628. 🌐 W5500 하드웨어 TCP/IP 스택 및 Modbus TCP MBAP 프로토콜 (W5500 Hardwired TCP/IP & Modbus TCP MBAP Architecture) ⭐️⭐️⭐️⭐️⭐️
+소프트웨어(OS/RTOS)의 복잡한 네트워크 스택 부담 없이, 순수 실리콘 하드웨어 로직으로 TCP/IP 4계층(Ethernet MAC, PHY, IP, ARP, TCP, UDP, ICMP)을 처리하는 WIZnet W5500 컨트롤러 IC와 산업용 표준 이더넷 프로토콜인 Modbus TCP를 결합한 초고속·고신뢰성 통신 아키텍처입니다.
+1. **W5500 Hardwired TCP/IP 오프로딩 (Zero CPU Overhead)**:
+   - **동작 원리**: MCU(dsPIC33CK)의 플래시 메모리와 연산 능력을 소모하지 않고, 칩셋 내부의 하드웨어 FSM(유한 상태 머신)이 3-Way Handshake, 패킷 재전송, 윈도우 크기 조절, 체크섬 연산을 100% 자율 처리합니다.
+   - **적용 효과**: MCU는 오직 SPI 고속 버스(2.0MHz)를 통해 내부 소켓 버퍼(Socket 0)의 송수신 포인터만 R/W하면 되므로, 32채널 센서 계측 및 PID 제어 루프의 지연(Jitter) 없이 0.1ms급 초고속 네트워크 응답을 달성합니다.
+2. **Modbus TCP MBAP 헤더 및 RTU 트랜스패런트 상호변환**:
+   - **프레임 구조**: Modbus RTU의 [국번 + PDU + CRC16] 구조와 달리, Modbus TCP는 7바이트의 MBAP(Modbus Application Protocol) 헤더(`Transaction ID[2] + Protocol ID[2]=0 + Length[2] + Unit ID[1]`)와 `PDU[Function Code + Data]`로 구성됩니다. TCP 자체의 L4 체크섬을 신뢰하므로 CRC16이 생략됩니다.
+   - **하이브리드 중계 엔진**: PC 통신 브릿지(`serial_bridge.py`)가 보드와는 Modbus TCP 소켓(Port 502)으로 초고속 핑퐁 통신을 수행하고, 웹소켓 클라이언트(SCADA 대시보드 `index.html`)로는 투명한 텔레메트리 바이트 스트림으로 중계함으로써, 기존 UI 화면의 어떤 수정이나 회귀 버그 없이 시리얼과 이더넷 통신을 완벽히 교차 지원합니다.
+
+
 
 
 

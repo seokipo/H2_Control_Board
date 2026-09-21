@@ -121,6 +121,8 @@ int main(void) {
   RS422_Initialize();    // 👑 [특허급 하드웨어 구제] 70번 핀 초정밀 비트뱅잉 RX & 71번 하드웨어 TX (19200 bps)
   RS485_Initialize();    // 필드/컨버터용 9600bps 하드웨어 UART1 (RB6 RX, RD5 TX, RB5 DIR)
   Modbus_Initialize();   // Modbus RTU 슬레이브 데이터베이스 초기화
+  ETH_Initialize();      // 🌐 듀얼 W5500 이더넷 칩셋 SPI2 및 네트워크 파라미터(192.168.0.100) 초기화
+  ETH_ModbusTCP_Init(MODBUS_TCP_PORT); // 🌐 W5500 Socket 0 Modbus TCP (Port 502) 서버 리스닝 개시
 
   // 초기 RTC 시간 1-Shot 획득 및 Modbus DB 등록
   DateTime_t init_dt;
@@ -199,9 +201,11 @@ int main(void) {
   ADS1115_TriggerChannel(adc_channel_map[0]); // ADS1115 0번 채널 초기 변환 사전 트리거
 
   while (1) {
-    // [A] 관제용 Modbus RTU 통신 패킷 스캔 및 고속 응답 처리
-    // (RS-422 70번 핀 초정밀 비트뱅잉 수신 & 71번 초정밀 언롤 비트뱅잉 송신)
+    // [A] 관제용 Modbus RTU 통신 패킷 스캔 및 고속 응답 처리 (RS-422)
     Modbus_Task();
+
+    // [A-1] 관제용 Modbus TCP 통신 패킷 처리 (W5500 이더넷 포트 502)
+    ETH_ModbusTCP_Task();
 
     // [A-2] 필드 RS-485 (UART1) M701 7-in-1 복합 가스/환경 센서 패킷 수신 및 DB 바인딩
     if (RS485_ProcessM701()) {

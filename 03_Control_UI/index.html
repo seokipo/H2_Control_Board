@@ -5065,7 +5065,7 @@
                 const badge = document.getElementById('header-comm-status-badge');
                 const text = document.getElementById('header-comm-status-text');
 
-                // [1] 실제 시리얼 포트 목록 동적 반영
+                // [1] 실제 시리얼/이더넷 포트 목록 동적 반영
                 if (data.type === "PORTS_LIST") {
                     updatePortDropdown(data.ports, data.current_port, data.is_open);
                     if (data.is_open && data.current_port) {
@@ -5075,7 +5075,13 @@
                             btn.classList.add('connected');
                         }
                         if (badge) badge.classList.add('connected');
-                        if (text) text.innerText = `RS-422: ${data.current_port} [실전연동]`;
+                        if (text) {
+                            if (data.comm_mode === "TCP" || data.current_port.startsWith("ETH")) {
+                                text.innerText = `🌐 이더넷(TCP): ${data.current_port} [초고속 연동]`;
+                            } else {
+                                text.innerText = `RS-422: ${data.current_port} [실전연동]`;
+                            }
+                        }
                     }
                 }
                 // [2] 포트 상태 변화 통지
@@ -5088,10 +5094,17 @@
                         }
                         if (badge) badge.classList.add('connected');
 
-                        const suffix = data.status === "VIRTUAL" ? " [가상에뮬]" : " [실전연동]";
+                        const suffix = data.status === "VIRTUAL" ? " [가상에뮬]" : " [초고속 연동]";
                         const portName = data.port || (portArgs ? portArgs.port : "COM");
-                        if (text) text.innerText = `RS-422: ${portName}${suffix}`;
+                        if (text) {
+                            if (portName.startsWith("ETH") || data.msg.includes("이더넷")) {
+                                text.innerText = `🌐 이더넷(TCP): ${portName}${suffix}`;
+                            } else {
+                                text.innerText = `RS-422: ${portName}${suffix}`;
+                            }
+                        }
                         if (data.msg) log(`[SYSTEM] ${data.msg}`);
+
                     } else if (data.status === "CLOSED") {
                         isPortConnected = false;
                         if (btn) {
